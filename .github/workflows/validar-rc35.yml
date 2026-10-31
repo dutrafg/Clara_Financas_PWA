@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test
+      - name: Suíte estática e integridade financeira
+        run: npm test
       - run: npm run build
       - uses: actions/setup-python@v5
         with:
@@ -26,3 +27,4 @@ jobs:
           python -m http.server 8765 --directory dist --bind 127.0.0.1 &
           sleep 3
           python tests/pwa_browser.py
+          python tests/miniapps_extended.py
