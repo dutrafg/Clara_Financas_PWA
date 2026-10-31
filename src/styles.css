@@ -54,3 +54,5 @@ body[data-accent=blue]{--accent:#236bb8;--accent-hover:#185695;--soft:#eaf3fd;--
 .savings-overview small{display:block;color:var(--muted,#64748b);margin-bottom:8px}
 .savings-overview strong{display:block;overflow-wrap:anywhere;font-size:17px}
 @media(max-width:760px){.catalog-columns{grid-template-columns:1fr}.savings-overview{grid-template-columns:1fr}.catalog-row-actions{gap:3px}}
+
+@media(max-width:690px){.mobile-nav{justify-content:space-evenly;gap:0}.mobile-nav button{flex:1 1 0;min-width:0;font-size:9px;padding:4px 1px}.mobile-nav button svg{width:20px;height:20px}}
