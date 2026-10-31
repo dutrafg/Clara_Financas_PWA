@@ -272,6 +272,8 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_role('button',name='Desativar proteção do banco').click()
   page.wait_for_function('''async () => new Promise(resolve=>{const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const s=r.result.transaction('app','readonly').objectStore('app');const a=s.get('state'),b=s.get('state-vault');let plain,enc; a.onsuccess=()=>{plain=a.result;if(b.readyState==='done')resolve(!!plain&&!b.result)};b.onsuccess=()=>{enc=b.result;if(a.readyState==='done')resolve(!!plain&&!enc)}}})''')
   page.reload()
+  print('COFRE REVERSAO TELA:',page.locator('body').inner_text(timeout=10000)[:1100])
+  print('ERROS JS REVERSAO:',errors[-5:])
   page.locator('.clara-balance-hero').wait_for(timeout=15000)
   assert not errors,errors
   print('PASSOU: migração do IndexedDB criptografado, senha, recarga e reversão sem perda')
