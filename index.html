@@ -2117,13 +2117,14 @@ const CLARA_RELEASE_NOTES=Object.freeze([
  'Dock flutuante, Perfil e 15 miniaplicativos preservados'
 ]);
 const PREF_DEFAULTS = Object.freeze({
-  palette: 'violet', density: 'comfortable', largeText: false,
+  palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
   reduceMotion: false, sidebarCompact: false, hideValues: false,
   showSummary: true, showCategories: true, showOutlook: true,
   forecastMonths: 4, budgetWarningPct: 75
 });
 const PREF_ENUMS = Object.freeze({
-  palette: ['violet', 'blue', 'petrol'], density: ['comfortable', 'compact'],
+  palette: ['violet', 'blue', 'petrol', 'bosque', 'coral', 'areia'], density: ['comfortable', 'compact'],
+  surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
 const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook'];
@@ -2922,7 +2923,10 @@ function renderAjustes() {
     const choices = [
       ['violet', 'Violeta', 'Mobills contemporâneo', ['#6e4ddd','#9876ed','#e8ddff']],
       ['blue', 'Azul', 'Mobills clássico', ['#2779da','#4ca5eb','#e0f0ff']],
-      ['petrol', 'Petróleo', 'Identidade Clara', ['#0c7287','#4cdbcd','#d8f6f1']]
+      ['petrol', 'Petróleo', 'Identidade Clara', ['#0c7287','#4cdbcd','#d8f6f1']],
+      ['bosque', 'Bosque', 'Verde profundo e sereno', ['#144b3b','#2fa37b','#def6e8']],
+      ['coral', 'Coral', 'Calor discreto', ['#a33c5f','#e88178','#ffe5d9']],
+      ['areia', 'Areia', 'Neutros e dourado', ['#7d6537','#d4aa5e','#f6eddb']]
     ];
     body = `${panel('Paleta do aplicativo', 'Cores inspiradas nas duas fases visuais do Mobills, com alternativa exclusiva Clara. Cores aproximadas — não é uma reprodução da marca.', `
       <div class="palette-grid">${choices.map(([key,title,sub,colors])=>`<button type="button" class="palette-choice ${pref('palette')===key?'selected':''}" data-palette="${key}" aria-pressed="${pref('palette')===key}"><span class="palette-swatches">${colors.map(col=>`<i style="background:${col}"></i>`).join('')}</span><strong>${title}</strong><small>${sub}</small><span class="palette-mark">${pref('palette')===key?'✓ Em uso':'Aplicar paleta'}</span></button>`).join('')}</div>
@@ -3328,6 +3332,8 @@ function render() {
   document.documentElement.dataset.theme = state.settings.theme;
   document.documentElement.dataset.palette = pref('palette');
   document.documentElement.dataset.density = pref('density');
+  document.documentElement.dataset.surface = pref('surface');
+  document.documentElement.dataset.backdrop = pref('backdrop');
   document.documentElement.dataset.text = pref('largeText') ? 'large' : 'normal';
   document.documentElement.dataset.motion = pref('reduceMotion') ? 'reduced' : 'normal';
   document.documentElement.dataset.sidebar = pref('sidebarCompact') ? 'compact' : 'wide';
