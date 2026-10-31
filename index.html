@@ -4503,53 +4503,150 @@ window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraS
 </script>
 <script id="clara-update-runtime">
 'use strict';
+// Atualizador: experiência EvoluFísico2, sem reativação automática e sem apagar cofre.
 const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
- let registration=null,started=false,applying=false;
+ const HOUR=60*60*1000, RESUME=15*60*1000, DISMISS_KEY='clara-update-dismissed-v1';
+ let registration=null, initialPromise=null, checking=null, applying=false, observed=false;
+ let status='Aguardando', message='Verificação automática ao desbloquear.', lastCheck=0;
+ let remoteVersion='', releaseNotes=[], ready=false;
+ const get=id=>document.getElementById(id);
+ const compare=(a,b)=>{
+   const nums=s=>String(s||'').split('-')[0].split('.').map(x=>Number(x));
+   const left=nums(a),right=nums(b);
+   for(let i=0;i<3;i++){const delta=(left[i]||0)-(right[i]||0);if(delta)return Math.sign(delta);}
+   return a===b?0:(a.includes('-')&&!b.includes('-')?-1:(!a.includes('-')&&b.includes('-')?1:0));
+ };
+ const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===remoteVersion;}catch{return false;}};
+ function setStatus(next,msg){status=next;message=msg;paint();}
+ function paint(){
+  const version=get('claraUpdateInstalled'),last=get('claraUpdateLast');
+  if(version)version.textContent=INSTALLED_VERSION;
+  if(last)last.textContent=lastCheck?new Date(lastCheck).toLocaleString('pt-BR'):'Ainda não verificado';
+  const state=get('claraUpdateState'),description=get('claraUpdateMessage');
+  if(state)state.textContent=status;
+  if(description)description.textContent=message;
+  const checkButton=get('checkClaraUpdate');
+  if(checkButton){checkButton.disabled=!!checking;checkButton.textContent=checking?'Verificando…':'Verificar agora';}
+  const action=get('applyClaraUpdate');
+  if(action)action.hidden=!ready||applying;
+  const notice=get('claraUpdateNotice');
+  if(notice){
+   const available=remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
+   const show=available&&!dismissed()&&!applying&&(ready||status==='Preparando atualização');
+   notice.hidden=!show;
+   const title=get('claraUpdateNoticeTitle'),description=get('claraUpdateNoticeText');
+   if(title)title.textContent=ready?'Atualização pronta para instalar':'Nova versão encontrada';
+   if(description)description.textContent='Clara '+remoteVersion+'. '+
+     (ready?'O pacote está pronto. Seus dados serão preservados.':'Preparando os arquivos para uso offline.')+
+     (releaseNotes.length?' '+releaseNotes[0]:'');
+   const button=get('claraUpdateNoticeInstall');
+   if(button)button.hidden=!ready;
+  }
+ }
+ function handleWaiting(){
+  ready=!!registration?.waiting;
+  if(ready){
+   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Confira as novidades e escolha Atualizar agora.');
+  }else paint();
+ }
+ function bindEvents(){
+  if(observed)return;
+  observed=true;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+   if(applying){applying=false;location.reload();}
+  });
+  window.addEventListener('online',()=>{check(false).catch(()=>{});});
+  window.addEventListener('focus',()=>{if(lastCheck&&Date.now()-lastCheck>=RESUME)check(false).catch(()=>{});});
+  document.addEventListener('visibilitychange',()=>{
+   if(!document.hidden&&(!lastCheck||Date.now()-lastCheck>=RESUME))check(false).catch(()=>{});
+  });
+  window.setInterval(()=>{if(!document.hidden&&navigator.onLine)check(false).catch(()=>{});},HOUR);
+ }
+ async function ensureRegistration(){
+  if(registration)return registration;
+  if(initialPromise)return initialPromise;
+  if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol)){
+   setStatus('Indisponível','Atualizações automáticas exigem HTTPS e Service Worker.');
+   return null;
+  }
+  initialPromise=(async()=>{
+   const r=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+   registration=r;bindEvents();
+   r.addEventListener('updatefound',()=>{
+    const worker=r.installing;
+    worker?.addEventListener('statechange',()=>{
+     if(worker.state==='installed')handleWaiting();
+    });
+   });
+   handleWaiting();
+   return r;
+  })().finally(()=>{initialPromise=null;});
+  return initialPromise;
+ }
  async function latest(){
-   const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
-   if(!res.ok)throw Error('Sem conexão para consultar atualizações.');
-   const info=await res.json();
-   if(!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/.test(info.version||''))throw Error('Versão remota inválida.');
-   return info.version;
+  const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
+  if(!res.ok)throw Error('Não foi possível consultar a versão publicada.');
+  const info=await res.json();
+  if(!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/.test(info.version||''))throw Error('Versão remota inválida.');
+  return info;
+ }
+ async function check(interactive=false){
+  if(checking)return checking;
+  checking=(async()=>{
+   try{
+    const r=await ensureRegistration();
+    if(!r){if(interactive)showToast('Atualizações não disponíveis neste navegador.',true);return false;}
+    if(!navigator.onLine){setStatus('Sem conexão','Você pode continuar utilizando o Clara offline.');return false;}
+    setStatus('Verificando','Consultando a versão publicada…');
+    const info=await latest();
+    remoteVersion=info.version;
+    releaseNotes=Array.isArray(info.notes)?info.notes.filter(x=>typeof x==='string').slice(0,5):[];
+    lastCheck=Date.now();
+    const newer=compare(remoteVersion,INSTALLED_VERSION)>0;
+    if(newer&&!r.waiting)setStatus('Preparando atualização','Versão '+remoteVersion+' identificada. Baixando recursos para uso offline.');
+    await r.update();
+    ready=!!r.waiting;
+    if(ready)handleWaiting();
+    else if(newer)setStatus('Preparando atualização','Versão '+remoteVersion+' encontrada. O novo pacote será oferecido quando estiver pronto.');
+    else setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+    if(interactive&&!newer&&!ready)showToast('Clara atualizado. Versão '+INSTALLED_VERSION+'.');
+    return newer||ready;
+   }catch(e){
+    setStatus('Sem confirmação','A verificação não foi concluída. Seus dados permanecem disponíveis neste dispositivo.');
+    if(interactive)showToast(e.message,true);
+    return false;
+   }finally{checking=null;paint();}
+  })();
+  return checking;
+ }
+ async function apply(){
+  const r=await ensureRegistration();
+  if(!r?.waiting){setStatus('Preparando atualização','O novo pacote ainda não está pronto. Tente novamente após a conclusão do download.');return false;}
+  if(!window.ClaraSecurity?.unlocked)throw Error('Desbloqueie o cofre antes de atualizar.');
+  const modal=get('modalBg');
+  if(modal&&modal.getAttribute('aria-hidden')==='false'){
+    showToast('Conclua ou feche a edição aberta antes de atualizar.',true);return false;
+  }
+  if(!window.confirm('Instalar a atualização '+(remoteVersion||'disponível')+'? O Clara será reaberto, sem apagar o cofre nem os seus registros.'))return false;
+  await window.ClaraSecurity.flush();
+  applying=true;setStatus('Aplicando atualização','Dados protegidos salvos. Ativando o pacote validado…');
+  const waiting=r.waiting;
+  waiting.postMessage({type:'SKIP_WAITING'});
+  return true;
+ }
+ function dismiss(){
+  try{if(remoteVersion)localStorage.setItem(DISMISS_KEY,remoteVersion);}catch{}
+  const banner=get('claraUpdateNotice');if(banner)banner.hidden=true;
  }
  async function init(){
-   if(started)return;
-   started=true;
-   if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;
-   registration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
-   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-     if(applying){applying=false;location.reload();}
-   });
-   registration.addEventListener('updatefound',()=>{
-     const worker=registration.installing;
-     worker?.addEventListener('statechange',()=>{
-       if(worker.state==='installed'&&registration.waiting&&navigator.serviceWorker.controller)
-         showToast('Atualização pronta. Acesse Configurações e selecione Verificar atualizações.');
-     });
-   });
-   await registration.update();
-   if(registration.waiting&&navigator.serviceWorker.controller)
-     showToast('Atualização disponível em Configurações.');
+  try{
+   await ensureRegistration();
+   await check(false);
+  }catch(e){setStatus('Sem confirmação','Não foi possível consultar atualizações agora.');}
  }
- async function check(interactive=true){
-   if(!registration)await init();
-   if(!registration){if(interactive)showToast('Atualizações disponíveis apenas no PWA instalado via HTTPS.',true);return false;}
-   const version=await latest();
-   await registration.update();
-   if(registration.waiting){
-     if(!confirm('Instalar versão '+version+'? O aplicativo reiniciará sem apagar o cofre.'))return false;
-     await window.ClaraSecurity.flush();
-     applying=true;
-     registration.waiting.postMessage({type:'SKIP_WAITING'});
-     return true;
-   }
-   if(interactive)showToast(version===INSTALLED_VERSION
-     ? 'Clara atualizado. Versão '+INSTALLED_VERSION+'.'
-     : 'Versão '+version+' encontrada. Download em andamento; verifique novamente.');
-   return version!==INSTALLED_VERSION;
- }
- return {init,check,get installedVersion(){return INSTALLED_VERSION;}};
+ return {init,check,apply,dismiss,paint,compare,get installedVersion(){return INSTALLED_VERSION;},
+  get ready(){return ready;},get remoteVersion(){return remoteVersion;},get status(){return status;}};
 })();
 window.ClaraUpdate=ClaraUpdate;
 </script>
