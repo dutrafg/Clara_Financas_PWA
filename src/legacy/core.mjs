@@ -8,7 +8,7 @@ const DEFAULT_CATEGORIES=[
  ['Moradia','Despesa'],['Alimentação','Despesa'],['Transporte','Despesa'],['Contas fixas','Despesa'],['Saúde','Despesa'],['Educação','Despesa'],['Lazer','Despesa'],['Compras','Despesa'],['Assinaturas','Despesa'],['Outros','Despesa']
 ];
 export function uid(prefix='id'){return `${prefix}-${globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`}`;}
-export function blankData(){return {schemaVersion:SCHEMA_VERSION,appVersion:VERSION,isDemo:false,revision:0,updatedAt:new Date().toISOString(),accounts:[{id:uid('acc'),name:'Conta principal',type:'Conta',openingCents:0}],categories:DEFAULT_CATEGORIES.map(([name,group])=>({id:uid('cat'),name,group})),budgets:[],transactions:[],goals:[],settings:{theme:'light',accent:'petrol',hideValues:false,selectedPeriod:new Date().toISOString().slice(0,7),monthlySavingsCents:0,reviewDay:1}};}
+export function blankData(){return {schemaVersion:SCHEMA_VERSION,appVersion:VERSION,isDemo:false,revision:0,updatedAt:new Date().toISOString(),accounts:[{id:uid('acc'),name:'Conta principal',type:'Conta',openingCents:0}],categories:DEFAULT_CATEGORIES.map(([name,group])=>({id:uid('cat'),name,group})),budgets:[],transactions:[],goals:[],debts:[],settings:{theme:'light',accent:'petrol',hideValues:false,selectedPeriod:new Date().toISOString().slice(0,7),monthlySavingsCents:0,reviewDay:1}};}
 export const brl=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100);
 export const isISODate=iso=>{if(typeof iso!=='string'||!/^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(iso))return false;const [y,m,d]=iso.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===m-1&&dt.getUTCDate()===d;};
 export const fmtDate=iso=>isISODate(iso)?`${iso.slice(8)}/${iso.slice(5,7)}/${iso.slice(0,4)}`:'—';
@@ -43,6 +43,9 @@ export function periodStats(data,month){let income=0,expense=0,pending=0,pending
 }
 export function budgetStatus(data,month){const s=periodStats(data,month);return data.budgets.map(b=>{const usedCents=s.expensesByCategory.find(([cat])=>cat===b.category)?.[1]||0;const pendingCents=data.transactions.filter(t=>t.kind==='Despesa'&&t.status==='Pendente'&&t.category===b.category&&inMonth(t.date,month)).reduce((n,t)=>n+t.amountCents,0);const projectedCents=usedCents+pendingCents;return {...b,usedCents,pendingCents,projectedCents,remainingCents:b.limitCents-projectedCents,ratio:b.limitCents?projectedCents/b.limitCents:0};});}
 export function validateTransaction(t,data){if(!t||typeof t!=='object')throw Error('Lançamento inválido.');if(!isISODate(t.date))throw Error('Informe uma data de vencimento válida.');if(t.paidAt&&!isISODate(t.paidAt))throw Error('Informe uma data de pagamento válida.');if(!String(t.description||'').trim())throw Error('Informe a descrição.');if(!Number.isSafeInteger(t.amountCents)||t.amountCents<=0)throw Error('O valor deve ser maior que zero.');if(!['Receita','Despesa','Transferência'].includes(t.kind))throw Error('Tipo de movimento inválido.');if(!['Realizado','Pendente','Cancelado'].includes(t.status))throw Error('Situação inválida.');if(!data.accounts.some(a=>a.id===t.accountId))throw Error('Selecione uma conta válida.');if(t.kind==='Transferência'&&(!data.accounts.some(a=>a.id===t.toAccountId)||t.toAccountId===t.accountId))throw Error('Selecione outra conta para receber a transferência.');if(t.kind!=='Transferência'&&!data.categories.some(c=>c.name===t.category&&c.group===t.kind))throw Error('Selecione uma categoria válida para o tipo.');if(t.status!=='Realizado'&&t.paidAt)throw Error('Apenas lançamentos realizados podem ter data de pagamento.');
+ if(t.debtId!==undefined){
+   if(typeof t.debtId!=='string'||!t.debtId.trim()||t.kind!=='Despesa'||!(data.debts||[]).some(x=>x.id===t.debtId))throw Error('Vínculo de pagamento da dívida inválido.');
+ }
  if(t.recurrenceGroupId||t.recurrenceIndex||t.recurrenceCount||t.recurrenceFrequency){
   if(typeof t.recurrenceGroupId!=='string'||!t.recurrenceGroupId.trim()||!Number.isInteger(t.recurrenceIndex)||!Number.isInteger(t.recurrenceCount)||t.recurrenceCount<2||t.recurrenceCount>24||t.recurrenceIndex<1||t.recurrenceIndex>t.recurrenceCount||!['weekly','monthly','yearly'].includes(t.recurrenceFrequency))throw Error('Dados de recorrência inválidos.');
  }
@@ -68,16 +71,31 @@ export function migrateData(input){if(!input||typeof input!=='object'||Array.isA
  data.settings??={theme:'light',accent:'petrol',hideValues:false,selectedPeriod:new Date().toISOString().slice(0,7)};
  data.settings.monthlySavingsCents??=0;
  data.settings.reviewDay??=1;
+ data.debts??=[];
  data.appVersion=VERSION;
  return data;
 }
 function uniqueSet(items,key,message){const set=new Set();for(const item of items){const v=item?.[key];if(typeof v!=='string'||!v||set.has(v))throw Error(message);set.add(v);}return set;}
-export function validateBackup(d){if(!d||typeof d!=='object'||d.schemaVersion!==SCHEMA_VERSION||!Array.isArray(d.accounts)||!Array.isArray(d.transactions)||!Array.isArray(d.categories)||!Array.isArray(d.budgets)||!Array.isArray(d.goals))throw Error('Arquivo não é um backup compatível do Clara Finanças.');
- if(d.accounts.length<1||d.accounts.length>10000||d.transactions.length>250000||d.categories.length>10000||d.budgets.length>10000||d.goals.length>10000)throw Error('Backup excede os limites ou não possui contas.');
- uniqueSet(d.accounts,'id','Contas inválidas ou duplicadas no backup.');uniqueSet(d.categories,'id','Categorias inválidas ou duplicadas no backup.');uniqueSet(d.transactions,'id','Movimentações duplicadas ou sem identificador.');uniqueSet(d.goals,'id','Metas duplicadas ou sem identificador.');
+export function validateBackup(d){if(!d||typeof d!=='object'||d.schemaVersion!==SCHEMA_VERSION||!Array.isArray(d.accounts)||!Array.isArray(d.transactions)||!Array.isArray(d.categories)||!Array.isArray(d.budgets)||!Array.isArray(d.goals)||(d.debts!==undefined&&!Array.isArray(d.debts)))throw Error('Arquivo não é um backup compatível do Clara Finanças.');
+ if(d.accounts.length<1||d.accounts.length>10000||d.transactions.length>250000||d.categories.length>10000||d.budgets.length>10000||d.goals.length>10000||(d.debts||[]).length>10000)throw Error('Backup excede os limites ou não possui contas.');
+ uniqueSet(d.accounts,'id','Contas inválidas ou duplicadas no backup.');uniqueSet(d.categories,'id','Categorias inválidas ou duplicadas no backup.');uniqueSet(d.transactions,'id','Movimentações duplicadas ou sem identificador.');uniqueSet(d.goals,'id','Metas duplicadas ou sem identificador.');if(d.debts)uniqueSet(d.debts,'id','Dívidas duplicadas ou sem identificador.');
  const names=new Set(),categories=new Set();for(const a of d.accounts){if(typeof a.name!=='string'||!a.name.trim()||!Number.isSafeInteger(a.openingCents)||(a.archived!==undefined&&typeof a.archived!=='boolean'))throw Error('Dados inválidos em conta.');const n=a.name.trim().toLocaleLowerCase('pt-BR');if(names.has(n))throw Error('Nomes de contas duplicados.');names.add(n);}
  for(const c of d.categories){if(typeof c.name!=='string'||!c.name.trim()||!['Receita','Despesa'].includes(c.group)||(c.archived!==undefined&&typeof c.archived!=='boolean'))throw Error('Categoria inválida.');const k=c.group+'|'+c.name.trim().toLocaleLowerCase('pt-BR');if(categories.has(k))throw Error('Categorias duplicadas.');categories.add(k);}
+ for(const debt of (d.debts||[])){
+  if(typeof debt.name!=='string'||debt.name.trim().length<2||typeof debt.creditor!=='string'||debt.creditor.trim().length<2||
+   !Number.isSafeInteger(debt.totalCents)||debt.totalCents<=0||debt.totalCents>1_000_000_000_000||
+   !Number.isSafeInteger(debt.openingPaidCents)||debt.openingPaidCents<0||debt.openingPaidCents>debt.totalCents||
+   !Number.isSafeInteger(debt.monthlyCents)||debt.monthlyCents<0||debt.monthlyCents>1_000_000_000_000||
+   (debt.dueDate&&!isISODate(debt.dueDate))||
+   !d.categories.some(c=>c.group==='Despesa'&&c.name===debt.category))
+   throw Error('Dívida inválida no backup.');
+ }
  for(const t of d.transactions)validateTransaction(t,d);
+ for(const debt of (d.debts||[])){
+  const paid=d.transactions.filter(t=>t.debtId===debt.id&&t.status==='Realizado')
+    .reduce((sum,t)=>sum+t.amountCents,debt.openingPaidCents);
+  if(paid>debt.totalCents)throw Error('Pagamentos da dívida excedem o total.');
+ }
  const budgetCats=new Set();for(const b of d.budgets){if(!Number.isSafeInteger(b.limitCents)||b.limitCents<=0||!d.categories.some(c=>c.name===b.category&&c.group==='Despesa')||budgetCats.has(b.category))throw Error('Orçamento inválido ou duplicado no backup.');budgetCats.add(b.category);}
  for(const g of d.goals){if(!String(g.name||'').trim()||!Number.isSafeInteger(g.targetCents)||g.targetCents<=0||!Number.isSafeInteger(g.savedCents)||g.savedCents<0||(g.dueDate&&!isISODate(g.dueDate)))throw Error('Meta inválida no backup.');}
  if(!d.settings||typeof d.settings!=='object'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(d.settings.selectedPeriod||''))throw Error('Período selecionado inválido.');
