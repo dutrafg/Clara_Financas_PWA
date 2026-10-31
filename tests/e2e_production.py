@@ -209,6 +209,27 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   assert pdf_path and Path(pdf_path).read_bytes()[:5]==b'%PDF-'
   assert not errors,errors
   print('PASSOU: relatórios mensais, anuais, CSV e PDF válido')
+  # Etapa 10: backup criptografado, restauração e bloqueio de interface.
+  page.get_by_role('button',name='Configurações',exact=True).last.click()
+  page.get_by_label('Senha do backup').fill('Minha senha de teste protegida 2026')
+  with page.expect_download() as encrypted_dl:
+   page.get_by_role('button',name='Exportar backup protegido').click()
+  encrypted_path=encrypted_dl.value.path()
+  assert encrypted_dl.value.suggested_filename.endswith('.clara')
+  encrypted_payload=Path(encrypted_path).read_bytes()
+  assert b'clara-encrypted-backup' in encrypted_payload
+  assert b'Financiamento de notebook' not in encrypted_payload
+  page.get_by_label('Senha do backup').fill('Minha senha de teste protegida 2026')
+  page.locator('input[accept=".clara,application/json"]').set_input_files({'name':'restaurar.clara','mimeType':'application/json','buffer':encrypted_payload})
+  page.get_by_text('Backup restaurado.',exact=False).first.wait_for(timeout=15000)
+  page.get_by_label('Senha do bloqueio').fill('Senha visual do Clara segura 2026')
+  page.get_by_role('button',name='Ativar bloqueio').click()
+  page.get_by_role('heading',name='Clara bloqueado').wait_for(timeout=15000)
+  page.get_by_label('Senha de desbloqueio').fill('Senha visual do Clara segura 2026')
+  page.get_by_role('button',name='Desbloquear').click()
+  page.get_by_role('heading',name='Configurações').wait_for(timeout=15000)
+  assert not errors,errors
+  print('PASSOU: AES-GCM exportado, restauração e senha local de interface')
   browser.close()
  srv.shutdown()
 print('ACEITE: execução end-to-end do build de produção concluída')
