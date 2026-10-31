@@ -17,3 +17,20 @@ body[data-accent=blue]{--accent:#236bb8;--accent-hover:#185695;--soft:#eaf3fd;--
 
 .movement-mobile-list{display:none}.movement-mobile-card{border:1px solid var(--line);padding:13px;border-radius:13px;display:grid;gap:13px}.movement-mobile-title,.movement-mobile-meta,.movement-mobile-buttons{display:flex;align-items:center;gap:9px;justify-content:space-between}.movement-mobile-title>div{min-width:0;display:grid;gap:5px}.movement-mobile-title b{font-size:13px}.movement-mobile-title small,.movement-mobile-meta{color:var(--muted);font-size:11px}.movement-mobile-title strong{white-space:nowrap;font-size:14px}.movement-mobile-buttons{border-top:1px solid var(--line);padding-top:9px;justify-content:flex-end}.series-tag{color:var(--accent);font-size:10px}
 @media(max-width:650px){.movement-mobile-list{display:grid;gap:12px}.table-scroller{display:none}.movement-mobile-title{align-items:flex-start}.movement-mobile-title strong{padding-top:1px}}
+
+/* Etapa 4 — Assistente de parcelamentos */
+.installment-preview {grid-column:1/-1;background:var(--surface-alt,var(--bg-soft,#f4f7f7));border:1px solid var(--line,#d9e1e3);border-radius:14px;padding:16px;min-width:0}
+.installment-preview strong{display:block;margin-bottom:12px}
+.installment-preview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:8px 0 14px}
+.installment-preview-metrics span{font-size:12px;line-height:1.6}
+.installment-preview-metrics b{display:block;font-size:14px}
+.installment-preview-scroll{max-height:260px;overflow:auto;border-radius:10px}
+.installment-preview-scroll table{width:100%;border-collapse:collapse;font-size:12px}
+.installment-preview-scroll th,.installment-preview-scroll td{padding:8px;border-bottom:1px solid var(--line,#d9e1e3);white-space:nowrap;text-align:left}
+.installment-preview p{font-size:12px;color:var(--muted,#64748b);margin-top:12px}
+.installment-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.installment-summary-card{border:1px solid var(--line,#d9e1e3);border-radius:12px;padding:14px;min-width:0}
+.installment-summary-card>b{display:block;margin-bottom:6px}
+.installment-summary-card>small{display:block;margin-bottom:12px;color:var(--muted,#64748b)}
+.installment-summary-card>div{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:7px;font-size:12px}
+@media(max-width:580px){.installment-preview-metrics{grid-template-columns:1fr;gap:4px}.installment-summary-grid{grid-template-columns:1fr}}
