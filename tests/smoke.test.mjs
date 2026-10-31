@@ -12,7 +12,7 @@ test('Clara: 15 miniaplicativos reais, sem ClaraStore',()=>{
  assert.ok(catalog,'Catálogo de miniaplicativos não encontrado');
  const widgets=JSON.parse(catalog[1]);
  assert.equal(widgets.length,15);
- assert.equal(new Set(widgets.map(w=>w.id)).size,13);
+ assert.equal(new Set(widgets.map(w=>w.id)).size,15);
  assert.doesNotMatch(html,/ClaraStore|id="quickAdd"/);
  assert.match(html,/\$\{renderClaraMiniapps\(p\)\}/);
 });
