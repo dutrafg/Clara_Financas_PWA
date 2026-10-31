@@ -3103,7 +3103,7 @@ function modal(kind, itemId = '') {
   if(kind==='profile'){
     pendingProfilePhoto=null;
     const p=safeProfile();
-    const avatar=p.photo?'<img src="'+p.photo+'" alt="Foto de perfil atual">':esc(profileInitials(p.name));
+    const avatar=p.photo?'<img id="profilePreviewImage" alt="Foto de perfil atual">':esc(profileInitials(p.name));
     body=`<form id="modalForm" novalidate>
       <div class="profile-photo-row">
         <div class="profile-avatar-preview" id="profilePreview">${avatar}</div>
@@ -3208,6 +3208,10 @@ function modal(kind, itemId = '') {
   }
 
   $('modalContent').innerHTML = body;
+  if(kind==='profile'&&safeProfile().photo) {
+    const img=$('profilePreviewImage');
+    if(img)img.src=safeProfile().photo;
+  }
   updateCategoryForKind();
   $('modalBg').setAttribute('role', 'dialog');
   $('modalBg').setAttribute('aria-modal', 'true');
