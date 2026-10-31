@@ -39,7 +39,7 @@ async def run():
    assert await page.locator('#claraReleaseNotes li').count()>=3
    await page.locator('#claraAdvancedSettings summary').first.click()
    assert await page.locator('#claraAdvancedSettings').evaluate("(el)=>el.open")
-   assert await page.locator('[data-open-qa="1"]').is_visible()
+   assert await page.locator('#claraAdvancedSettings [data-open-qa="1"]').is_visible()
    assert await page.locator('#startEmpty').is_visible()
    for tab in ('aparencia','painel','financeiro','contas','dados'):
     await page.locator('[data-config-tab="'+tab+'"]').click()
