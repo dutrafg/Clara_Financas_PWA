@@ -3,6 +3,14 @@ import {blankData,migrateData,validateBackup} from './core.mjs';
 import {encryptBackup,decryptBackup} from './security.mjs';
 const DB_NAME='clara-financas-local-v1';let dbPromise;
 let vaultPassword=null;
+// Prevent saving a stale ciphertext after a vault transition (and vice versa).
+// Every state mutation runs in the same queue. Failure must not block future writes.
+let mutationQueue=Promise.resolve();
+function serializeMutation(callback){
+ const operation=mutationQueue.then(callback);
+ mutationQueue=operation.catch(()=>{});
+ return operation;
+}
 export class VaultLockedError extends Error{constructor(){super('O banco criptografado está bloqueado. Informe a senha local.');this.name='VaultLockedError';this.code='VAULT_LOCKED';}}
 const openDB=()=>dbPromise ||= new Promise((resolve,reject)=>{if(!globalThis.indexedDB)return reject(new Error('IndexedDB indisponível'));const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const db=r.result;db.createObjectStore('app');db.createObjectStore('preferences');};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
 async function transaction(store,mode,operation){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,mode);let value;let settled=false;tx.oncomplete=()=>resolve(value);tx.onerror=()=>{if(!settled){settled=true;reject(tx.error||new Error('Falha ao gravar dados'));}};tx.onabort=()=>{if(!settled){settled=true;reject(tx.error||new Error('Gravação abortada'));}};try{const req=operation(tx.objectStore(store));if(req){req.onsuccess=()=>{value=req.result;};req.onerror=()=>{tx.abort();};}}catch(e){tx.abort();reject(e);}});}
@@ -27,7 +35,8 @@ async function swapVaultData(plaintext,ciphertext,enable){
   tx.onabort=()=>reject(tx.error||new Error('Operação de proteção abortada'));
  });
 }
-export async function enableVault(password){
+export function enableVault(...args){return serializeMutation(()=>enableVaultUnsafe(...args));}
+async function enableVaultUnsafe(password){
  if(await vaultExists())throw Error('O banco já está criptografado.');
  const plain=await transaction('app','readonly',s=>s.get('state'));
  if(!plain)throw Error('Banco local vazio; inicialize antes de ativar.');
@@ -48,14 +57,16 @@ export async function unlockVault(password){
  return data;
 }
 export function lockVault(){vaultPassword=null;}
-export async function disableVault(password){
+export function disableVault(...args){return serializeMutation(()=>disableVaultUnsafe(...args));}
+async function disableVaultUnsafe(password){
  const encrypted=await transaction('app','readonly',s=>s.get('state-vault'));
  if(!encrypted)throw Error('O banco não está criptografado.');
  const data=migrateData(await decryptBackup(encrypted,password));validateBackup(data);
  await swapVaultData(data,null,false);
  vaultPassword=null;return data;
 }
-export async function saveData(data){
+export function saveData(...args){return serializeMutation(()=>saveDataUnsafe(...args));}
+async function saveDataUnsafe(data){
  const next=structuredClone(data);validateBackup(next);next.revision=(next.revision||0)+1;
  next.updatedAt=new Date().toISOString();
  if(await vaultExists()){
