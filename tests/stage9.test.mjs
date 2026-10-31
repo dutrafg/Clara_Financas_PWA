@@ -34,7 +34,7 @@ eq(annual.months[10].expense,5000,'November included');
 const csv=monthlyReportCSV(d,'2026-10');
 eq(csv.startsWith('\uFEFF'),true,'CSV includes BOM');
 eq(csv.includes('\r\n'),true,'Windows compatible CRLF');
-eq(csv.includes(';"\'=HYPERLINK'),false,'No raw formula injection in amount');
+eq(csv.includes(';"\'=HYPERLINK'),true,'Formula-like text receives apostrophe prefix');
 eq(csv.includes("'=HYPERLINK"),true,'Spreadsheet formula injection neutralized');
 eq(csv.includes('"Resultado"'),true,'Financial summary labels');
 eq(csv.includes('"Valor (R$)"'),true,'Transaction header');
