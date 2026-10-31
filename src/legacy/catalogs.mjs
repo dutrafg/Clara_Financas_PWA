@@ -40,6 +40,7 @@ export function archiveAccount(data,id,archived){
 export function deleteAccount(data,id){
  account(data,id);
  if(data.accounts.length<=1)throw Error('É necessário manter ao menos uma conta.');
+ if((data.reconciliations||[]).some(r=>r.accountId===id))throw Error('Conta conciliada não pode ser excluída antes de remover suas conferências.');
  if(data.transactions.some(t=>t.accountId===id||t.toAccountId===id))
   throw Error('Conta utilizada em lançamentos não pode ser excluída; arquive-a.');
  data.accounts=data.accounts.filter(a=>a.id!==id);
