@@ -1,12 +1,11 @@
 {
   "name": "Clara Finanças",
-  "version": "3.6.9-rc",
+  "version": "3.6.10-rc",
   "build": "2026-10-31",
   "schema": 2,
   "notes": [
-    "Assistente de instalação em Configurações, com convite no Chrome quando disponível.",
-    "Orientações para Samsung Internet e diagnóstico de instalação.",
-    "Atualizador com avisos de nova versão e confirmação para preservar o cofre.",
-    "Paletas, Histórico, Perfil e os 15 miniaplicativos preservados."
+    "Removido o botão de testes isolado da barra lateral compacta.",
+    "Diagnósticos preservados em Configurações → Segurança → Manutenção avançada.",
+    "Atualizador, Perfil, Histórico, cofre e 15 miniaplicativos preservados."
   ]
 }
