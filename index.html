@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.5 • Histórico e Perfil</title>
+<title>Clara Finanças RC3.6.6 • Trilha de alterações</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2197,6 +2197,7 @@ function fresh() {
     goals: structuredClone(SOURCE_DATA.goals),
     transactions: structuredClone(SOURCE_DATA.transactions),
     reconciliations: [],
+    auditLog: [],
     profile: {...PROFILE_DEFAULTS},
     settings: { ...PREF_DEFAULTS, period: todayISO().slice(0, 7), cutoff: todayISO(), theme: 'light' }
   };
@@ -2208,7 +2209,7 @@ function cleanData() {
     version: 2,
     accounts: [{ id: 'principal', name: 'Conta principal', type: 'Conta', openingCents: 0 }],
     categories: structuredClone(SOURCE_DATA.categories),
-    goals: [], transactions: [], reconciliations: [],
+    goals: [], transactions: [], reconciliations: [],auditLog: [],
     profile: {...safeProfile()},
     settings: { ...PREF_DEFAULTS, ...(state?.settings || {}), period: date.slice(0, 7), cutoff: date, theme: state?.settings?.theme === 'light' ? 'light' : 'dark' }
   };
@@ -2217,6 +2218,24 @@ function cleanData() {
 function validateData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Backup inválido: esperado objeto JSON.');
   if(data.profile!==undefined)validProfile(data.profile);
+  if(data.auditLog!==undefined){
+    if(!Array.isArray(data.auditLog)||data.auditLog.length>AUDIT_MAX)
+      throw Error('Histórico de alterações inválido.');
+    for(const ev of data.auditLog){
+      if(!ev||typeof ev!=='object'||!['Criado','Editado','Excluído','Lote Criado','Lote Editado','Lote Excluído'].includes(ev.action)||
+         typeof ev.id!=='string'||ev.id.length>80||typeof ev.at!=='string'||!Number.isFinite(Date.parse(ev.at))||
+         typeof ev.actor!=='string'||ev.actor.length>80||
+         !AUDIT_COLLECTIONS.some(x=>x[0]===ev.entity)||
+         typeof ev.month!=='string'||!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(ev.month)||
+         typeof ev.relatedMonth!=='string'||(ev.relatedMonth&&!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(ev.relatedMonth))||
+         typeof ev.label!=='string'||ev.label.length>130||
+         typeof ev.before!=='string'||ev.before.length>250||
+         typeof ev.after!=='string'||ev.after.length>250||
+         typeof ev.detail!=='string'||ev.detail.length>250||
+         typeof ev.ref!=='string'||ev.ref.length>80)throw Error('Registro de alteração inválido.');
+    }
+  }
+
   const keys = ['accounts', 'categories', 'goals', 'transactions', 'reconciliations'];
   for (const key of keys) if (!Array.isArray(data[key])) throw Error('Backup inválido: campo ' + key + ' deve ser uma lista.');
   if (!data.accounts.length || data.accounts.length > 1000 || data.categories.length > 500 || data.goals.length > 1000 || data.transactions.length > 100000 || data.reconciliations.length > 10000)
@@ -2291,6 +2310,7 @@ function parseImportedJSON(raw) {
   if (obj && obj.reconciliations === undefined) obj.reconciliations = [];
   validateData(obj);
   obj.profile={...PROFILE_DEFAULTS,...(obj.profile||{})};
+  obj.auditLog=obj.auditLog||[];
   return withDefaultPreferences(obj);
 }
 
