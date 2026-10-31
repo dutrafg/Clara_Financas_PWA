@@ -1,7 +1,7 @@
 {
   "name": "clara-financas-pwa-local",
   "private": true,
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -9,7 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test:legacy": "node tests/finance.test.mjs && node tests/stage1.test.mjs && node tests/db-etapa1.test.mjs",
     "test:stage2": "node tests/stage2.test.mjs",
-    "test": "npm run test:legacy && npm run test:stage2 && npm run test:stage3 && npm run test:stage4 && npm run test:stage5 && npm run test:stage6 && npm run test:stage7 && npm run test:stage8 && npm run test:stage9 && npm run test:stage10 && npm run test:rc2",
+    "test": "npm run test:legacy && npm run test:stage2 && npm run test:stage3 && npm run test:stage4 && npm run test:stage5 && npm run test:stage6 && npm run test:stage7 && npm run test:stage8 && npm run test:stage9 && npm run test:stage10 && npm run test:rc2 && npm run test:planilha",
     "test:stage3": "node tests/stage3.test.mjs",
     "test:stage4": "node tests/stage4.test.mjs",
     "test:stage5": "node tests/stage5.test.mjs",
@@ -18,7 +18,8 @@
     "test:stage8": "node tests/stage8.test.mjs",
     "test:stage9": "node tests/stage9.test.mjs",
     "test:stage10": "node tests/stage10.test.mjs",
-    "test:rc2": "node tests/rc2-security.test.mjs"
+    "test:rc2": "node tests/rc2-security.test.mjs",
+    "test:planilha": "node tests/spreadsheet-update.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
