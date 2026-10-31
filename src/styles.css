@@ -34,3 +34,23 @@ body[data-accent=blue]{--accent:#236bb8;--accent-hover:#185695;--soft:#eaf3fd;--
 .installment-summary-card>small{display:block;margin-bottom:12px;color:var(--muted,#64748b)}
 .installment-summary-card>div{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:7px;font-size:12px}
 @media(max-width:580px){.installment-preview-metrics{grid-template-columns:1fr;gap:4px}.installment-summary-grid{grid-template-columns:1fr}}
+
+/* Etapa 5: organização de contas e categorias */
+.catalog-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.catalog-heading{font-size:14px;margin:0 0 12px}
+.catalog-rows{display:flex;flex-direction:column;gap:8px}
+.catalog-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line,#dbe2e6);border-radius:12px;padding:10px 12px;min-width:0}
+.catalog-row>span{min-width:0;overflow-wrap:anywhere;font-size:13px;font-weight:600}
+.catalog-row-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.catalog-inactive,.catalog-muted small{display:inline-block;font-size:11px;font-weight:500;color:var(--muted,#64748b);margin-left:7px}
+.catalog-muted{opacity:.7}
+.catalog-actions{display:flex;gap:8px;margin-top:12px}
+.catalog-actions .button{font-size:12px}
+.settings-finance-form{display:flex;align-items:end;flex-wrap:wrap;gap:12px}
+.settings-finance-form .form-field{flex:1 1 160px}
+.settings-finance-form .button{margin-bottom:1px}
+.savings-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.savings-overview>div{border-radius:12px;border:1px solid var(--line,#dbe2e6);padding:13px;min-width:0}
+.savings-overview small{display:block;color:var(--muted,#64748b);margin-bottom:8px}
+.savings-overview strong{display:block;overflow-wrap:anywhere;font-size:17px}
+@media(max-width:760px){.catalog-columns{grid-template-columns:1fr}.savings-overview{grid-template-columns:1fr}.catalog-row-actions{gap:3px}}
