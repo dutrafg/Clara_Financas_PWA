@@ -24,6 +24,31 @@ async def run():
    assert state=={'tx':0,'acct':1,'last':'ajustes'},state
    result=await page.evaluate('window.ClaraQA.run()')
    assert result['passed']==result['total'],[x for x in result['results'] if x['status']!='APROVADO']
+   # Configurações clean: telas 390/768/1440, controles, versão e opções recolhidas.
+   await page.evaluate("go('ajustes');configTab='dados';renderAjustes()")
+   assert await page.locator('#claraUpdateInstalled').inner_text()=='3.6.8-rc'
+   assert await page.locator('#claraUpdateLast').is_visible()
+   assert await page.locator('#checkClaraUpdate').is_visible()
+   assert await page.locator('#exportJson').is_visible()
+   assert await page.locator('#importClara').count()==1
+   assert await page.locator('#lockClaraNow').is_visible()
+   assert not await page.locator('#claraAdvancedSettings').evaluate("(el)=>el.open")
+   assert not await page.locator('#claraReleaseNotes').evaluate("(el)=>el.open")
+   await page.locator('#claraReleaseNotes summary').click()
+   assert await page.locator('#claraReleaseNotes').evaluate("(el)=>el.open")
+   assert await page.locator('#claraReleaseNotes li').count()>=3
+   await page.locator('#claraAdvancedSettings summary').first.click()
+   assert await page.locator('#claraAdvancedSettings').evaluate("(el)=>el.open")
+   assert await page.locator('[data-open-qa="1"]').is_visible()
+   assert await page.locator('#startEmpty').is_visible()
+   for tab in ('aparencia','painel','financeiro','contas','dados'):
+    await page.locator('[data-config-tab="'+tab+'"]').click()
+    assert await page.locator('[data-config-tab="'+tab+'"]').get_attribute('aria-current')=='page'
+   await page.locator('[data-config-tab="dados"]').click()
+   vw=await page.evaluate("({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth})")
+   assert vw['scroll']<=vw['width']+3,(width,vw)
+   await page.evaluate("go('painel')")
+
    display=await page.locator('#floatTrigger').evaluate('(el)=>getComputedStyle(el).display')
    assert (display!='none')==(width<=760),(width,display)
    if width==390:
