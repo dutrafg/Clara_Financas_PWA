@@ -72,7 +72,7 @@ test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
 test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
  assert.match(html,/id="checkClaraUpdate"/);
  assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/INSTALLED_VERSION='3\.6\.4-rc'/);
+ assert.match(html,/INSTALLED_VERSION='3\.6\.5-rc'/);
  assert.match(sw,/type === 'SKIP_WAITING'/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
@@ -95,4 +95,23 @@ test('Perfil validado, fotográfico e persistido no cofre',()=>{
  assert.match(html,/kind==='profile'/);
  assert.match(html,/id="lockFromProfile"/);
  assert.match(html,/profile:\s*\{/);
+});
+
+test('Histórico de auditoria por mês e conta sem alterar o mês financeiro',()=>{
+ assert.match(html,/function renderHistorico\(/);
+ assert.match(html,/function historicalSummary\(/);
+ assert.match(html,/id="view-historico"/);
+ assert.match(html,/id="historyMonth"/);
+ assert.match(html,/id="historyAccount"/);
+ assert.match(html,/id="historyCsv"/);
+ assert.doesNotMatch(html,/id="periodConfig"|id="cutoffInput"/);
+ const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];
+ assert.match(nav,/\['historico', SVG_ICONS.historico, 'Histórico'\]/);
+});
+test('Categorias e limites do primeiro uso começam zerados',()=>{
+ const found=html.match(/const SOURCE_DATA=(\{[^\n]+\});/);
+ assert.ok(found);
+ const initial=JSON.parse(found[1]);
+ assert.ok(initial.categories.length>=10);
+ assert.ok(initial.categories.every(c=>c.limitCents===0));
 });
