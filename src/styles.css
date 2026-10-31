@@ -282,3 +282,37 @@ body[data-accent=blue] .projection-horizon button.selected{color:#fff}
 @media(max-width:1050px){.sheet-overview-stripe{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet-movement-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){.sheet-overview-stripe{gap:8px}.sheet-overview-stripe>div{padding:12px 11px;border-radius:12px}.sheet-overview-stripe strong{font-size:16px}}
 @media(max-width:370px){.sheet-overview-stripe,.sheet-movement-overview{grid-template-columns:1fr}}
+
+
+/* Clara RC3.2 — tokens WCAG e legibilidade do painel, sem alterar o motor financeiro */
+:root{
+ --muted:#526a79;--expense:#a85a16;--red:#b83a4e;--green:#146e49;
+ --font-xs:12px;--font-sm:13px;--font-md:15px;--font-lg:18px;
+ --radius-sm:8px;--radius-md:12px;--radius-lg:20px;
+ --elevation-1:0 1px 2px #0f40501a;--elevation-2:0 6px 18px #0f405016;--elevation-3:0 22px 56px #0f405030;
+}
+body[data-theme=dark]{
+ --muted:#a6b9c7;--expense:#f0aa78;--red:#f17f91;--green:#6fdc8c;
+ --elevation-1:0 1px 2px #0004;--elevation-2:0 7px 20px #0005;--elevation-3:0 24px 60px #0008;
+}
+.brand-name strong,.side .brand-name strong{color:#f0fbff}
+body{font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased}
+.kpi-label,.sheet-budget-row small,.sheet-overview-stripe small,.pro-forecast-card small,.pro-forecast-card span,.category-legend-row,.fine,.surface-head p,.side-bottom small,.mobile-nav button{font-size:12px}
+.kpi p,.recent-desc span,.status-chip{font-size:12px}
+.kpi-value,.sheet-overview-stripe strong,.clara-hero-value,.recent-amount,.planning-table td{font-variant-numeric:tabular-nums}
+.planning-table th:not(:first-child),.planning-table td:not(:first-child){text-align:right}
+.button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+body[data-theme=dark] .button.primary{color:#071f23}
+body[data-theme=dark][data-accent=blue] .button.primary{color:#081f35}
+.button:focus-visible,.side-link:focus-visible,.mobile-nav button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.toast{top:14px;bottom:auto;right:16px;left:auto;max-width:min(440px,calc(100vw - 32px))}
+.surface,.kpi{box-shadow:var(--elevation-1)}
+.pro-forecast-card{box-shadow:none}
+.mobile-nav button{min-height:48px}
+@media(max-width:690px){
+ .toast{top:calc(12px + env(safe-area-inset-top));bottom:auto;left:12px;right:12px;max-width:none}
+ .mobile-nav button{min-height:53px;font-size:12px}
+ .header{flex-wrap:wrap;gap:12px}
+ .header .head-actions{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){.side,.button,.surface{transition:none!important}}
