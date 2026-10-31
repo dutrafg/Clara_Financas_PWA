@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.8 • Atualizador inteligente</title>
+<title>Clara Finanças RC3.6.9 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1633,6 +1633,17 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 }
 :root[data-motion="reduced"] *{scroll-behavior:auto!important}
 
+
+/* Instalação PWA: convite só quando elegível, instruções em todos os navegadores. */
+#view-ajustes .clara-install-status{display:flex;align-items:center;gap:9px;
+ color:var(--muted);font-size:12px;line-height:1.5;padding:7px 0 4px}
+#view-ajustes .clara-install-status:before{content:'';display:block;width:8px;height:8px;
+ border-radius:50%;background:var(--teal);flex:none}
+#view-ajustes .clara-install-status[data-status="manual"]:before{background:var(--orange)}
+#view-ajustes .clara-install-status[data-status="installed"]:before{background:var(--green)}
+#view-ajustes #claraInstallHelp{margin-top:5px}
+#view-ajustes #claraInstallInstructions{line-height:1.6;margin-top:7px}
+#claraInstallBtn[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -2176,8 +2187,10 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='3.6.8-rc';
+const CLARA_APP_VERSION='3.6.9-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+ 'Assistente de instalação para Chrome e Samsung Internet',
+ 'Verificação da disponibilidade da instalação e orientações por navegador',
  'Avisos automáticos de nova versão, sem atualização forçada',
  'Verificações periódicas e novidades disponíveis offline',
  'Histórico financeiro com alterações criptografadas',
@@ -3073,6 +3086,17 @@ function renderAjustes() {
         <label class="btn" for="importJson" style="cursor:pointer">Importar JSON antigo</label><input hidden type="file" id="importJson" accept=".json,application/json">
       </details>
     `)}<div class="gap"></div>
+    ${panel('Instalar Clara', 'Acesso rápido na tela inicial, com uso offline após preparar o aplicativo.', `
+      <div class="clara-install-status" id="claraInstallStatus" role="status" aria-live="polite">Verificando disponibilidade de instalação…</div>
+      <div class="config-actions">
+        <div><strong>Aplicativo para este dispositivo</strong><small id="claraInstallHint">Chrome ou Samsung Internet no Android.</small></div>
+        <button type="button" class="btn primary" id="claraInstallBtn">Como instalar</button>
+      </div>
+      <details class="config-disclosure" id="claraInstallHelp">
+        <summary>Instruções de instalação</summary>
+        <p class="helper" id="claraInstallInstructions">Abra o menu do navegador e escolha Instalar aplicativo ou Adicionar à tela inicial.</p>
+      </details>
+    `)}<div class="gap"></div>
     <details class="config-disclosure config-advanced" id="claraAdvancedSettings">
       <summary>Manutenção avançada</summary>
       ${panel('Ferramentas', 'Verificações e ações de recuperação.', `
@@ -3083,6 +3107,7 @@ function renderAjustes() {
   }
   $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
   window.ClaraUpdate?.paint?.();
+  window.ClaraInstall?.paint?.();
 }
 
 function generateInstallments(totalCents, n, due, desc, category, account) {
@@ -4814,6 +4839,69 @@ window.ClaraUpdate=ClaraUpdate;
 </script>
 <script>
 // O Service Worker agora é registrado após a abertura do cofre.
+</script>
+
+<script id="clara-install-runtime">
+'use strict';
+// Chrome oferece beforeinstallprompt; outros navegadores exigem a instalação manual.
+const ClaraInstall=(()=>{
+ let candidate=null,installed=window.matchMedia('(display-mode: standalone)').matches||
+   window.navigator.standalone===true;
+ const get=id=>document.getElementById(id);
+ const ua=navigator.userAgent||'';
+ const samsung=/SamsungBrowser\//i.test(ua);
+ const chrome=/Chrome\//i.test(ua)&&!/EdgA\//i.test(ua)&&!samsung;
+ function guidance(){
+  if(samsung)return 'No Samsung Internet, abra o menu ≡ e escolha Adicionar página a → Tela inicial. Confirme a instalação quando oferecida.';
+  if(chrome)return 'No Chrome, primeiro abra o site normalmente. Depois toque em ⋮ → Instalar aplicativo ou Adicionar à tela inicial. Se o site mostrar ERR_FAILED, a instalação não funcionará até a conexão ser corrigida.';
+  return 'No menu do navegador, escolha Instalar aplicativo ou Adicionar à tela inicial. A opção depende do navegador e da versão do Android.';
+ }
+ function paint(){
+  const status=get('claraInstallStatus'),button=get('claraInstallBtn'),help=get('claraInstallInstructions');
+  if(help)help.textContent=guidance();
+  if(!status||!button)return;
+  if(installed||window.matchMedia('(display-mode: standalone)').matches){
+   status.textContent='Clara já está instalado neste navegador.';
+   status.dataset.status='installed';
+   button.hidden=true;
+  }else if(candidate){
+   status.textContent='Instalação disponível neste navegador.';
+   status.dataset.status='ready';button.hidden=false;button.textContent='Instalar Clara';
+  }else{
+   status.textContent=samsung?'Instale pelo menu do Samsung Internet.':'Instalação pelo menu do navegador.';
+   status.dataset.status='manual';button.hidden=false;button.textContent='Como instalar';
+  }
+ }
+ async function request(){
+  if(installed)return;
+  if(!candidate){
+   const help=get('claraInstallHelp');
+   if(help){help.open=true;help.scrollIntoView({behavior:'smooth',block:'nearest'});}
+   paint();return;
+  }
+  const prompt=candidate;candidate=null;paint();
+  try{
+   await prompt.prompt();
+   const choice=await prompt.userChoice;
+   if(choice?.outcome==='accepted'){
+    const status=get('claraInstallStatus');if(status)status.textContent='Instalação solicitada. Aguarde a confirmação do navegador.';
+   }else{paint();}
+  }catch(err){
+   const status=get('claraInstallStatus');
+   if(status)status.textContent='Não foi possível iniciar a instalação. Utilize o menu do navegador.';
+   get('claraInstallHelp')?.setAttribute('open','');
+  }
+ }
+ window.addEventListener('beforeinstallprompt',event=>{
+  event.preventDefault();candidate=event;paint();
+ });
+ window.addEventListener('appinstalled',()=>{candidate=null;installed=true;paint();});
+ document.addEventListener('click',event=>{
+  if(event.target?.closest?.('#claraInstallBtn'))request();
+ });
+ return {paint,request,get available(){return !!candidate;},get installed(){return installed;}};
+})();
+window.ClaraInstall=ClaraInstall;
 </script>
 </body>
 </html>
