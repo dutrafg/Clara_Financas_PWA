@@ -32,9 +32,15 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_role('button',name='Carregar demonstração').click()
   page.wait_for_function('''async () => new Promise((resolve,reject)=>{const r=indexedDB.open('clara-financas-local-v1');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const q=db.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>resolve(q.result?.transactions?.length===63);q.onerror=()=>reject(q.error)}})''')
   print('PASSOU: 63 registros gravados em IndexedDB real')
+  # Redesign visual: validar o modo grafite sem alterar as transações.
+  page.get_by_label('Tema',exact=True).select_option('dark')
+  page.wait_for_function("document.body.dataset.theme === 'dark'")
   page.get_by_role('button',name='Dashboard',exact=True).first.click()
   page.get_by_label('Mês de referência').fill('2026-10')
   page.get_by_text('R$ 5.205,00').first.wait_for(timeout=15000)
+  page.locator('.clara-balance-hero').wait_for(timeout=15000)
+  page.locator('.category-donut-figure svg').wait_for(timeout=15000)
+  assert page.locator('.category-legend-row').count()>0
   page.screenshot(path=str(ROOT/'tests/e2e-desktop.png'),full_page=True)
   page.reload();page.get_by_text('R$ 5.205,00').first.wait_for(timeout=15000)
   print('PASSOU: valores preservados ao atualizar a página')
@@ -53,6 +59,14 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.screenshot(path=str(ROOT/'tests/e2e-mobile.png'),full_page=True)
   assert not errors,errors
   print('PASSOU: navegação mobile, sem erros de JavaScript')
+  page.get_by_role('button',name='Planejamento',exact=True).last.click()
+  page.get_by_role('button',name='12 meses',exact=True).click()
+  page.get_by_role('heading',name='Projeção de fluxo de caixa · 12 meses').wait_for(timeout=15000)
+  assert page.locator('.planning-table').last.locator('tbody tr').count()==12
+  assert page.locator('body').evaluate('(el)=>el.scrollWidth <= innerWidth + 6')
+  page.get_by_role('button',name='3 meses',exact=True).click()
+  assert page.locator('.planning-table').last.locator('tbody tr').count()==3
+  print('PASSOU: modo escuro, distribuição por categorias, projeção 3/12 meses e layout responsivo')
   # Etapa 3: exercício real de tela + persistência de recorrência.
   page.get_by_role('button',name='Movimentações',exact=True).last.click()
   page.get_by_role('button',name='Novo lançamento').click()
