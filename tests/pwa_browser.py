@@ -26,7 +26,9 @@ async def run():
    assert result['passed']==result['total'],[x for x in result['results'] if x['status']!='APROVADO']
    # Configurações clean: telas 390/768/1440, controles, versão e opções recolhidas.
    await page.evaluate("go('ajustes');configTab='dados';renderAjustes()")
-   assert await page.locator('#claraUpdateInstalled').inner_text()=='3.6.9-rc'
+   assert await page.locator('#claraUpdateInstalled').inner_text()=='3.6.10-rc'
+   assert await page.locator('#qaOpen').count()==0
+   assert await page.locator('#claraAdvancedSettings [data-open-qa="1"]').count()==1
    assert await page.locator('#claraUpdateLast').is_visible()
    assert await page.locator('#checkClaraUpdate').is_visible()
    assert await page.locator('#exportJson').is_visible()
