@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.5</title>
+<title>Clara Finanças RC3.6</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1364,7 +1364,7 @@ a { color: inherit; }
 @media(min-width:761px) { .forecast-rows { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); } }
 
 
-/* RC3.5: botão flutuante e gaveta de módulos EXCLUSIVOS para smartphones. */
+/* RC3.6: botão flutuante e gaveta de módulos EXCLUSIVOS para smartphones. */
 .float-trigger, .float-menu { display: none; }
 @media (max-width:760px) {
   .main { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
@@ -1511,7 +1511,7 @@ a { color: inherit; }
   <section class="qa-dialog" tabindex="-1">
     <div class="qa-header">
       <div>
-        <span class="eyebrow">Validação Externa • RC3.4</span>
+        <span class="eyebrow">Validação Externa • RC3.6</span>
         <h2 id="qaTitle">Central de testes do Clara</h2>
       </div>
       <button id="qaClose" type="button" class="btn ghost" aria-label="Fechar testes">✕ Fechar</button>
@@ -3785,7 +3785,7 @@ qaSpecs.push(
 );
 
 
-/* RC3.5 — menu flutuante exclusivamente móvel; dados vazios e navegação. */
+/* RC3.6 — menu flutuante exclusivamente móvel; dados vazios e navegação. */
 qaSpecs.push(
   ['QA-111','Configurações está na última posição',()=>qaAssert(NAV.at(-1)[0]==='ajustes')],
   ['QA-112','Todas as seis rotas são exclusivas e completas',()=>qaAssert(new Set(NAV.map(x=>x[0])).size===6 && NAV.every(x=>!!$('view-'+x[0])))],
@@ -3828,7 +3828,7 @@ function qaRun() {
   $('qaResults').innerHTML = results.map(x => '<div class="qa-result" role="listitem"><span>' + esc(x.id + ' · ' + x.title) + (x.message ? '<small class="muted"> — ' + esc(x.message) + '</small>' : '') + '</span><strong class="' + (x.status === 'APROVADO' ? 'qa-pass' : 'qa-fail') + '">' + x.status + '</strong></div>').join('');
   window.ClaraQA.lastRun = {
     generatedAt: runAt,
-    app: 'Clara Finanças RC3.5 — PWA',
+    app: 'Clara Finanças RC3.6 — PWA',
     viewport: { width: innerWidth, height: innerHeight },
     userAgent: navigator.userAgent,
     passed,
@@ -3840,7 +3840,7 @@ function qaRun() {
 
 function qaMarkdown() {
   const run = window.ClaraQA.lastRun || qaRun();
-  return '# Validação Clara Finanças RC3.5\n\n**Data UTC:** ' + run.generatedAt + '  \n**Viewport:** ' + run.viewport.width + '×' + run.viewport.height + '  \n**Aprovados:** ' + run.passed + '/' + run.total + '\n\n> Testes do HTML standalone; incluem validação de regras financeiras, CRUD, contraste WCAG AA e fluxos de interface.\n\n| ID | Caso | Resultado | Observação |\n|---|---|---|---|\n' + run.results.map(x => '| ' + x.id + ' | ' + x.title + ' | ' + x.status + ' | ' + String(x.message || '—').replace(/\|/g, '/') + ' |').join('\n') + '\n';
+  return '# Validação Clara Finanças RC3.6\n\n**Data UTC:** ' + run.generatedAt + '  \n**Viewport:** ' + run.viewport.width + '×' + run.viewport.height + '  \n**Aprovados:** ' + run.passed + '/' + run.total + '\n\n> Testes do HTML standalone; incluem validação de regras financeiras, CRUD, contraste WCAG AA e fluxos de interface.\n\n| ID | Caso | Resultado | Observação |\n|---|---|---|---|\n' + run.results.map(x => '| ' + x.id + ' | ' + x.title + ' | ' + x.status + ' | ' + String(x.message || '—').replace(/\|/g, '/') + ' |').join('\n') + '\n';
 }
 
 function qaDownload(name, content, type) { dl(name, content, type); }
