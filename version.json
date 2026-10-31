@@ -1,1 +1,6 @@
-{"name":"Clara Finanças","version":"3.5.0-rc","build":"2026-10-31","schema":2}
+{
+  "name": "Clara Finanças",
+  "version": "3.6.0-rc",
+  "build": "2026-10-31",
+  "schema": 2
+}
