@@ -1,12 +1,10 @@
-name: Importar RC2 e homologar Etapa 02
+name: Homologar Clara Finanças Etapa 03
 on:
   push:
     branches:
-      - homologacao/etapa-02
+      - homologacao/etapa-03
     paths:
-      - Clara_Financas_PWA_GitHub_Etapa02.zip
-      - clara-pwa.zip
-      - .github/workflows/importar-rc2.yml
+      - clara-etapa03.zip
 permissions:
   contents: write
 jobs:
@@ -19,13 +17,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if test -f clara-pwa.zip; then
-            ARCHIVE=clara-pwa.zip
-          elif test -f Clara_Financas_PWA_GitHub_Etapa02.zip; then
-            ARCHIVE=Clara_Financas_PWA_GitHub_Etapa02.zip
-          else
-            echo 'Arquivo ZIP não encontrado'; exit 1
-          fi
+          ARCHIVE=clara-etapa03.zip
+          test -f "$ARCHIVE"
           unzip -t "$ARCHIVE"
           if unzip -Z1 "$ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
             echo 'ERRO: caminhos inseguros no pacote'; exit 1
@@ -36,6 +29,8 @@ jobs:
           test -f package.json
           test -f src/App.tsx
           test -f tests/e2e_production.py
+          test -f tests/stage3.test.mjs
+          test -f src/legacy/movements.mjs
           rm "$ARCHIVE"
       - name: Salvar fontes somente na branch de homologação
         shell: bash
@@ -45,8 +40,8 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'feat: importar Clara PWA RC2 para homologação da Etapa 2'
-            git push origin HEAD:homologacao/etapa-02
+            git commit -m 'feat: importar Clara PWA RC 0.4.0 para homologação da Etapa 3'
+            git push origin HEAD:homologacao/etapa-03
           fi
       - uses: actions/setup-node@v4
         with:
@@ -70,7 +65,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-etapa02-instalacao-e-testes
+          name: clara-etapa03-instalacao-e-testes
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
