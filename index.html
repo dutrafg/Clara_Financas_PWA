@@ -1566,6 +1566,73 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
  #view-ajustes .config-content .config-actions .btn{min-height:39px}
 }
 
+
+/* Clara Studio — paletas originais e identidade visual modular */
+:root[data-palette="bosque"][data-theme="light"]{
+ --bg:#f2f7f3;--panel:#fff;--panel2:#edf5ef;--panel3:#dfebe4;
+ --stroke:#d6e5db;--stroke-strong:#b7cfbe;--text:#17372d;--muted:#577165;--faint:#789287;
+ --teal:#157754;--teal-ink:#fff;--blue:#387c78;--green:#157b58;--red:#ac415b;--orange:#966028;
+ --side-bg:#14372d;--side-selected:#24614f;--hero-start:#124c3e;--hero-end:#278b6a;
+}
+:root[data-palette="bosque"][data-theme="dark"]{
+ --bg:#0d1815;--panel:#17241f;--panel2:#1e3028;--panel3:#274135;
+ --stroke:#2a493a;--stroke-strong:#3d6350;--text:#ecfaf1;--muted:#b4cdbd;--faint:#90af9b;
+ --teal:#83dfad;--teal-ink:#10251b;--blue:#89c6bf;--green:#75dbac;--red:#f19aaa;--orange:#dfbd85;
+ --side-bg:#101f19;--side-selected:#244336;--hero-start:#153e30;--hero-end:#24684d;
+}
+:root[data-palette="coral"][data-theme="light"]{
+ --bg:#fff7f3;--panel:#fffdfb;--panel2:#fff0eb;--panel3:#fbe0d9;
+ --stroke:#eddcd6;--stroke-strong:#e2bfb6;--text:#472e35;--muted:#83636b;--faint:#a0838b;
+ --teal:#b54565;--teal-ink:#fff;--blue:#bc6c83;--green:#227d60;--red:#b33051;--orange:#ad643b;
+ --side-bg:#3c2232;--side-selected:#643447;--hero-start:#74334e;--hero-end:#d06670;
+}
+:root[data-palette="coral"][data-theme="dark"]{
+ --bg:#1a1117;--panel:#281b25;--panel2:#342531;--panel3:#47313e;
+ --stroke:#4e3444;--stroke-strong:#704b5c;--text:#fff0f2;--muted:#d6b8c2;--faint:#b78c9b;
+ --teal:#ff9da5;--teal-ink:#301723;--blue:#e8a1b3;--green:#8bdfb0;--red:#ff879f;--orange:#f0c294;
+ --side-bg:#23151e;--side-selected:#4a2e3b;--hero-start:#642d4b;--hero-end:#ab4b66;
+}
+:root[data-palette="areia"][data-theme="light"]{
+ --bg:#faf7f0;--panel:#fffefb;--panel2:#f7f1e4;--panel3:#efe4d0;
+ --stroke:#e8ddca;--stroke-strong:#d4c39e;--text:#40392a;--muted:#776b57;--faint:#96856d;
+ --teal:#85652b;--teal-ink:#fff;--blue:#826f4a;--green:#39774c;--red:#ad4754;--orange:#996021;
+ --side-bg:#302c24;--side-selected:#50432d;--hero-start:#66522b;--hero-end:#a78039;
+}
+:root[data-palette="areia"][data-theme="dark"]{
+ --bg:#181713;--panel:#26241d;--panel2:#343026;--panel3:#453c2d;
+ --stroke:#4b4336;--stroke-strong:#70604a;--text:#f9f0db;--muted:#cdc0a9;--faint:#a99577;
+ --teal:#e3bd70;--teal-ink:#2b2111;--blue:#dfc493;--green:#9ad7a6;--red:#f0a1a4;--orange:#edb97b;
+ --side-bg:#211f19;--side-selected:#483e2b;--hero-start:#584421;--hero-end:#947137;
+}
+:root[data-backdrop="aurora"] body{
+ background-image:radial-gradient(ellipse 60% 45% at 95% 0%,color-mix(in srgb,var(--teal) 10%,transparent),transparent),
+ radial-gradient(ellipse 65% 55% at 0% 75%,color-mix(in srgb,var(--blue) 7%,transparent),transparent);
+ background-attachment:fixed;
+}
+:root[data-backdrop="grid"] body{
+ background-image:linear-gradient(color-mix(in srgb,var(--teal) 5%,transparent) 1px,transparent 1px),
+ linear-gradient(90deg,color-mix(in srgb,var(--teal) 5%,transparent) 1px,transparent 1px);
+ background-size:34px 34px;
+}
+:root[data-surface="flat"] .panel{
+ border:1px solid var(--stroke);border-radius:12px;box-shadow:none;
+}
+:root[data-surface="flat"] .metric,:root[data-surface="flat"] .account-card{
+ border-radius:11px;box-shadow:none;
+}
+:root[data-surface="floating"] .panel{
+ border-radius:22px;box-shadow:0 11px 34px color-mix(in srgb,var(--teal) 8%,transparent);
+ border:1px solid color-mix(in srgb,var(--teal) 15%,var(--stroke));
+}
+:root[data-surface="floating"] .metric,:root[data-surface="floating"] .account-card{
+ border-radius:17px;
+}
+:root[data-surface="floating"] .mobile-dock{
+ border-color:color-mix(in srgb,var(--teal) 23%,var(--stroke-strong));
+ box-shadow:0 18px 44px #0005,0 0 0 2px color-mix(in srgb,var(--teal) 9%,transparent);
+}
+:root[data-motion="reduced"] *{scroll-behavior:auto!important}
+
 </style>
 </head>
 <body>
@@ -2942,6 +3009,7 @@ function renderAjustes() {
         ${prefSwitch('sidebarCompact','Barra lateral compacta','Recolhe os nomes no desktop, sem afetar a navegação do celular.')}
       </div>`)}
 
+    </div>
     <div class="gap"></div>
     ${panel('Acabamento da interface', 'Escolha o estilo dos cartões e do fundo.', `
       <div class="field-grid two">
@@ -2954,7 +3022,7 @@ function renderAjustes() {
       </div>
       <p class="helper">Preferências de aparência salvas no cofre, sem alterar seus registros.</p>
     `)}
-    </div>`;
+`;
   } else if (t === 'painel') {
     body = `${panel('Privacidade e visualização', 'O painel é seu: escolha o que aparece. Nenhum indicador é excluído do banco.', `<div class="list">
       ${prefSwitch('hideValues','Ocultar valores financeiros','Disfarça valores exibidos nas telas; CSV e JSON mantêm os valores reais.')} 
