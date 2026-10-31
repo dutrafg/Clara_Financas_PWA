@@ -2,7 +2,7 @@ import * as React from 'react';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {Account,Budget,FinanceData,FolderInfo,Goal,Kind,Status,Transaction,View} from './domain/types';
 import {VERSION,uid,blankData,brl,fmtDate,parseMoney,periodStats,budgetStatus,budgetInsight,accountBalance,validateTransaction,validateBackup,migrateData,effectiveDate,deriveDemo,transactionsCSV} from './domain/finance';
-import {initData,saveData,chooseFolder,clearDirectoryHandle,folderPermission,askFolderPermission,writeFolderCopy,readFolderCopy,persistentStorage} from './domain/storage';
+import {initData,saveData,chooseFolder,clearDirectoryHandle,folderPermission,askFolderPermission,writeFolderCopy,readFolderCopy,readLegacyFolderCopy,hasFolderCopy,hasLegacyFolderCopy,removeLegacyFolderCopy,vaultExists,enableVault,unlockVault,disableVault,lockVault,persistentStorage} from './domain/storage';
 import {Icon} from './components/icons';
 import {createMovements,changeMovementStatus,isOverdue,listMovements,movementTotals,previewMovementsCSV} from './domain/movements';
 import type {Frequency,MovementFilters} from './domain/movements';
@@ -80,22 +80,68 @@ function YearChart({data,month,mask}:{data:FinanceData;month:string;mask:(x:numb
 }
 function useFinance(){
  const [data,setData]=useState<FinanceData|null>(null);
- const [error,setError]=useState('');const [saving,setSaving]=useState(false);const [folder,setFolder]=useState<FolderInfo>({state:'none',name:''});
+ const [error,setError]=useState('');
+ const [vaultLocked,setVaultLocked]=useState(false);
+ const [vaultEnabled,setVaultEnabled]=useState(false);
+ const [folderPassword,setFolderPassword]=useState('');
+ const [saving,setSaving]=useState(false);
+ const [folder,setFolder]=useState<FolderInfo>({state:'none',name:''});
  const [notice,setNotice]=useState<{text:string;danger:boolean}|null>(null);
  const noticeTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const notify=(text:string,danger=false)=>{setNotice({text,danger});if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>setNotice(null),4900);};
- useEffect(()=>{let active=true;initData().then(async d=>{if(!active)return;setData(d);setFolder(await folderPermission());persistentStorage().catch(()=>{});}).catch(e=>{if(active)setError(e.message||String(e));});return()=>{active=false;if(noticeTimer.current)clearTimeout(noticeTimer.current)}},[]);
+ useEffect(()=>{
+  let active=true;
+  initData().then(async d=>{
+   if(!active)return;setData(d);setVaultEnabled(await vaultExists());
+   setFolder(await folderPermission());persistentStorage().catch(()=>{});
+  }).catch((e:Error&{code?:string})=>{
+   if(!active)return;
+   if(e.code==='VAULT_LOCKED')setVaultLocked(true);else setError(e.message||String(e));
+  });
+  return()=>{active=false;if(noticeTimer.current)clearTimeout(noticeTimer.current)};
+ },[]);
+ async function openVault(password:string){
+  try{const recovered=await unlockVault(password);setData(recovered);setVaultLocked(false);setVaultEnabled(true);setError('');
+   setFolder(await folderPermission());notify('Cofre desbloqueado.');return true;
+  }catch(e){notify('Não foi possível desbloquear: '+(e as Error).message,true);return false}
+ }
+ async function activateVault(password:string){
+  await enableVault(password);setVaultEnabled(true);setVaultLocked(false);
+  notify('Cofre local criptografado ativado.');
+ }
+ async function deactivateVault(password:string){
+  const recovered=await disableVault(password);setData(recovered);setVaultEnabled(false);
+  notify('Proteção do banco desativada. Seus dados agora estão legíveis no perfil do navegador.',true);
+ }
+ function closeVault(){lockVault();setData(null);setVaultLocked(true);setFolderPassword('')}
  async function commit(next:FinanceData,message='Alteração salva.'){
   setSaving(true);
-  try{next.appVersion=VERSION;const saved=await saveData(next);setData(saved);let warning='';
-   try{const copied=await writeFolderCopy(saved);const info=await folderPermission();if(!copied&&info.state!=='none')warning='Salvo no navegador, mas a pasta perdeu permissão de gravação.';}catch(e){warning=`Salvo no navegador; a cópia na pasta falhou: ${(e as Error).message}`}
+  try{
+   next.appVersion=VERSION;
+   const saved=await saveData(next);setData(saved);let warning='';
+   try{
+    const info=await folderPermission();
+    if(info.state!=='none'){
+     if(!folderPassword)warning='Salvo no navegador. Configure uma senha de cópia em pasta para ativar o espelho criptografado.';
+     else{
+      const copied=await writeFolderCopy(saved,folderPassword);
+      if(!copied)warning='Salvo no navegador, mas a pasta perdeu permissão de gravação.';
+     }
+    }
+   }catch(e){warning='Salvo no navegador; a cópia criptografada em pasta falhou: '+(e as Error).message}
    try{setFolder(await folderPermission())}catch{}
    notify(warning||message,!!warning);return saved;
-  }catch(e){notify(`Não foi possível salvar: ${(e as Error).message}`,true);throw e;}finally{setSaving(false)}
+  }catch(e){notify('Não foi possível salvar: '+(e as Error).message,true);throw e}
+  finally{setSaving(false)}
  }
- async function modify(mutator:(draft:FinanceData)=>void,message?:string){if(!data)throw Error('Banco indisponível');const next=structuredClone(data);mutator(next);return commit(next,message)}
- return {data,error,saving,folder,setFolder,notice,notify,commit,modify};
+ async function modify(mutator:(draft:FinanceData)=>void,message?:string){
+  if(!data)throw Error('Banco indisponível');
+  const next=structuredClone(data);mutator(next);return commit(next,message);
+ }
+ return {data,error,saving,folder,setFolder,notice,notify,commit,modify,
+  vaultLocked,vaultEnabled,folderPassword,setFolderPassword,openVault,activateVault,deactivateVault,closeVault};
 }
+
 function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalState;onClose:()=>void;onSave:(type:ModalKind,id:string|undefined,values:Record<string,string>)=>Promise<void>;saving:boolean}){
  const item:any=modal.type==='transaction'?data.transactions.find(t=>t.id===modal.id):modal.type==='account'?data.accounts.find(t=>t.id===modal.id):modal.type==='category'?data.categories.find(t=>t.id===modal.id):(modal.type==='debt'||modal.type==='debtPayment')?(data.debts||[]).find(t=>t.id===modal.id):modal.type==='budget'?data.budgets.find(t=>t.category===modal.id):data.goals.find(t=>t.id===modal.id);
  const [kind,setKind]=useState<Kind>(item?.kind||'Despesa'),[status,setStatus]=useState<Status>(item?.status||'Realizado');
@@ -205,10 +251,14 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  </div></div>;
 }
 export default function App(){
- const {data,error,saving,folder,setFolder,notice,notify,commit,modify}=useFinance();
+ const {data,error,saving,folder,setFolder,notice,notify,commit,modify,vaultLocked,vaultEnabled,folderPassword,setFolderPassword,openVault,activateVault,deactivateVault,closeVault}=useFinance();
  const [view,setView]=useState<View>('dashboard');
  const [projectionMonths,setProjectionMonths]=useState<3|6|12>(6);
  const [backupPassword,setBackupPassword]=useState('');
+ const [vaultPass,setVaultPass]=useState('');
+ const [vaultUnlockPass,setVaultUnlockPass]=useState('');
+ const [folderConfirmPass,setFolderConfirmPass]=useState('');
+ const [folderLegacyPresent,setFolderLegacyPresent]=useState(false);
  const [lockPassword,setLockPassword]=useState('');
  const [unlockPassword,setUnlockPassword]=useState('');
  const [lockRecord,setLockRecord]=useState(()=>{try{return localStorage.getItem('clara-ui-lock-v1')||''}catch{return ''}});
@@ -410,6 +460,17 @@ export default function App(){
  }
  async function saveFolder(){if(!data)return;try{let ok=await writeFolderCopy(data);if(!ok)ok=(await askFolderPermission())&&await writeFolderCopy(data);setFolder(await folderPermission());notify(ok?'Backup da pasta atualizado.':'Pasta sem permissão; use Exportar backup.',!ok)}catch(e){notify((e as Error).message,true)}}
  const action=(fn:()=>Promise<unknown>)=>()=>{fn().catch(e=>notify((e as Error).message,true))};
+ if(vaultLocked)return <main className="clara-lock">
+  <div className="brand-sign">C</div><h1>Cofre financeiro protegido</h1>
+  <p>Seus dados foram criptografados neste navegador. Informe a senha do cofre para abrir o Clara.</p>
+  <form onSubmit={async e=>{e.preventDefault();if(await openVault(vaultUnlockPass))setVaultUnlockPass('')}}>
+   <input autoFocus type="password" autoComplete="current-password" aria-label="Senha do cofre"
+    value={vaultUnlockPass} onChange={e=>setVaultUnlockPass(e.currentTarget.value)} required/>
+   <button className="button primary" type="submit">Abrir cofre</button>
+  </form>
+  {notice&&<p role="alert">{notice.text}</p>}
+  <small>Não limpe os dados do navegador. Caso tenha perdido a senha, recupere uma cópia externa protegida em outro perfil; o cofre atual não pode ser aberto sem ela.</small>
+ </main>;
  if(error)return <main className="boot-error"><div className="brand-sign">C</div><h1>Não foi possível abrir o banco local</h1><p>{error}</p><p>Não limpe os dados do navegador: seus registros podem estar armazenados nesta origem. Verifique permissões e o modo privado.</p></main>;
  if(!data||!summary)return <div className="boot"><div className="brand-sign">C</div><h2>Preparando Clara Finanças…</h2><p>Etapa 10 / 10 · Validação</p></div>;
  if(locked)return <main className="clara-lock">
