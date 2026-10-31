@@ -37,6 +37,12 @@ async def run():
     assert online=='3.6.0-rc-qa-upgrade',online
     original=(site/'index.html').read_text()
     (site/'index.html').write_text(original.replace('</head>','<!-- qa-version-two -->\n</head>',1))
+    fresh=await page.evaluate("""async () => {
+      const response=await fetch('./index.html',{cache:'no-store'});
+      return (await response.text()).includes('qa-version-two');
+    }""")
+    assert fresh,'Solicitação no-store foi atendida pelo conteúdo obsoleto do Service Worker'
+
     old_sw=(site/'sw.js').read_text()
     old_name=re.search(r"const CACHE_NAME = '([^']+)';",old_sw).group(1)
     new_name='clara-financas-qa-upgrade-v2'
