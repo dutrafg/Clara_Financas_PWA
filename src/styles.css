@@ -56,3 +56,17 @@ body[data-accent=blue]{--accent:#236bb8;--accent-hover:#185695;--soft:#eaf3fd;--
 @media(max-width:760px){.catalog-columns{grid-template-columns:1fr}.savings-overview{grid-template-columns:1fr}.catalog-row-actions{gap:3px}}
 
 @media(max-width:690px){.mobile-nav{justify-content:space-evenly;gap:0}.mobile-nav button{flex:1 1 0;min-width:0;font-size:9px;padding:4px 1px}.mobile-nav button svg{width:20px;height:20px}}
+
+/* Etapa 6: Planejamento, dívidas e projeções */
+.debt-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0}
+.debt-numbers span{min-width:0;font-size:11px;color:var(--muted,#64748b)}
+.debt-numbers b{display:block;margin-top:4px;color:var(--text,#192b36);overflow-wrap:anywhere;font-size:13px}
+.debt-card{min-width:0}.debt-card h3{margin:0 0 6px;overflow-wrap:anywhere}
+.debt-card .catalog-actions{margin-top:12px}
+.planning-table{overflow-x:auto;max-width:100%}
+.planning-table table{border-collapse:collapse;width:100%;font-size:12px;min-width:560px}
+.planning-table td,.planning-table th{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line,#dde4e7);white-space:nowrap}
+.planning-table th{color:var(--muted,#64748b);font-weight:650}
+.planning-note{font-size:12px;margin:10px 0 5px;color:var(--accent,#176f6a)}
+@media(max-width:550px){.debt-numbers{grid-template-columns:1fr;gap:3px}.debt-numbers span{display:flex;justify-content:space-between;gap:12px}}
+body[data-theme=dark] .debt-numbers b{color:var(--text)}
