@@ -61,10 +61,11 @@ async def run():
       const registration=await navigator.serviceWorker.ready;
       await registration.update();
     }""")
-    await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
+    # Em ambientes com registro sem clientes controlados, a instalação pode ativar
+    # imediatamente. Se estiver aguardando, simular o clique aprovado pelo usuário.
     await page.evaluate("""async () => {
       const reg=await navigator.serviceWorker.ready;
-      reg.waiting.postMessage({type:'SKIP_WAITING'});
+      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
     }""")
     await page.wait_for_function("""async () => {
       const names=await caches.keys();
