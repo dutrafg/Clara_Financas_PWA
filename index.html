@@ -1425,7 +1425,7 @@ a { color: inherit; }
             <span class="eyebrow">Clara • Visão Financeira</span>
             <h2 class="title" id="pageTitle">Painel financeiro</h2>
           </div>
-          <button class="btn primary" id="quickAdd" type="button">＋ Novo</button>
+
         </div>
         <p class="sub" id="pageSubtitle">Seu dinheiro em perspectiva, com indicadores conectados.</p>
       </div>
@@ -3161,7 +3161,6 @@ document.addEventListener('keydown', e => {
 matchMedia('(max-width: 760px)').addEventListener('change', () => closeFloatMenu());
 $('settingsBtn').addEventListener('click', () => { configTab = 'aparencia'; go('ajustes'); });
 
-$('quickAdd').addEventListener('click', () => modal('transaction'));
 
 document.addEventListener('change', async e => {
   if (e.target.id !== 'importJson') return;
