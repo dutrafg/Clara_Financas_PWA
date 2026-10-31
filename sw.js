@@ -6,7 +6,15 @@ const versionPath = scopedURL('./version.json').pathname;
 
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE_NAME);
-  await cache.addAll(APP_FILES.map(path => new Request(scopedURL(path), {cache:'reload'})));
+  // Não reutilizar respostas mantidas em cache por um controlador anterior.
+  // Cada recurso deve vir da rede e ser gravado pelo caminho canônico,
+  // inclusive durante uma troca de versão ainda controlada pelo SW antigo.
+  await Promise.all(APP_FILES.map(async path => {
+    const url = scopedURL(path);
+    const response = await fetch(new Request(url, {cache:'no-store'}));
+    if (!response.ok) throw Error('Falha ao preparar atualização PWA: ' + path);
+    await cache.put(url, response);
+  }));
   await self.skipWaiting();
 })()));
 
