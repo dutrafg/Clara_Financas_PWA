@@ -30,4 +30,14 @@
 - O backup exportado não é criptografado. O repositório está público; nunca comitar registros financeiros pessoais.
 - Instalação PWA em dispositivo físico e acesso à pasta externa serão homologados na Etapa 10.
 
+## Correção de regressão — pagamento de dívida (31/10/2026)
+- Corrigida a perda de `debtId` ao editar um lançamento originado de pagamento de dívida.
+- Edição e reabertura passam por `reviseDebtPayment`: mantém o vínculo com o credor, obriga tipo e categoria compatíveis e bloqueia valores acima do saldo restante.
+- Exclusão passa por `removeDebtPayment`, com confirmação explícita na interface, preservando a dívida e recalculando sua evolução.
+- A validação de backup exige a mesma categoria entre pagamento e dívida.
+- Foram acrescentados **36 testes de regressão**: o conjunto da Etapa 6 passou de 82 para **118 verificações**.
+- Teste ponta a ponta acrescentado para editar o valor do pagamento, reabrir, excluir e conferir o IndexedDB e os saldos após recarregar.
+- **Homologação completa aprovada:** [GitHub Actions 41166156199](https://github.com/dutrafg/Clara_Financas_PWA/actions/runs/41166156199), incluindo testes das etapas 1–6, TypeScript, Vite e Chromium móvel.
+- Restrições anteriores mantidas: testes em Android físico, seleção de pasta e segurança dos backups permanecem na Etapa 10.
+
 **Próxima etapa:** 7/10 — Conciliação financeira, auditoria e correção de inconsistências.
