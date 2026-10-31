@@ -12,6 +12,8 @@ import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,remove
 import {reconcileAccount,deleteReconciliation,reconciliationHistory,financeAudit} from './domain/reconciliation';
 import {dashboardInsights} from './domain/dashboard';
 import {monthlyReport,annualReport,monthlyReportCSV,annualReportCSV,exportReportPDF} from './domain/reporting';
+import {encryptBackup,decryptBackup} from './domain/security';
+import {createLockRecord,verifyLockRecord} from './domain/lock';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -176,6 +178,14 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
 export default function App(){
  const {data,error,saving,folder,setFolder,notice,notify,commit,modify}=useFinance();
  const [view,setView]=useState<View>('dashboard');
+ const [backupPassword,setBackupPassword]=useState('');
+ const [lockPassword,setLockPassword]=useState('');
+ const [unlockPassword,setUnlockPassword]=useState('');
+ const [lockRecord,setLockRecord]=useState(()=>{try{return localStorage.getItem('clara-ui-lock-v1')||''}catch{return ''}});
+ const [locked,setLocked]=useState(()=>{try{return !!localStorage.getItem('clara-ui-lock-v1')}catch{return false}});
+ const secureImportRef=useRef<HTMLInputElement>(null);
+ useEffect(()=>{const hide=()=>{if(document.visibilityState==='hidden'&&lockRecord)setLocked(true)};
+  document.addEventListener('visibilitychange',hide);return()=>document.removeEventListener('visibilitychange',hide)},[lockRecord]);
  const [reconAccount,setReconAccount]=useState('');
  const [reconDate,setReconDate]=useState(today());
  const [reconAmount,setReconAmount]=useState('');
@@ -320,6 +330,34 @@ export default function App(){
   catch(e){notify((e as Error).message,true)}
  }
  function download(filename:string,content:string,mime:string){const blob=new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000)}
+ async function exportEncrypted(){
+  if(!data)return;
+  try{const result=await encryptBackup(data,backupPassword);
+   download(`clara-backup-protegido-${today()}.clara`,result,'application/json');
+   notify('Backup criptografado exportado. Guarde a senha em local seguro.');}
+  catch(e){notify((e as Error).message,true)}finally{setBackupPassword('')}
+ }
+ async function importEncrypted(file:File){
+  try{if(file.size>15_000_000)throw Error('Arquivo criptografado acima de 15 MB.');
+   const recovered=await decryptBackup(await file.text(),backupPassword);
+   setBackupPassword('');await restore(recovered,'o backup criptografado');}
+  catch(e){notify((e as Error).message,true)}finally{setBackupPassword('');if(secureImportRef.current)secureImportRef.current.value=''}
+ }
+ async function enableLock(){
+  try{const record=await createLockRecord(lockPassword);
+   localStorage.setItem('clara-ui-lock-v1',record);
+   setLockRecord(record);setLockPassword('');setLocked(true);
+   notify('Bloqueio visual ativado.');}catch(e){notify((e as Error).message,true)}
+ }
+ async function disableLock(){
+  if(!await verifyLockRecord(lockRecord,lockPassword)){notify('Senha incorreta.',true);return}
+  localStorage.removeItem('clara-ui-lock-v1');setLockRecord('');setLockPassword('');setLocked(false);
+  notify('Bloqueio visual desativado.');
+ }
+ async function unlock(){
+  if(await verifyLockRecord(lockRecord,unlockPassword)){setLocked(false);setUnlockPassword('');}
+  else notify('Senha incorreta.',true);
+ }
  async function restore(raw:unknown,context='backup'){if(!data)return;try{
   const migrated=migrateData(raw);validateBackup(migrated);
   if(!window.confirm(`Restaurar ${context}? Isso substituirá TODOS os seus dados atuais. Faça um backup antes de prosseguir.`))return;
@@ -343,7 +381,16 @@ export default function App(){
  async function saveFolder(){if(!data)return;try{let ok=await writeFolderCopy(data);if(!ok)ok=(await askFolderPermission())&&await writeFolderCopy(data);setFolder(await folderPermission());notify(ok?'Backup da pasta atualizado.':'Pasta sem permissão; use Exportar backup.',!ok)}catch(e){notify((e as Error).message,true)}}
  const action=(fn:()=>Promise<unknown>)=>()=>{fn().catch(e=>notify((e as Error).message,true))};
  if(error)return <main className="boot-error"><div className="brand-sign">C</div><h1>Não foi possível abrir o banco local</h1><p>{error}</p><p>Não limpe os dados do navegador: seus registros podem estar armazenados nesta origem. Verifique permissões e o modo privado.</p></main>;
- if(!data||!summary)return <div className="boot"><div className="brand-sign">C</div><h2>Preparando Clara Finanças…</h2><p>Etapa 4 / 10 · Movimentações completas</p></div>;
+ if(!data||!summary)return <div className="boot"><div className="brand-sign">C</div><h2>Preparando Clara Finanças…</h2><p>Etapa 10 / 10 · Validação</p></div>;
+ if(locked)return <main className="clara-lock">
+  <div className="brand-sign">C</div><h1>Clara bloqueado</h1>
+  <p>Informe a senha local para continuar.</p>
+  <form onSubmit={e=>{e.preventDefault();unlock()}}>
+   <input autoFocus type="password" aria-label="Senha de desbloqueio" autoComplete="current-password"
+    value={unlockPassword} onChange={e=>setUnlockPassword(e.currentTarget.value)} required/>
+   <button className="button primary" type="submit">Desbloquear</button>
+  </form><small>Este bloqueio protege a interface, mas não criptografa os dados do navegador.</small>
+ </main>;
  const results=listMovements(data,{...filters,month:showAllMonths?'':month,onDate:today()});
  const totals=movementTotals(results);
  const overdueCount=data.transactions.filter(t=>isOverdue(t,today())).length;
@@ -506,7 +553,7 @@ export default function App(){
  {(report?.transactions.length||0)>100&&<p className="fine">Exibindo 100 registros. Exporte CSV para ver a lista completa.</p>}</Pane>
  <p className="fine">CSV e PDF são criados no próprio dispositivo, sem enviar dados financeiros a servidores. O PDF contém o período selecionado; valores ocultados na tela são incluídos nos arquivos exportados.</p>
  </div>;
- const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 9 / 10 · v{VERSION}</span></div>
+ const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 10 / 10 · v{VERSION}</span></div>
  <div className="settings-grid"><Pane title="Aparência" detail="Identidade visual do Clara, inspirada na navegação do EvoluFísico2"><div className="setting-row"><div><b>Tema</b><p>Claro ou escuro</p></div><select aria-label="Tema" value={data.settings.theme} onChange={e=>modify(d=>{d.settings.theme=e.target.value as 'light'|'dark'})}><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div className="setting-row"><div><b>Cor de destaque</b><p>Verde-petróleo ou azul</p></div><select aria-label="Cor de destaque" value={data.settings.accent} onChange={e=>modify(d=>{d.settings.accent=e.target.value as 'petrol'|'blue'})}><option value="petrol">Petróleo</option><option value="blue">Azul</option></select></div><div className="setting-row"><div><b>Ocultar valores</b><p>Proteção visual na tela</p></div><input aria-label="Ocultar valores" type="checkbox" checked={data.settings.hideValues} onChange={e=>modify(d=>{d.settings.hideValues=e.target.checked})}/></div></Pane>
  <Pane title="Preferências financeiras" detail="Acompanhamento da economia e metas da planilha original">
  <div className="settings-finance-form">
@@ -516,12 +563,27 @@ export default function App(){
  </div><p className="fine">A meta é calculada sobre receitas e despesas realizadas. Ajustes permanecem no banco local e são incluídos nos backups.</p></Pane>
  <Pane title="Pasta de dados local" detail="O IndexedDB é o banco principal. A pasta recebe um espelho JSON quando o navegador permitir."><div className="folder-info"><Icon name="folder" size={23}/><div><b>{folder.name||'Nenhuma pasta vinculada'}</b><span>{folder.state==='granted'?'Acesso concedido':folder.state==='none'?'Backup em pasta opcional':`Permissão: ${folder.state}`}</span></div></div><div className="wrap-actions"><Button icon="folder" onClick={pickFolder}>Escolher pasta</Button><Button icon="upload" onClick={saveFolder}>Atualizar cópia</Button><Button icon="download" onClick={action(async()=>restore(await readFolderCopy(),'a cópia da pasta'))}>Restaurar pasta</Button><Button variant="ghost" onClick={action(async()=>{if(window.confirm('Desvincular a pasta? O arquivo externo será preservado.')){await clearDirectoryHandle();setFolder(await folderPermission());notify('Pasta desvinculada.')}})}>Desvincular</Button></div><p className="fine">A seleção direta de pasta exige navegador compatível e contexto seguro (HTTPS ou localhost). No celular, utilize exportação e importação de backup quando esta opção não estiver disponível.</p></Pane>
  <Pane title="Instalação do PWA" detail="Instale o Clara na tela inicial após publicá-lo em HTTPS ou executar no localhost."><div className="wrap-actions"><Button icon="download" disabled={!installPrompt} onClick={action(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;setInstallPrompt(null)})}>Instalar Clara</Button></div><p className="fine">Caso o botão esteja desativado, use o menu do navegador → Instalar aplicativo / Adicionar à tela inicial, quando disponível.</p></Pane>
- <Pane title="Backup e recuperação" detail="Seus dados permanecem neste dispositivo e não são enviados a um servidor."><div className="wrap-actions"><Button icon="download" onClick={()=>download(`clara-backup-${today()}.json`,JSON.stringify(data,null,2),'application/json')}>Exportar backup JSON</Button><Button icon="upload" onClick={()=>importRef.current?.click()}>Restaurar arquivo</Button></div><input ref={importRef} hidden type="file" accept=".json,application/json"/><p className="fine">Exportações não são criptografadas. Guarde-as em local protegido. Backups regulares são essenciais para evitar perda de dados ao limpar o navegador.</p></Pane>
+ <Pane title="Backup criptografado e recuperação" detail="Criptografia AES-256-GCM. A senha nunca é enviada nem armazenada.">
+ <label className="form-field"><span>Senha do backup (mínimo 12 caracteres)</span>
+ <input type="password" aria-label="Senha do backup" autoComplete="new-password" value={backupPassword} onChange={e=>setBackupPassword(e.target.value)}/></label>
+ <div className="wrap-actions">
+ <Button icon="download" onClick={exportEncrypted}>Exportar backup protegido</Button>
+ <Button icon="upload" onClick={()=>secureImportRef.current?.click()}>Restaurar backup protegido</Button>
+ </div><input ref={secureImportRef} hidden type="file" accept=".clara,application/json" onChange={e=>{const file=e.currentTarget.files?.[0];if(file)importEncrypted(file)}}/>
+ <div className="wrap-actions"><Button variant="ghost" icon="download" onClick={()=>{if(window.confirm('Exportar JSON SEM criptografia? O arquivo conterá seus dados financeiros legíveis.'))download(`clara-backup-${today()}.json`,JSON.stringify(data,null,2),'application/json')}}>Exportar JSON sem proteção</Button>
+ <Button variant="ghost" icon="upload" onClick={()=>importRef.current?.click()}>Restaurar JSON legado</Button></div>
+ <input ref={importRef} hidden type="file" accept=".json,application/json"/>
+ <p className="fine">Anote a senha: sem ela não é possível recuperar o backup protegido. A cópia automática de pasta ainda é JSON sem criptografia; use a exportação protegida para arquivos compartilhados.</p></Pane>
+ <Pane title="Bloqueio local de interface" detail="Pede senha ao retornar do segundo plano. Não criptografa o IndexedDB.">
+ <label className="form-field"><span>{lockRecord?'Senha atual para desativar':'Criar senha (mínimo 12 caracteres)'}</span>
+ <input type="password" aria-label="Senha do bloqueio" value={lockPassword} onChange={e=>setLockPassword(e.target.value)}/></label>
+ <div className="wrap-actions">{lockRecord?<><Button icon="check" onClick={()=>setLocked(true)}>Bloquear agora</Button><Button variant="ghost" onClick={disableLock}>Desativar bloqueio</Button></>:<Button icon="check" onClick={enableLock}>Ativar bloqueio</Button>}</div>
+ <p className="fine">O bloqueio é uma barreira visual, não uma solução contra quem pode acessar o perfil do navegador ou o armazenamento do dispositivo. Não substitui criptografia do disco.</p></Pane>
  <Pane title="Demonstração e manutenção" detail="Ambiente de exemplos separado do uso real"><div className="wrap-actions"><Button icon="info" onClick={demonstration}>Carregar demonstração</Button><Button variant="danger" icon="trash" onClick={reset}>Começar do zero</Button></div><div className="diagnostics"><div><span>Registros</span><b>{data.transactions.length}</b></div><div><span>Contas</span><b>{data.accounts.length}</b></div><div><span>Esquema</span><b>v{data.schemaVersion}</b></div><div><span>Revisão</span><b>{data.revision}</b></div></div></Pane></div></div>;
  const current:{[k in View]:React.ReactNode}={dashboard,transactions,accounts,planning,reports,settings};
  return <div className={`shell ${collapsed?'is-collapsed':''}`}>
  <aside className="side"><div className="brand"><div className="brand-sign">C</div><div className="brand-name"><strong>Clara<span>.</span></strong><small>FINANÇAS</small></div></div><div className="menu-title">ÁREA DE TRABALHO</div><nav className="side-links" aria-label="Navegação principal">{sections.map(s=><button key={s.id} className={`side-link ${view===s.id?'active':''}`} onClick={()=>show(s.id)} title={s.name} aria-current={view===s.id?'page':undefined}><Icon name={s.id} size={19}/><span>{s.name}</span></button>)}</nav><div className="side-bottom"><div className="storage-bullet"/> <span>Dados armazenados localmente</span><small>Arquitetura A · Offline</small></div></aside>
- <main className="main"><header className="header"><div className="header-title"><button aria-label="Recolher ou expandir menu" title="Recolher / expandir menu" className="icon-button collapse-toggle" onClick={()=>{setCollapsed(v=>{try{localStorage.setItem('clara-sidebar',!v?'1':'0')}catch{}return !v})}}><Icon name="menu" size={21}/></button><div><div className="header-overline">CLARA / GESTÃO FINANCEIRA</div><h1>{sections.find(s=>s.id===view)?.name}</h1></div></div><div className="header-actions">{view!=='settings'&&<label className="period-box"><Icon name="calendar" size={17}/><input aria-label="Mês de referência" type="month" value={month} onChange={e=>{const value=e.currentTarget.value;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(value))modify(d=>{d.settings.selectedPeriod=value}).catch(err=>notify(err.message,true))}}/></label>}<button className="icon-button" title={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} aria-label={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} onClick={()=>modify(d=>{d.settings.hideValues=!d.settings.hideValues})}><Icon name={data.settings.hideValues?'hide':'eye'} size={20}/></button><span className="step-pill">06 / 10</span></div></header>{current[view]}<footer className="footer">Clara Finanças · Local-first · Etapa 4 de 10 · Sem conexão bancária</footer></main>
+ <main className="main"><header className="header"><div className="header-title"><button aria-label="Recolher ou expandir menu" title="Recolher / expandir menu" className="icon-button collapse-toggle" onClick={()=>{setCollapsed(v=>{try{localStorage.setItem('clara-sidebar',!v?'1':'0')}catch{}return !v})}}><Icon name="menu" size={21}/></button><div><div className="header-overline">CLARA / GESTÃO FINANCEIRA</div><h1>{sections.find(s=>s.id===view)?.name}</h1></div></div><div className="header-actions">{view!=='settings'&&<label className="period-box"><Icon name="calendar" size={17}/><input aria-label="Mês de referência" type="month" value={month} onChange={e=>{const value=e.currentTarget.value;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(value))modify(d=>{d.settings.selectedPeriod=value}).catch(err=>notify(err.message,true))}}/></label>}<button className="icon-button" title={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} aria-label={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} onClick={()=>modify(d=>{d.settings.hideValues=!d.settings.hideValues})}><Icon name={data.settings.hideValues?'hide':'eye'} size={20}/></button><span className="step-pill">10 / 10</span></div></header>{current[view]}<footer className="footer">Clara Finanças · Local-first · Etapa 10 de 10 · Sem conexão bancária</footer></main>
  <nav className="mobile-nav" aria-label="Navegação inferior">{(['dashboard','transactions','accounts','planning','reports','settings'] as View[]).map(id=><button key={id} className={view===id?'active':''} onClick={()=>show(id)} aria-label={sections.find(s=>s.id===id)?.name}><Icon name={id} size={21}/><span>{sections.find(s=>s.id===id)?.short}</span></button>)}</nav>
  {modal&&<Modal key={`${modal.type}-${modal.id||'new'}`} data={data} modal={modal} onClose={()=>setModal(null)} onSave={submitModal} saving={saving}/>}
  {notice&&<div role="status" className={`toast ${notice.danger?'danger':''}`}>{notice.text}</div>}
