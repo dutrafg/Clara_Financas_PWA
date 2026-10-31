@@ -1,7 +1,7 @@
-name: Homologar Clara Finanças Etapa 07
+name: Homologar Clara Finanças Etapa 08
 on:
   push:
-    branches: [homologacao/etapa-07]
+    branches: [homologacao/etapa-08]
     paths:
       - 'src/**'
       - 'public/**'
@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
-      - name: Testar motor financeiro e etapas 1–7
+      - name: Testar motor financeiro e etapas 1–8
         run: npm test
       - name: Verificar TypeScript e compilar Vite
         run: npm run build
@@ -35,13 +35,13 @@ jobs:
         run: |
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Validar PWA, IndexedDB, auditoria e conciliação
+      - name: Validar PWA, IndexedDB e Dashboard Pro
         run: python tests/e2e_production.py
       - name: Publicar evidências
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-etapa07-evidencias
+          name: clara-etapa08-evidencias
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
