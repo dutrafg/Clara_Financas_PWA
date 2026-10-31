@@ -224,3 +224,24 @@ body[data-theme=dark] .tip{background:var(--soft)}
  .clara-balance-hero>p,.clara-hero-foot>span,.clara-hero-period{color:#485a64!important}
  .clara-overview{grid-template-columns:1fr 1fr!important}
 }
+
+
+/* Gráfico de composição: cores diversas para categorias, interface Clara */
+.category-donut-layout{display:grid;grid-template-columns:minmax(138px,.92fr) minmax(155px,1.08fr);gap:19px;align-items:center}
+.category-donut-figure{position:relative;min-width:0;width:100%;max-width:245px;aspect-ratio:1;justify-self:center}
+.category-donut-figure svg{height:100%;width:100%;display:block;overflow:visible}
+.category-donut-figure circle{transition:stroke-dasharray .22s}
+.category-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;pointer-events:none}
+.category-donut-center small{color:var(--muted);font-size:11px}
+.category-donut-center strong{font-size:clamp(14px,1.5vw,21px);letter-spacing:-.6px;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;max-width:62%}
+.category-donut-legend{display:grid;gap:10px;min-width:0}
+.category-legend-row{display:grid;grid-template-columns:9px minmax(0,1fr) auto;gap:10px;align-items:center;min-width:0;font-size:11px}
+.category-legend-row i{width:9px;height:9px;border-radius:50%}
+.category-legend-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.category-legend-row strong{font-size:11px;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums}
+body[data-theme=dark] .category-donut-figure svg{filter:drop-shadow(0 8px 23px rgba(0,0,0,.22))}
+@media(max-width:1250px){.category-donut-layout{grid-template-columns:minmax(145px,.9fr) minmax(135px,1.1fr);gap:11px}}
+@media(max-width:920px){.category-donut-layout{grid-template-columns:minmax(165px,.7fr) minmax(150px,1.3fr)}}
+@media(max-width:470px){.category-donut-layout{grid-template-columns:minmax(0,1fr);gap:10px}.category-donut-figure{max-width:185px}.category-donut-legend{grid-template-columns:1fr 1fr;gap:10px 12px}}
+@media(max-width:355px){.category-donut-legend{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.category-donut-figure circle{transition:none}}
