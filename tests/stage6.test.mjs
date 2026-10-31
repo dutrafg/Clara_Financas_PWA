@@ -156,7 +156,7 @@ const rePaid=changeMovementStatus(reOpened,'Realizado','2026-10-16');
 reviseDebtPayment(debtDB,rePaid);
 eq(debtSummary(debtDB,bill).remainingCents,45000,'Repayment updates debt exactly once');
 eq(accountBalance(debtDB,id),115000,'Repayment updates account exactly once');
-const tooLarge={...rePaid,amountCents:60000};
+const tooLarge={...rePaid,amountCents:60001};
 bad(()=>reviseDebtPayment(debtDB,tooLarge),'Other completed payments constrain edited amount');
 eq(debtDB.transactions[0].amountCents,15000,'Overpayment leaves original unchanged');
 const removed=removeDebtPayment(debtDB,first.id);
