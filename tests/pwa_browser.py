@@ -26,12 +26,31 @@ async def run():
    assert result['passed']==result['total'],[x for x in result['results'] if x['status']!='APROVADO']
    # Configurações clean: telas 390/768/1440, controles, versão e opções recolhidas.
    await page.evaluate("go('ajustes');configTab='dados';renderAjustes()")
-   assert await page.locator('#claraUpdateInstalled').inner_text()=='3.6.8-rc'
+   assert await page.locator('#claraUpdateInstalled').inner_text()=='3.6.9-rc'
    assert await page.locator('#claraUpdateLast').is_visible()
    assert await page.locator('#checkClaraUpdate').is_visible()
    assert await page.locator('#exportJson').is_visible()
    assert await page.locator('#importClara').count()==1
    assert await page.locator('#lockClaraNow').is_visible()
+   assert await page.locator('#claraInstallBtn').is_visible()
+   assert await page.locator('#claraInstallHelp').count()==1
+   assert not await page.evaluate("window.ClaraInstall.installed")
+   # Sem convite do navegador, não simular instalação bem-sucedida.
+   await page.locator('#claraInstallBtn').click()
+   assert await page.locator('#claraInstallHelp').evaluate("(el)=>el.open")
+   # Simular o evento de instalação do Chrome, sem instalar no CI.
+   await page.evaluate("""() => {
+     window.__installCalls=0;
+     const e=new Event('beforeinstallprompt',{cancelable:true});
+     e.prompt=async()=>{window.__installCalls++;};
+     e.userChoice=Promise.resolve({outcome:'dismissed'});
+     window.dispatchEvent(e);
+   }""")
+   assert await page.locator('#claraInstallBtn').inner_text()=='Instalar Clara'
+   await page.locator('#claraInstallBtn').click()
+   await page.wait_for_function("window.__installCalls===1")
+   assert await page.locator('#claraInstallBtn').inner_text()=='Como instalar'
+
    assert not await page.locator('#claraAdvancedSettings').evaluate("(el)=>el.open")
    assert not await page.locator('#claraReleaseNotes').evaluate("(el)=>el.open")
    await page.locator('#claraReleaseNotes summary').click()
