@@ -5,6 +5,7 @@ on:
       - homologacao/etapa-02
     paths:
       - Clara_Financas_PWA_GitHub_Etapa02.zip
+      - clara-pwa.zip
 permissions:
   contents: write
 jobs:
@@ -17,8 +18,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARCHIVE=Clara_Financas_PWA_GitHub_Etapa02.zip
-          test -f "$ARCHIVE"
+          if test -f clara-pwa.zip; then
+            ARCHIVE=clara-pwa.zip
+          elif test -f Clara_Financas_PWA_GitHub_Etapa02.zip; then
+            ARCHIVE=Clara_Financas_PWA_GitHub_Etapa02.zip
+          else
+            echo 'Arquivo ZIP não encontrado'; exit 1
+          fi
           unzip -t "$ARCHIVE"
           if unzip -Z1 "$ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
             echo 'ERRO: caminhos inseguros no pacote'; exit 1
