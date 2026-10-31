@@ -8,8 +8,8 @@
 | Etapa | Escopo e critério de aceite | Situação |
 |---|---|---|
 | **01** | **Auditoria das 6 abas, motor monetário em centavos, competência por data efetiva de pagamento, pendente/cancelado/realizado, transferência neutra, migração de backup v1→v2, integridade e testes com planilha.** Comparação dos valores-caches e testes de interface devem passar. | **CONCLUÍDA (v0.2.0)** |
-| **02** | **Arquitetura técnica e design:** migrar para React, TypeScript e Vite; manter PWA e banco local; adaptar design do EvoluFísico2, responsividade e navegação sem regredir funcionalidades da etapa 01. | **EM HOMOLOGAÇÃO (v0.3.0):** interface, regressão e prévia aprovadas; npm/Vite build oficial e PWA instalada pendentes. |
-| **03** | **Movimentações completas:** cadastro, pesquisa, filtros, datas, duplicidades, agendamentos e importação estruturada, com casos positivos/negativos de integridade. | Pendente |
+| **02** | **Arquitetura técnica e design:** migrar para React, TypeScript e Vite; manter PWA e banco local; adaptar design do EvoluFísico2, responsividade e navegação sem regredir funcionalidades da etapa 01. | **CONCLUÍDA (v0.3.0):** build, IndexedDB, Service Worker e offline aprovados no GitHub Actions. |
+| **03** | **Movimentações completas:** cadastro, pesquisa, filtros, datas, duplicidades, agendamentos e importação CSV estruturada, com casos positivos/negativos de integridade. | **EM HOMOLOGAÇÃO (v0.4.0 RC):** testes locais aprovados; CI pendente da publicação. |
 | **04** | **Assistentes:** parcelamento de 1 a 60 parcelas e datas mensais, última parcela compensando centavos; lotes com confirmação, recorrências e cancelamentos coerentes. | Pendente |
 | **05** | **Ajustes:** categorias, contas/cartões, saldos iniciais, meta de economia e data de acompanhamento; atualização das listas em todos os módulos. | Pendente |
 | **06** | **Planejamento:** orçamento previsto/realizado, metas, dívidas e contratos, classificação de risco e projeções integradas. | Pendente |

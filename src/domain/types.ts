@@ -5,7 +5,7 @@ export type Accent = 'petrol' | 'blue';
 export type View = 'dashboard'|'transactions'|'accounts'|'planning'|'reports'|'settings';
 export interface Account { id:string; name:string; type:string; openingCents:number; }
 export interface Category { id:string; name:string; group:'Receita'|'Despesa' }
-export interface Transaction { id:string; date:string; paidAt?:string; description:string; kind:Kind; category:string; amountCents:number; accountId:string; toAccountId?:string; status:Status; note?:string; }
+export interface Transaction { id:string; date:string; paidAt?:string; description:string; kind:Kind; category:string; amountCents:number; accountId:string; toAccountId?:string; status:Status; note?:string; recurrenceGroupId?:string; recurrenceIndex?:number; recurrenceCount?:number; recurrenceFrequency?:'weekly'|'monthly'|'yearly'; }
 export interface Budget { category:string; limitCents:number }
 export interface Goal { id:string; name:string; targetCents:number; savedCents:number; dueDate?:string }
 export interface FinanceSettings { theme:Theme; accent:Accent; hideValues:boolean; selectedPeriod:string; }

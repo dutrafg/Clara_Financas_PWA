@@ -4,6 +4,8 @@ import type {Account,Budget,FinanceData,FolderInfo,Goal,Kind,Status,Transaction,
 import {VERSION,uid,blankData,brl,fmtDate,parseMoney,periodStats,budgetStatus,budgetInsight,accountBalance,validateTransaction,validateBackup,migrateData,effectiveDate,deriveDemo,transactionsCSV} from './domain/finance';
 import {initData,saveData,chooseFolder,clearDirectoryHandle,folderPermission,askFolderPermission,writeFolderCopy,readFolderCopy,persistentStorage} from './domain/storage';
 import {Icon} from './components/icons';
+import {createMovements,changeMovementStatus,isOverdue,listMovements,movementTotals,previewMovementsCSV} from './domain/movements';
+import type {Frequency,MovementFilters} from './domain/movements';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -13,7 +15,7 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const monthText=(value:string)=>{const [y,m]=value.split('-');return `${months[Number(m)-1]} de ${y}`};
 const percent=(x:number)=>`${Math.round(x*100)}%`;
-const emptyFilter={search:'',kind:'',status:''};
+const emptyFilter:MovementFilters={search:'',kind:'',status:'',account:'',category:'',from:'',to:'',basis:'effective',sort:'newest',overdue:false};
 type ModalKind='transaction'|'account'|'budget'|'goal';
 type ModalState={type:ModalKind;id?:string};
 function Pane({children,className='',title,detail,actions}:{children:React.ReactNode;className?:string;title?:string;detail?:string;actions?:React.ReactNode}){
@@ -65,7 +67,7 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  accountId:item?.accountId||data.accounts[0]?.id||'',toAccountId:item?.toAccountId||'',status:item?.status||'Realizado',note:item?.note||'',
  name:item?.name||'',type:item?.type||'Conta',opening:item?.openingCents!=null?String(item.openingCents/100).replace('.',','):'0',
  limit:item?.limitCents!=null?String(item.limitCents/100).replace('.',','):'',target:item?.targetCents!=null?String(item.targetCents/100).replace('.',','):'',
- saved:item?.savedCents!=null?String(item.savedCents/100).replace('.',','):'0',dueDate:item?.dueDate||''}));
+ saved:item?.savedCents!=null?String(item.savedCents/100).replace('.',','):'0',dueDate:item?.dueDate||'',recurrence:'none',occurrences:'3'}));
  const change=(name:string,value:string)=>{setValues(current=>({...current,[name]:value}));if(name==='kind'){setKind(value as Kind);setValues(c=>({...c,kind:value,category:''}))}if(name==='status'){setStatus(value as Status);if(value!=='Realizado')setValues(c=>({...c,status:value,paidAt:''}))}};
  const field=(name:string,label:string,el:React.ReactNode,full=false)=><label className={`form-field ${full?'full':''}`} key={name}><span>{label}</span>{el}</label>;
  const input=(name:string,type='text',required=false,placeholder='')=><input name={name} id={`f-${name}`} type={type} required={required} value={values[name]||''} placeholder={placeholder} onChange={e=>change(name,e.currentTarget.value)}/>;
@@ -84,6 +86,9 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  {field('accountId','Conta',select('accountId',accts))}
  {kind==='Transferência'&&field('toAccountId','Conta de destino',select('toAccountId',[{value:'',label:'Selecione uma conta'},...accts]))}
  {field('note','Observações',<textarea name="note" rows={2} value={values.note} onChange={e=>change('note',e.currentTarget.value)} placeholder="Opcional"/>,true)}
+ {!item&&field('recurrence','Repetição',select('recurrence',[{value:'none',label:'Não repetir'},{value:'weekly',label:'Semanal'},{value:'monthly',label:'Mensal'},{value:'yearly',label:'Anual'}]))}
+ {!item&&values.recurrence!=='none'&&field('occurrences','Total de ocorrências (2 a 24)',<input name="occurrences" aria-label="Total de ocorrências" type="number" min="2" max="24" step="1" required value={values.occurrences} onChange={e=>change('occurrences',e.currentTarget.value)}/>)}
+ {item?.recurrenceGroupId&&<p className="recurring-hint">Ocorrência {item.recurrenceIndex} de {item.recurrenceCount}. Esta edição altera apenas este lançamento.</p>}
  </>:modal.type==='account'?<>
  {field('name','Nome da conta',input('name','text',true),true)}
  {field('type','Tipo',select('type',[{value:'Conta',label:'Conta bancária'},{value:'Dinheiro',label:'Dinheiro'},{value:'Carteira',label:'Carteira digital'},{value:'Cartão',label:'Cartão'}]))}
@@ -107,10 +112,12 @@ export default function App(){
  const {data,error,saving,folder,setFolder,notice,notify,commit,modify}=useFinance();
  const [view,setView]=useState<View>('dashboard');
  const [modal,setModal]=useState<ModalState|null>(null);
- const [filters,setFilters]=useState(emptyFilter);
+ const [filters,setFilters]=useState<MovementFilters>(emptyFilter);
+ const [showAllMonths,setShowAllMonths]=useState(false);
  const [collapsed,setCollapsed]=useState(()=>{try{return localStorage.getItem('clara-sidebar')==='1'}catch{return false}});
  const [installPrompt,setInstallPrompt]=useState<any>(null);
  const importRef=useRef<HTMLInputElement>(null);
+ const movementImportRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{const handler=(e:any)=>{e.preventDefault();setInstallPrompt(e)};window.addEventListener('beforeinstallprompt',handler);return()=>window.removeEventListener('beforeinstallprompt',handler)},[]);
  useEffect(()=>{if(!modal)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setModal(null)};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey)},[modal]);
  useEffect(()=>{document.body.dataset.theme=data?.settings.theme||'light';document.body.dataset.accent=data?.settings.accent||'petrol'},[data?.settings.theme,data?.settings.accent]);
@@ -125,7 +132,7 @@ export default function App(){
   element.addEventListener('change',onFileChange);
   return ()=>element.removeEventListener('change',onFileChange);
  },[view,data]);
- const show=(v:View)=>{setView(v);setModal(null);setFilters(emptyFilter);window.scrollTo({top:0,behavior:'instant'})};
+ const show=(v:View)=>{setView(v);setModal(null);setFilters(emptyFilter);setShowAllMonths(false);window.scrollTo({top:0,behavior:'instant'})};
  const mask=(c:number)=>data?.settings.hideValues?'••••••':brl(c);
  const month=data?.settings.selectedPeriod||today().slice(0,7);
  const summary=useMemo(()=>data?periodStats(data,month):null,[data,month]);
@@ -136,9 +143,19 @@ export default function App(){
    await modify(d=>{
     if(type==='transaction'){
      const old=d.transactions.find(t=>t.id===id);
-     const tx:Transaction={id:old?.id||uid('tx'),date:v.date,paidAt:v.status==='Realizado'?v.paidAt:'',description:v.description.trim(),kind:v.kind as Kind,category:v.kind==='Transferência'?'':v.category,amountCents:parseMoney(v.amount),accountId:v.accountId,toAccountId:v.kind==='Transferência'?v.toAccountId:'',status:v.status as Status,note:v.note.trim()};
+     const tx:Transaction={id:old?.id||uid('tx'),date:v.date,paidAt:v.status==='Realizado'?v.paidAt:'',description:v.description.trim(),kind:v.kind as Kind,category:v.kind==='Transferência'?'':v.category,amountCents:parseMoney(v.amount),accountId:v.accountId,toAccountId:v.kind==='Transferência'?v.toAccountId:'',status:v.status as Status,note:v.note.trim(),
+      ...(old?.recurrenceGroupId?{recurrenceGroupId:old.recurrenceGroupId,recurrenceIndex:old.recurrenceIndex,recurrenceCount:old.recurrenceCount,recurrenceFrequency:old.recurrenceFrequency}:{})};
      validateTransaction(tx,d);
-     const idx=d.transactions.findIndex(t=>t.id===id);if(idx>=0)d.transactions[idx]=tx;else d.transactions.push(tx);
+     const idx=d.transactions.findIndex(t=>t.id===id);
+     if(idx>=0)d.transactions[idx]=tx;
+     else{
+      const frequency=(v.recurrence||'none') as Frequency;
+      const count=frequency==='none'?1:Number(v.occurrences);
+      const fresh=createMovements(tx,d,{frequency,count});
+      const duplicates=fresh.filter(candidate=>d.transactions.some(t=>t.status!=='Cancelado'&&t.date===candidate.date&&t.kind===candidate.kind&&t.accountId===candidate.accountId&&t.toAccountId===candidate.toAccountId&&t.description.toLocaleLowerCase('pt-BR')===candidate.description.toLocaleLowerCase('pt-BR')&&t.amountCents===candidate.amountCents));
+      if(duplicates.length)throw Error(`Possível duplicidade: ${duplicates.length} lançamento(s) com descrição, data, conta e valor iguais. Revise antes de salvar.`);
+      d.transactions.push(...fresh);
+     }
     }else if(type==='account'){
      const negative=v.opening.trim().startsWith('-');const positive=parseMoney(v.opening.trim().replace(/^-/,''));
      if(!v.name.trim()||!Number.isSafeInteger(positive))throw Error('Informe nome e saldo inicial válidos.');
@@ -170,6 +187,22 @@ export default function App(){
    if(type==='goal')d.goals=d.goals.filter(x=>x.id!==id);
   },'Registro excluído.')}catch(e){notify((e as Error).message,true)}
  };
+ async function importMovements(file:File){
+  if(!data)return;
+  try{
+   if(file.size>5*1024*1024)throw Error('CSV excede 5 MB.');
+   const csv=await file.text();const preview=previewMovementsCSV(csv,data);
+   if(!preview.entries.length){notify(`Nenhum novo lançamento. ${preview.duplicates} registro(s) já existente(s).`);return;}
+   if(!window.confirm(`Importar ${preview.entries.length} lançamento(s) do CSV? ${preview.duplicates} coincidência(s) serão ignoradas. As contas e categorias devem existir no Clara.`))return;
+   await modify(d=>{const validated=previewMovementsCSV(csv,d);d.transactions.push(...validated.entries);},`${preview.entries.length} lançamento(s) importados.`);
+  }catch(e){notify(`Importação não realizada: ${(e as Error).message}`,true)}
+ }
+ async function updatePayment(tx:Transaction,target:Status){
+  try{await modify(d=>{const idx=d.transactions.findIndex(t=>t.id===tx.id);if(idx<0)throw Error('Lançamento não encontrado.');
+   const next=changeMovementStatus(d.transactions[idx],target,target==='Realizado'?today():'');validateTransaction(next,d);d.transactions[idx]=next;
+  },target==='Realizado'?'Lançamento confirmado.':'Lançamento voltou a ficar pendente.');}
+  catch(e){notify((e as Error).message,true)}
+ }
  function download(filename:string,content:string,mime:string){const blob=new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000)}
  async function restore(raw:unknown,context='backup'){if(!data)return;try{
   const migrated=migrateData(raw);validateBackup(migrated);
@@ -194,9 +227,14 @@ export default function App(){
  async function saveFolder(){if(!data)return;try{let ok=await writeFolderCopy(data);if(!ok)ok=(await askFolderPermission())&&await writeFolderCopy(data);setFolder(await folderPermission());notify(ok?'Backup da pasta atualizado.':'Pasta sem permissão; use Exportar backup.',!ok)}catch(e){notify((e as Error).message,true)}}
  const action=(fn:()=>Promise<unknown>)=>()=>{fn().catch(e=>notify((e as Error).message,true))};
  if(error)return <main className="boot-error"><div className="brand-sign">C</div><h1>Não foi possível abrir o banco local</h1><p>{error}</p><p>Não limpe os dados do navegador: seus registros podem estar armazenados nesta origem. Verifique permissões e o modo privado.</p></main>;
- if(!data||!summary)return <div className="boot"><div className="brand-sign">C</div><h2>Preparando Clara Finanças…</h2><p>Etapa 2 / 10 · React + TypeScript</p></div>;
- const selectedTx=data.transactions.filter(t=>effectiveDate(t).slice(0,7)===month);
- const results=selectedTx.filter(t=>(!filters.kind||filters.kind===t.kind)&&(!filters.status||filters.status===t.status)&&`${t.description} ${t.category} ${t.note||''}`.toLocaleLowerCase('pt-BR').includes(filters.search.toLocaleLowerCase('pt-BR'))).sort((a,b)=>effectiveDate(b).localeCompare(effectiveDate(a)));
+ if(!data||!summary)return <div className="boot"><div className="brand-sign">C</div><h2>Preparando Clara Finanças…</h2><p>Etapa 3 / 10 · Movimentações completas</p></div>;
+ const results=listMovements(data,{...filters,month:showAllMonths?'':month,onDate:today()});
+ const totals=movementTotals(results);
+ const overdueCount=data.transactions.filter(t=>isOverdue(t,today())).length;
+ const patchFilter=(update:Partial<MovementFilters>)=>setFilters(f=>{
+  const next={...f,...update};if(next.from&&next.to&&next.from>next.to){if('from' in update)next.to='';else next.from='';}
+  return next;
+ });
  const actions=(type:ModalKind,id:string)=><div className="row-actions"><button aria-label="Editar" title="Editar" onClick={()=>setModal({type,id})}><Icon name="edit" size={16}/></button><button aria-label="Excluir" title="Excluir" onClick={()=>remove(type,id)}><Icon name="trash" size={16}/></button></div>;
  const smallTx=(items:Transaction[])=><div className="recent-list">{items.length?items.slice(0,6).map(t=><div className="recent-item" key={t.id}><div className={`transaction-symbol ${t.kind==='Receita'?'in':'out'}`}><Icon name={t.kind==='Receita'?'arrowup':t.kind==='Despesa'?'arrowdown':'transactions'} size={18}/></div><div className="recent-desc"><b>{t.description}</b><span>{t.category||'Transferência'} · {fmtDate(effectiveDate(t))}</span></div><div className="recent-amount"><b>{mask((t.kind==='Despesa'?-1:1)*t.amountCents)}</b><StatusChip status={t.status}/></div></div>):<Empty text="Nenhum lançamento neste período." action={<Button onClick={()=>setModal({type:'transaction'})} icon="plus">Adicionar lançamento</Button>}/>}</div>;
  const dashboard=<div className="vertical">
@@ -208,10 +246,28 @@ export default function App(){
  <div className="dashboard-grid"><Pane title="Últimas movimentações" detail="Lançamentos e status no período" actions={<Button variant="ghost" onClick={()=>show('transactions')}>Ver todas <Icon name="chevron" size={14}/></Button>}>{smallTx(summary.recent)}</Pane>
  <div className="vertical"><Pane title="Acompanhamento financeiro" detail="Indicadores essenciais"><div className="highlight-row"><span>Despesas pendentes</span><strong>{mask(summary.pending)}</strong></div><div className="highlight-row"><span>Receitas pendentes</span><strong>{mask(summary.pendingIncome)}</strong></div><div className="highlight-row"><span>Contas cadastradas</span><strong>{data.accounts.length}</strong></div><div className="tip"><Icon name="info" size={18}/>{budgetInsight(data,month)}</div></Pane><Pane title="Atalhos" detail="Acesse seus recursos"><div className="quick-actions"><Button onClick={()=>show('accounts')} icon="wallet">Contas</Button><Button onClick={()=>show('planning')} icon="target">Orçamentos</Button><Button onClick={()=>show('reports')} icon="reports">Relatórios</Button></div></Pane></div></div>
  </div>;
- const transactions=<div className="vertical"><div className="section-top"><div><h2>Movimentações</h2><p>Consulte, edite e acompanhe os lançamentos do mês.</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'transaction'})}>Novo lançamento</Button></div>
- <Pane><div className="filters"><input aria-label="Pesquisar movimentações" placeholder="Buscar por descrição, categoria ou observação" value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})}/><select aria-label="Filtrar tipo" value={filters.kind} onChange={e=>setFilters({...filters,kind:e.target.value})}><option value="">Todos os tipos</option><option>Receita</option><option>Despesa</option><option>Transferência</option></select><select aria-label="Filtrar situação" value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value})}><option value="">Todas as situações</option><option>Realizado</option><option>Pendente</option><option>Cancelado</option></select></div>
- <div className="table-scroller"><table><thead><tr><th>Descrição</th><th>Vencimento</th><th>Pagamento</th><th>Categoria</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>{results.map(t=><tr key={t.id}><td><b>{t.description}</b><small>{t.kind} · {data.accounts.find(a=>a.id===t.accountId)?.name||'—'}</small></td><td>{fmtDate(t.date)}</td><td>{fmtDate(t.paidAt||'')}</td><td>{t.category||'—'}</td><td className={t.kind==='Receita'?'value-positive':t.kind==='Despesa'?'value-negative':''}>{mask(t.amountCents)}</td><td><StatusChip status={t.status}/></td><td>{actions('transaction',t.id)}</td></tr>)}</tbody></table>{!results.length&&<Empty text="Nenhum lançamento encontrado para os filtros selecionados."/>}</div>
- </Pane><div className="footnote">{results.length} lançamento(s) · Somente movimentações realizadas afetam os saldos. Transferências são neutras no resultado.</div></div>;
+ const transactions=<div className="vertical"><div className="section-top"><div><h2>Movimentações</h2><p>Receitas, despesas, transferências e lançamentos recorrentes · {showAllMonths?'todos os meses':monthText(month)}</p></div><div className="head-actions"><Button icon="download" onClick={()=>download(`clara-movimentacoes-${today()}.csv`,transactionsCSV(data),'text/csv;charset=utf-8')}>Exportar CSV</Button><Button icon="upload" onClick={()=>movementImportRef.current?.click()}>Importar CSV</Button><input ref={movementImportRef} type="file" hidden accept=".csv,text/csv" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)importMovements(file)}}/><Button variant="primary" icon="plus" onClick={()=>setModal({type:'transaction'})}>Novo lançamento</Button></div></div>
+ <div className="movement-overview"><div className="surface"><small>Selecionados</small><b>{totals.count}</b></div><div className="surface"><small>Despesas realizadas</small><b>{mask(totals.expense)}</b></div><div className="surface"><small>A pagar</small><b>{mask(totals.toPay)}</b></div><div className="surface"><small>A receber</small><b>{mask(totals.toReceive)}</b></div></div>
+ <Pane><div className="movement-toolbar"><label className="check-wrap"><input type="checkbox" checked={showAllMonths} onChange={e=>setShowAllMonths(e.target.checked)}/> Todos os meses</label><label className="check-wrap"><input type="checkbox" checked={!!filters.overdue} onChange={e=>patchFilter({overdue:e.target.checked})}/> Somente atrasados ({overdueCount})</label><Button variant="ghost" onClick={()=>{setFilters(emptyFilter);setShowAllMonths(false)}}>Limpar filtros</Button></div>
+ <div className="filters movement-filters">
+ <input aria-label="Pesquisar movimentações" placeholder="Pesquisar descrição, categoria, conta ou observação" value={filters.search||''} onChange={e=>patchFilter({search:e.target.value})}/>
+ <select aria-label="Filtrar tipo" value={filters.kind||''} onChange={e=>patchFilter({kind:e.target.value})}><option value="">Todos os tipos</option><option>Receita</option><option>Despesa</option><option>Transferência</option></select>
+ <select aria-label="Filtrar situação" value={filters.status||''} onChange={e=>patchFilter({status:e.target.value})}><option value="">Todas as situações</option><option>Realizado</option><option>Pendente</option><option>Cancelado</option></select>
+ <select aria-label="Filtrar conta" value={filters.account||''} onChange={e=>patchFilter({account:e.target.value})}><option value="">Todas as contas</option>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>
+ <select aria-label="Filtrar categoria" value={filters.category||''} onChange={e=>patchFilter({category:e.target.value})}><option value="">Todas as categorias</option>{data.categories.map(c=><option key={c.id} value={c.name}>{c.name} · {c.group}</option>)}</select>
+ <select aria-label="Critério de data" value={filters.basis} onChange={e=>patchFilter({basis:e.target.value as 'due'|'effective'})}><option value="effective">Data efetiva / prevista</option><option value="due">Data do vencimento</option></select>
+ <label className="range-field">De <input aria-label="Data inicial" type="date" value={filters.from||''} onChange={e=>patchFilter({from:e.target.value})}/></label>
+ <label className="range-field">Até <input aria-label="Data final" type="date" min={filters.from||undefined} value={filters.to||''} onChange={e=>patchFilter({to:e.target.value})}/></label>
+ <select aria-label="Ordenar movimentações" value={filters.sort} onChange={e=>patchFilter({sort:e.target.value as MovementFilters['sort']})}><option value="newest">Mais recentes</option><option value="oldest">Mais antigas</option><option value="amount-desc">Maior valor</option><option value="amount-asc">Menor valor</option></select>
+ </div>
+ <div className="movement-mobile-list">{results.map(t=><article className="movement-mobile-card" key={t.id}>
+   <div className="movement-mobile-title"><div><b>{t.description}</b><small>{t.category||'Transferência'} · {data.accounts.find(a=>a.id===t.accountId)?.name||'—'}{t.toAccountId?' → '+(data.accounts.find(a=>a.id===t.toAccountId)?.name||'—'):''}</small></div><strong className={t.kind==='Despesa'?'value-negative':t.kind==='Receita'?'value-positive':''}>{mask(t.amountCents)}</strong></div>
+   <div className="movement-mobile-meta"><span>Vence {fmtDate(t.date)}</span><StatusChip status={t.status}/>{isOverdue(t,today())&&<small className="overdue-label">Atrasado</small>}</div>
+   {t.recurrenceGroupId&&<small className="series-tag">Série {t.recurrenceIndex}/{t.recurrenceCount} · {t.recurrenceFrequency==='weekly'?'Semanal':t.recurrenceFrequency==='monthly'?'Mensal':'Anual'}</small>}
+   <div className="movement-mobile-buttons">{t.status==='Pendente'&&<button aria-label="Confirmar hoje" className="confirm-action" onClick={()=>updatePayment(t,'Realizado')}>Confirmar pagamento</button>}{t.status==='Realizado'&&<button aria-label="Voltar a pendente" className="undo-action" onClick={()=>updatePayment(t,'Pendente')}>Reabrir</button>}{actions('transaction',t.id)}</div>
+  </article>)}{!results.length&&<Empty text="Nenhum lançamento encontrado."/>}</div>
+ <div className="table-scroller"><table><thead><tr><th>Descrição</th><th>Vencimento</th><th>Pagamento</th><th>Categoria</th><th>Valor</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{results.map(t=><tr key={t.id}><td><b>{t.description}</b><small>{t.kind} · {data.accounts.find(a=>a.id===t.accountId)?.name||'—'}{t.toAccountId?' → '+(data.accounts.find(a=>a.id===t.toAccountId)?.name||'—'):''}</small>{t.recurrenceGroupId&&<small>Série {t.recurrenceIndex}/{t.recurrenceCount} · {t.recurrenceFrequency==='weekly'?'semanal':t.recurrenceFrequency==='monthly'?'mensal':'anual'}</small>}</td><td>{fmtDate(t.date)}</td><td>{fmtDate(t.paidAt|| (t.status==='Realizado'?t.date:''))}</td><td>{t.category||'Transferência'}</td><td className={t.kind==='Receita'?'value-positive':t.kind==='Despesa'?'value-negative':''}>{mask(t.amountCents)}</td><td><StatusChip status={t.status}/>{isOverdue(t,today())&&<small className="overdue-label">Atrasado</small>}</td><td><div className="movement-actions">{t.status==='Pendente'&&<button title="Confirmar hoje" aria-label="Confirmar hoje" className="confirm-action" onClick={()=>updatePayment(t,'Realizado')}>Confirmar</button>}{t.status==='Realizado'&&<button title="Voltar a pendente" aria-label="Voltar a pendente" className="undo-action" onClick={()=>updatePayment(t,'Pendente')}>Reabrir</button>}{actions('transaction',t.id)}</div></td></tr>)}</tbody></table>{!results.length&&<Empty text="Nenhum lançamento encontrado para os filtros selecionados."/>}</div>
+ </Pane><div className="footnote">{results.length} lançamento(s) filtrados · {totals.pending} pendente(s) · Somente realizados afetam os saldos. Transferências não alteram o resultado. Recorrências futuras ficam pendentes e podem ser editadas individualmente.</div></div>;
  const accounts=<div className="vertical"><div className="section-top"><div><h2>Contas e cartões</h2><p>Saldo atual, tipo e histórico de cada conta.</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'account'})}>Nova conta</Button></div>
  <div className="account-grid">{data.accounts.map(a=><Pane key={a.id} className="account-card"><div className="account-top"><div className="account-icon"><Icon name="wallet" size={21}/></div>{actions('account',a.id)}</div><h3>{a.name}</h3><div className="secondary-text">{a.type}</div><div className="account-balance">{mask(accountBalance(data,a.id))}</div><p>Saldo inicial: {mask(a.openingCents)}</p></Pane>)}</div>
  <div className="tip"><Icon name="info" size={17}/>Os saldos consideram todas as movimentações realizadas, independentemente do mês selecionado. Contas com lançamentos não podem ser excluídas.</div></div>;
@@ -224,7 +280,7 @@ export default function App(){
  <div className="metrics"><Kpi title="Entradas" value={mask(summary.income)} icon="arrowup" tone="success" description={monthText(month)}/><Kpi title="Saídas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description={monthText(month)}/><Kpi title="Resultado" value={mask(summary.result)} icon="reports" tone="blue" description={monthText(month)}/><Kpi title="Pendências" value={mask(summary.pending)} icon="calendar" description="Despesas não realizadas"/></div>
  <Pane title="Resumo anual"><YearChart data={data} month={month} mask={mask}/></Pane><Pane title="Contas e saldos"><div className="summary-list">{summary.accounts.map(a=><div key={a.id} className="highlight-row"><span>{a.name}</span><strong>{mask(a.balanceCents)}</strong></div>)}</div></Pane>
  <div className="tip"><Icon name="info" size={17}/>O PDF usa a impressão do navegador. Relatórios avançados de conciliação e análise serão implementados nas Etapas 7 e 9.</div></div>;
- const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 2 / 10 · v{VERSION}</span></div>
+ const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 3 / 10 · v{VERSION}</span></div>
  <div className="settings-grid"><Pane title="Aparência" detail="Identidade visual do Clara, inspirada na navegação do EvoluFísico2"><div className="setting-row"><div><b>Tema</b><p>Claro ou escuro</p></div><select aria-label="Tema" value={data.settings.theme} onChange={e=>modify(d=>{d.settings.theme=e.target.value as 'light'|'dark'})}><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div className="setting-row"><div><b>Cor de destaque</b><p>Verde-petróleo ou azul</p></div><select aria-label="Cor de destaque" value={data.settings.accent} onChange={e=>modify(d=>{d.settings.accent=e.target.value as 'petrol'|'blue'})}><option value="petrol">Petróleo</option><option value="blue">Azul</option></select></div><div className="setting-row"><div><b>Ocultar valores</b><p>Proteção visual na tela</p></div><input aria-label="Ocultar valores" type="checkbox" checked={data.settings.hideValues} onChange={e=>modify(d=>{d.settings.hideValues=e.target.checked})}/></div></Pane>
  <Pane title="Pasta de dados local" detail="O IndexedDB é o banco principal. A pasta recebe um espelho JSON quando o navegador permitir."><div className="folder-info"><Icon name="folder" size={23}/><div><b>{folder.name||'Nenhuma pasta vinculada'}</b><span>{folder.state==='granted'?'Acesso concedido':folder.state==='none'?'Backup em pasta opcional':`Permissão: ${folder.state}`}</span></div></div><div className="wrap-actions"><Button icon="folder" onClick={pickFolder}>Escolher pasta</Button><Button icon="upload" onClick={saveFolder}>Atualizar cópia</Button><Button icon="download" onClick={action(async()=>restore(await readFolderCopy(),'a cópia da pasta'))}>Restaurar pasta</Button><Button variant="ghost" onClick={action(async()=>{if(window.confirm('Desvincular a pasta? O arquivo externo será preservado.')){await clearDirectoryHandle();setFolder(await folderPermission());notify('Pasta desvinculada.')}})}>Desvincular</Button></div><p className="fine">A seleção direta de pasta exige navegador compatível e contexto seguro (HTTPS ou localhost). No celular, utilize exportação e importação de backup quando esta opção não estiver disponível.</p></Pane>
  <Pane title="Instalação do PWA" detail="Instale o Clara na tela inicial após publicá-lo em HTTPS ou executar no localhost."><div className="wrap-actions"><Button icon="download" disabled={!installPrompt} onClick={action(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;setInstallPrompt(null)})}>Instalar Clara</Button></div><p className="fine">Caso o botão esteja desativado, use o menu do navegador → Instalar aplicativo / Adicionar à tela inicial, quando disponível.</p></Pane>
@@ -233,7 +289,7 @@ export default function App(){
  const current:{[k in View]:React.ReactNode}={dashboard,transactions,accounts,planning,reports,settings};
  return <div className={`shell ${collapsed?'is-collapsed':''}`}>
  <aside className="side"><div className="brand"><div className="brand-sign">C</div><div className="brand-name"><strong>Clara<span>.</span></strong><small>FINANÇAS</small></div></div><div className="menu-title">ÁREA DE TRABALHO</div><nav className="side-links" aria-label="Navegação principal">{sections.map(s=><button key={s.id} className={`side-link ${view===s.id?'active':''}`} onClick={()=>show(s.id)} title={s.name} aria-current={view===s.id?'page':undefined}><Icon name={s.id} size={19}/><span>{s.name}</span></button>)}</nav><div className="side-bottom"><div className="storage-bullet"/> <span>Dados armazenados localmente</span><small>Arquitetura A · Offline</small></div></aside>
- <main className="main"><header className="header"><div className="header-title"><button aria-label="Recolher ou expandir menu" title="Recolher / expandir menu" className="icon-button collapse-toggle" onClick={()=>{setCollapsed(v=>{try{localStorage.setItem('clara-sidebar',!v?'1':'0')}catch{}return !v})}}><Icon name="menu" size={21}/></button><div><div className="header-overline">CLARA / GESTÃO FINANCEIRA</div><h1>{sections.find(s=>s.id===view)?.name}</h1></div></div><div className="header-actions">{view!=='settings'&&<label className="period-box"><Icon name="calendar" size={17}/><input aria-label="Mês de referência" type="month" value={month} onChange={e=>{const value=e.currentTarget.value;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(value))modify(d=>{d.settings.selectedPeriod=value}).catch(err=>notify(err.message,true))}}/></label>}<button className="icon-button" title={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} aria-label={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} onClick={()=>modify(d=>{d.settings.hideValues=!d.settings.hideValues})}><Icon name={data.settings.hideValues?'hide':'eye'} size={20}/></button><span className="step-pill">02 / 10</span></div></header>{current[view]}<footer className="footer">Clara Finanças · Local-first · Etapa 2 de 10 · Sem conexão bancária</footer></main>
+ <main className="main"><header className="header"><div className="header-title"><button aria-label="Recolher ou expandir menu" title="Recolher / expandir menu" className="icon-button collapse-toggle" onClick={()=>{setCollapsed(v=>{try{localStorage.setItem('clara-sidebar',!v?'1':'0')}catch{}return !v})}}><Icon name="menu" size={21}/></button><div><div className="header-overline">CLARA / GESTÃO FINANCEIRA</div><h1>{sections.find(s=>s.id===view)?.name}</h1></div></div><div className="header-actions">{view!=='settings'&&<label className="period-box"><Icon name="calendar" size={17}/><input aria-label="Mês de referência" type="month" value={month} onChange={e=>{const value=e.currentTarget.value;if(/^\d{4}-(0[1-9]|1[0-2])$/.test(value))modify(d=>{d.settings.selectedPeriod=value}).catch(err=>notify(err.message,true))}}/></label>}<button className="icon-button" title={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} aria-label={data.settings.hideValues?'Mostrar valores':'Ocultar valores'} onClick={()=>modify(d=>{d.settings.hideValues=!d.settings.hideValues})}><Icon name={data.settings.hideValues?'hide':'eye'} size={20}/></button><span className="step-pill">03 / 10</span></div></header>{current[view]}<footer className="footer">Clara Finanças · Local-first · Etapa 3 de 10 · Sem conexão bancária</footer></main>
  <nav className="mobile-nav" aria-label="Navegação inferior">{(['dashboard','transactions','planning','reports','settings'] as View[]).map(id=><button key={id} className={view===id?'active':''} onClick={()=>show(id)} aria-label={sections.find(s=>s.id===id)?.name}><Icon name={id} size={21}/><span>{sections.find(s=>s.id===id)?.short}</span></button>)}</nav>
  {modal&&<Modal key={`${modal.type}-${modal.id||'new'}`} data={data} modal={modal} onClose={()=>setModal(null)} onSave={submitModal} saving={saving}/>}
  {notice&&<div role="status" className={`toast ${notice.danger?'danger':''}`}>{notice.text}</div>}

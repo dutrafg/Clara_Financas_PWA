@@ -10,8 +10,10 @@ for(const [id,file] of Object.entries({
  'src/components/icons.tsx':'src/components/icons.tsx',
  'src/domain/finance.ts':'src/domain/finance.ts',
  'src/domain/storage.ts':'src/domain/storage.ts',
+ 'src/domain/movements.ts':'src/domain/movements.ts',
  'src/legacy/core.mjs':'src/legacy/core.mjs',
- 'src/legacy/db.mjs':'src/legacy/db.mjs'
+ 'src/legacy/db.mjs':'src/legacy/db.mjs',
+ 'src/legacy/movements.mjs':'src/legacy/movements.mjs'
 })){
  const code=fs.readFileSync(src+'/'+file,'utf8');
  const out=ts.transpileModule(code,{fileName:file.replace(/\.mjs$/,'.ts'),compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,target:ts.ScriptTarget.ES2022,esModuleInterop:true}});
@@ -29,7 +31,7 @@ style=(R/'src/styles.css').read_text()
 data=(R/'public/dados-demonstracao.json').read_text()
 compat=(R/'tools/compat_hooks.js').read_text()
 preview_db=(R/'tools/preview_indexeddb.js').read_text()
-html_out=f'''<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Clara Finanças — Etapa 2 (prévia offline)</title><style>{style}</style></head><body><div id="root"></div><script>{react}</script><script>{react_dom}</script><script>
+html_out=f'''<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Clara Finanças — Etapa 3 (prévia offline)</title><style>{style}</style></head><body><div id="root"></div><script>{react}</script><script>{react_dom}</script><script>
 {compat}
 {preview_db}
 window.__claraDemoData={data};
@@ -56,6 +58,6 @@ window.__claraModules={json.dumps(mods,ensure_ascii=False)};
  catch(err){{document.getElementById('root').innerHTML='<div class="boot-error"><h1>Erro ao abrir a prévia</h1><pre>'+String(err)+'</pre></div>';console.error(err)}}
 }})();
 </script></body></html>'''
-out=R.parent/'Clara_Financas_Preview_Etapa_02_Android.html'
+out=R.parent/'Clara_Financas_Preview_Etapa_03_Android.html'
 out.write_text(html_out,encoding='utf8')
 print('PREVIEW',out,'bytes',out.stat().st_size)
