@@ -3,4 +3,50 @@ const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','
 test('Base financeira começa vazia',()=>{assert.match(html, /"transactions":\[\],"goals":\[\]/);assert.doesNotMatch(html,/EXEMPLO —|Restaurar demonstração/)});
 test('Configurações sempre por último',()=>{const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];assert.equal([...nav.matchAll(/\['([^']+)', SVG_ICONS/g)].at(-1)?.[1],'ajustes')});
 test('Menu flutuante apenas em smartphone',()=>{assert.match(html,/\.float-trigger, \.float-menu \{ display: none; \}/);assert.match(html,/max-width:760px/);assert.match(html,/function setFloatMenu/)});
-test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'standalone');assert.match(sw,/cache.addAll\(APP_FILES\)/);for(const n of [192,512])assert((await stat('assets/icon-'+n+'.png')).size>500)});
+test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'standalone');assert.match(sw,/cache.addAll\(APP_FILES\.map\(/);for(const n of [192,512])assert((await stat('assets/icon-'+n+'.png')).size>500)});
+
+test('Ação Novo não é global nem duplicada no cabeçalho',()=>{assert.doesNotMatch(html,/id="quickAdd"|\$\('quickAdd'\)/);assert.match(html,/data-open="transaction">＋ Novo lançamento<\/button>/);assert.match(html,/data-open="goal">＋ Nova meta<\/button>/)});
+
+test('Clara: 15 miniaplicativos reais, sem ClaraStore',()=>{
+ const catalog=html.match(/const CLARA_WIDGETS = Object.freeze\((\[[^\n]+\])\);/);
+ assert.ok(catalog,'Catálogo de miniaplicativos não encontrado');
+ const widgets=JSON.parse(catalog[1]);
+ assert.equal(widgets.length,15);
+ assert.equal(new Set(widgets.map(w=>w.id)).size,15);
+ assert.doesNotMatch(html,/ClaraStore|id="quickAdd"/);
+ assert.match(html,/\$\{renderClaraMiniapps\(p\)\}/);
+});
+test('Clara: ações essenciais dos miniaplicativos',()=>{
+ for(const key of ['pay','duplicate','new','toggle','move','all','reset','month','export'])
+   assert.ok(html.includes("action==='"+key+"'"),'Ação ausente: '+key);
+ for(const key of ['data-edit-tx=','data-del-tx=','data-edit-account=','data-goal-edit=','data-edit-goal-full=','data-del-goal=','data-edit-recon=','data-config-jump='])
+   assert.ok(html.includes(key),'Ligação ausente: '+key);
+ assert.match(html,/Backup inválido: personalização de cards/);
+ assert.match(html,/openConfirmModal\(\x60Confirmar/);
+});
+test('Clara: editor responsivo, dados reais e histórico mensal',()=>{
+ assert.match(html,/\.clw-grid\{display:grid/);
+ assert.match(html,/@media\(max-width:560px\)/);
+ assert.match(html,/state\.settings\.dashboardCards=/);
+ assert.match(html,/state\.settings\.dashboardOrder=/);
+ assert.match(html,/state\.transactions\.filter\(t=>t\.status==='Pendente'/);
+ assert.match(html,/effective\(t\)\.slice\(0,7\)/);
+});
+
+test('Clara: simulador e recorrências presentes sem persistência automática',()=>{
+ for (const expected of ['recurring','simulator','recurring-export','budget-export','sim-draft','simulate','agenda-days','agenda-kind','recent-status','forecast-months','account-cards','budget-risk','compare']) {
+   assert.ok(html.includes(expected), 'Não localizado: '+expected);
+ }
+ assert.match(html,/function computeSimulation/);
+ assert.match(html,/function recurringItems/);
+ assert.match(html,/function widgetToolstrip/);
+ assert.match(html,/function exportRecurring/);
+ assert.match(html,/function exportBudget/);
+ assert.match(html,/renderRecurring\(action,line,empty\)/);
+ assert.match(html,/renderSimulator\(action\)/);
+});
+test('Clara: não há execução de bibliotecas de terceiros para miniaplicativos',()=>{
+ assert.doesNotMatch(html,/ClaraStore|fetch\(['"]https:\/\/.*miniaplicativo/);
+ assert.match(html,/localStorage/);
+ assert.match(html,/function validateData/);
+});

@@ -1,11 +1,12 @@
 {
   "name": "clara-financas-pwa",
-  "version": "3.5.0-rc",
+  "version": "3.6.0-rc",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node tools/build.mjs",
-    "test": "node --test tests/smoke.test.mjs"
+    "test": "node --test tests/smoke.test.mjs tests/connections.test.mjs",
+    "verify:paths": "node tools/verify-paths.mjs"
   },
   "engines": {
     "node": ">=20"
