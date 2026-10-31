@@ -1,0 +1,69 @@
+name: Importar RC2 e homologar Etapa 02
+on:
+  push:
+    branches:
+      - homologacao/etapa-02
+    paths:
+      - Clara_Financas_PWA_GitHub_Etapa02.zip
+permissions:
+  contents: write
+jobs:
+  importar-e-testar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descompactar o pacote preparado
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE=Clara_Financas_PWA_GitHub_Etapa02.zip
+          test -f "$ARCHIVE"
+          unzip -t "$ARCHIVE"
+          if unzip -Z1 "$ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+            echo 'ERRO: caminhos inseguros no pacote'; exit 1
+          fi
+          unzip -oq "$ARCHIVE"
+          test -f package.json
+          test -f src/App.tsx
+          test -f tests/e2e_production.py
+          rm "$ARCHIVE"
+      - name: Salvar fontes somente na branch de homologação
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: importar Clara PWA RC2 para homologação da Etapa 2'
+            git push origin HEAD:homologacao/etapa-02
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+      - name: Testar regras financeiras
+        run: npm test
+      - name: Verificar TypeScript e compilar Vite
+        run: npm run build
+      - name: Instalar Chromium de teste
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Homologar IndexedDB, Service Worker e offline
+        run: python tests/e2e_production.py
+      - name: Publicar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clara-etapa02-instalacao-e-testes
+          path: |
+            tests/e2e-desktop.png
+            tests/e2e-mobile.png
+          if-no-files-found: warn
+          retention-days: 7
