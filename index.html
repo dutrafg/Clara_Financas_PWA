@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.6 • Trilha de alterações</title>
+<title>Clara Finanças RC3.6.7 • Versão sincronizada</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2022,6 +2022,8 @@ const FALLBACK_COLORS = ['#4cdbcd', '#858ff4', '#f5aa72', '#f17f91', '#d6a3ff', 
 const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
+// Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
+const CLARA_APP_VERSION='3.6.7-rc';
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', largeText: false,
   reduceMotion: false, sidebarCompact: false, hideValues: false,
@@ -2870,7 +2872,7 @@ function renderAjustes() {
     body = `${panel('Segurança e privacidade', 'Controle de dados locais e de exposição de valores.', `<div class="list">
       ${prefSwitch('hideValues','Ocultar valores na interface','Impede visualização casual; não cifra o armazenamento do navegador.')}
       <div class="config-note"><strong>Proteção dos dados</strong><span>Após criar sua senha, os dados são criptografados neste navegador com AES-256-GCM. Os registros e backups antigos sem proteção devem ser eliminados com cuidado.</span></div>
-      <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão 3.6.3-rc. Busca versões novas e permite aplicar somente depois da sua autorização, preservando o cofre.</small></div><button class="btn" id="checkClaraUpdate" type="button">Verificar atualizações</button></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
+      <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão ${esc(CLARA_APP_VERSION)}. Busca versões novas e permite aplicar somente depois da sua autorização, preservando o cofre.</small></div><button class="btn" id="checkClaraUpdate" type="button">Verificar atualizações</button></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
     </div>`)}<div class="gap"></div>
     <div class="config-actions"><div><strong>Bloquear aplicativo</strong><small>Oculta os saldos e exige novamente a senha pessoal.</small></div><button class="btn" type="button" id="lockClaraNow">Bloquear</button></div><div class="gap"></div>
     ${panel('Cópias de segurança', 'O backup .clara é criptografado; arquivos JSON anteriores podem ser importados apenas para migração.', `<div class="config-actions"><div><strong>Exportar backup protegido (.clara)</strong><small>Protegido pela senha atual.</small></div><button class="btn" type="button" id="exportJson">Exportar .clara</button></div><div class="config-actions"><div><strong>Restaurar backup .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar .clara</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div><div class="config-actions"><div><strong>Importar JSON antigo</strong><small>Migração de backup legado não criptografado.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar JSON</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
@@ -4456,7 +4458,7 @@ window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraS
 <script id="clara-update-runtime">
 'use strict';
 const ClaraUpdate=(()=>{
- const INSTALLED_VERSION='3.6.6-rc';
+ const INSTALLED_VERSION=CLARA_APP_VERSION;
  let registration=null,started=false,applying=false;
  async function latest(){
    const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
