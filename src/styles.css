@@ -270,3 +270,15 @@ body[data-accent=blue] .projection-horizon button.selected{color:#fff}
 @media(max-width:880px){.sheet-kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:690px){.sheet-kpis{grid-template-columns:1fr}.sheet-forecast{grid-template-columns:1fr 1fr}}
 @media(max-width:380px){.sheet-forecast{grid-template-columns:1fr}}
+
+
+/* Resumos consolidados das seis abas da planilha — RC3 */
+.sheet-overview-stripe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 17px}
+.sheet-overview-stripe>div{min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:15px;padding:16px 15px;display:grid;align-content:center;gap:9px}
+.sheet-overview-stripe small{font-size:11px;line-height:1.3;color:var(--muted)}
+.sheet-overview-stripe strong{font-size:clamp(17px,1.5vw,23px);letter-spacing:-.4px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.sheet-movement-overview{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sheet-movement-overview .surface{min-width:0}
+@media(max-width:1050px){.sheet-overview-stripe{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet-movement-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.sheet-overview-stripe{gap:8px}.sheet-overview-stripe>div{padding:12px 11px;border-radius:12px}.sheet-overview-stripe strong{font-size:16px}}
+@media(max-width:370px){.sheet-overview-stripe,.sheet-movement-overview{grid-template-columns:1fr}}
