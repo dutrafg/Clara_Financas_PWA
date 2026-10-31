@@ -1,23 +1,29 @@
-# Etapa 3/10 — Movimentações completas
+# Clara Finanças — Etapa 3/10 | Homologação aprovada
 
-**Status:** código 0.4.0 RC preparado e testado localmente; aguardando publicação do pacote e homologação do GitHub Actions.
+**Versão:** 0.4.0 RC  
+**Branch:** `homologacao/etapa-03`  
+**Status:** implementação e homologação automatizada concluídas. Sem publicação na `main`.
 
-## Escopo da RC
-- Receitas, despesas, transferências e quitação/reabertura.
-- Recorrências finitas (2 a 24, semanal/mensal/anual), com ocorrências independentes.
-- Busca, filtros por conta/categoria/status, intervalo, atrasos, ordenação e data-base.
-- Importação/exportação CSV, rejeição de dados inválidos e prevenção de duplicidades.
-- Banco IndexedDB v2 e backups antigos preservados; interface responsiva.
+## Entregas
+- Receitas, despesas, transferências, quitação e reabertura de lançamentos.
+- Recorrências limitadas (2 a 24 ocorrências, semanal, mensal e anual), com movimentos independentes.
+- Busca, filtros por conta, categoria, tipo, situação, período, vencimentos e atrasos.
+- Importação/exportação CSV, prevenção de duplicidades e validações de registros.
+- Compatibilidade com banco IndexedDB e backups anteriores.
 
-## Testes antes da publicação
-- 31 cenários da Etapa 1, 12 verificações do banco, 12 da Etapa 2.
-- 57 testes novos de motor, recorrências e CSV.
-- TypeScript em validação offline; revisão visual/funcional da prévia HTML no Chromium.
+## Evidências da homologação
+- Execução oficial do GitHub Actions: https://github.com/dutrafg/Clara_Financas_PWA/actions/runs/41158491997
+- Resultado: **success**.
+- `npm test`: aprovado, incluindo **57 testes novos da Etapa 3**.
+- `npm run build`: TypeScript e Vite aprovados.
+- Playwright/Chromium: Service Worker ativo, **63 dados de demonstração no IndexedDB real**, persistência após recarga, funcionamento offline, backup JSON offline e navegação móvel aprovados.
+- Fluxo E2E da Etapa 3: criação de recorrência mensal 3x, confirmação de pagamento, filtros e persistência após recarga aprovados.
+- Evidências de tela armazenadas como artefatos da execução do Actions.
 
-## Critérios para concluir
-1. Enviar **clara-etapa03.zip** para esta branch.
-2. O workflow **Homologar Clara Finanças Etapa 03** deverá extrair o pacote, confirmar as dependências e publicar as fontes nesta branch.
-3. A compilação oficial `npm run build`, `npm test` e o teste de Chromium/IndexedDB/Service Worker/offline precisam passar.
-4. Não enviar dados pessoais reais; não atualizar `main` sem aprovação.
+## Limites e próximos passos
+- O teste automatizado em Chromium não substitui teste físico no Android ou Windows. A seleção de pasta real, instalação PWA e recuperação em dispositivo físico permanecem para a Etapa 10.
+- Esta aprovação **não** comprova paridade completa com todas as fórmulas do Excel; as demais funções serão desenvolvidas nas etapas 4 a 10.
+- O repositório está público: não adicionar dados bancários reais, backups pessoais ou credenciais.
+- A `main` não deve ser atualizada sem autorização.
 
-O parcelamento de compras com juros e ajuste de centavos pertence à Etapa 4.
+**Próxima etapa:** 4/10 — Parcelamentos e Assistentes.
