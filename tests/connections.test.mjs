@@ -71,3 +71,11 @@ test('Atualização de recursos ignora o cache anterior',async()=>{
  assert.match(sw,/request\.cache === 'reload' \|\| request\.cache === 'no-store'/);
  assert.match(sw,/return await fetch\(request\)/);
 });
+
+test('Versão no painel deriva da mesma constante usada pelo atualizador',()=>{
+ const appVersion=html.match(/const CLARA_APP_VERSION='([^']+)'/);
+ assert.ok(appVersion);
+ assert.equal(appVersion[1],version.version);
+ assert.equal(version.version,pkg.version);
+ assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+});
