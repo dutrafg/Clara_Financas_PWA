@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.4 • Dock e Perfil</title>
+<title>Clara Finanças RC3.6.5 • Histórico e Perfil</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1418,6 +1418,15 @@ a { color: inherit; }
 .profile-photo-row{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:18px;}
 .profile-photo-options{display:grid;gap:8px;}
 
+/* Histórico independente do mês financeiro corrente */
+.history-controls{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) auto;gap:12px;align-items:end;margin-bottom:16px}
+.history-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.history-account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.history-account{display:grid;gap:6px;padding:14px;border:1px solid var(--stroke);border-radius:var(--r-md);background:var(--panel2)}
+.history-table th,.history-table td{vertical-align:middle}
+@media(max-width:760px){.history-controls{grid-template-columns:1fr 1fr}.history-action{grid-column:1/-1}.history-account-grid,.history-kpis{grid-template-columns:1fr}}
+@media(max-width:390px){.history-controls{grid-template-columns:1fr}.history-action{grid-column:auto}}
+
 /* Clara Miniaplicativos: Cards operacionais em desktop, tablet e smartphone. */
 .clw-section{min-width:0}
 .clw-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
@@ -1542,6 +1551,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
     <section id="view-ajustes" class="view"></section>
     <section id="view-assist" class="view"></section>
     <section id="view-conf" class="view"></section>
+    <section id="view-historico" class="view"></section>
   </main>
 </div>
 
@@ -1596,7 +1606,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 
 <script>
 'use strict';
-const SOURCE_DATA={"accounts":[{"id":"principal","name":"Conta principal","type":"Conta","openingCents":0}],"categories":[{"name":"Salário","group":"Receita","limitCents":0},{"name":"Renda extra","group":"Receita","limitCents":0},{"name":"Alimentação","group":"Despesa","limitCents":90000},{"name":"Moradia","group":"Despesa","limitCents":150000},{"name":"Contas fixas","group":"Despesa","limitCents":40000},{"name":"Transporte","group":"Despesa","limitCents":45000},{"name":"Saúde","group":"Despesa","limitCents":35000},{"name":"Educação","group":"Despesa","limitCents":30000},{"name":"Lazer","group":"Despesa","limitCents":40000},{"name":"Compras","group":"Despesa","limitCents":40000},{"name":"Assinaturas","group":"Despesa","limitCents":20000},{"name":"Outros","group":"Despesa","limitCents":50000}],"transactions":[],"goals":[]};
+const SOURCE_DATA={"accounts":[{"id":"principal","name":"Conta principal","type":"Conta","openingCents":0}],"categories":[{"name":"Salário","group":"Receita","limitCents":0},{"name":"Renda extra","group":"Receita","limitCents":0},{"name":"Alimentação","group":"Despesa","limitCents":0},{"name":"Moradia","group":"Despesa","limitCents":0},{"name":"Contas fixas","group":"Despesa","limitCents":0},{"name":"Transporte","group":"Despesa","limitCents":0},{"name":"Saúde","group":"Despesa","limitCents":0},{"name":"Educação","group":"Despesa","limitCents":0},{"name":"Lazer","group":"Despesa","limitCents":0},{"name":"Compras","group":"Despesa","limitCents":0},{"name":"Assinaturas","group":"Despesa","limitCents":0},{"name":"Outros","group":"Despesa","limitCents":0}],"transactions":[],"goals":[]};
 
 const SVG_ICONS = {
   painel: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -1604,6 +1614,7 @@ const SVG_ICONS = {
   plan: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>',
   ajustes: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   assist: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 4v16"/></svg>',
+  historico: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M8 18h3M14 14h3"/></svg>',
   conf: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
 };
 
@@ -1989,6 +2000,7 @@ const NAV = [
   ['plan', SVG_ICONS.plan, 'Planejamento'],
   ['assist', SVG_ICONS.assist, 'Assistentes'],
   ['conf', SVG_ICONS.conf, 'Conferências'],
+  ['historico', SVG_ICONS.historico, 'Histórico'],
   ['ajustes', SVG_ICONS.ajustes, 'Configurações']
 ];
 
@@ -2283,6 +2295,7 @@ state.reconciliations ??= [];
 let configTab = 'aparencia';
 let active = 'painel', search = '', statusFilter = 'Todos', accountFilter = 'Todas', assistantRows = [], toastTimer;
 let pendingConfirmAction = null;
+let auditMonth=plusMonth(todayISO().slice(0,7)+'-01',-1).slice(0,7),auditAccount='Todas';
 
 function save() {
   try {
@@ -2755,7 +2768,7 @@ function renderAjustes() {
     </div>`)}<div class="gap"></div>
     ${panel('Alcance das projeções', 'Escolha quantos meses serão apresentados no Painel. O saldo é calculado pelas movimentações cadastradas.', `<div class="field-grid two"><label class="field"><span>Horizonte</span><select data-pref-select="forecastMonths">${[[3,'3 meses'],[4,'4 meses'],[6,'6 meses'],[12,'12 meses']].map(([v,l])=>configOpt(v,l,pref('forecastMonths'))).join('')}</select></label></div><div class="control-row"><button class="btn primary" type="button" data-view="painel">Ver painel atualizado</button></div>`)}`;
   } else if (t === 'financeiro') {
-    body = `${panel('Período de acompanhamento', 'Essas escolhas atualizam os filtros globais e os cálculos dos módulos. Valores sempre em real brasileiro (R$).', `<div class="field-grid two"><label class="field"><span>Período selecionado</span><input type="month" id="periodConfig" value="${esc(state.settings.period)}"></label><label class="field"><span>Data de corte</span><input type="date" id="cutoffInput" value="${esc(state.settings.cutoff)}"></label></div>`)}
+    body = `${panel('Período de acompanhamento', 'O Painel e as Movimentações utilizam automaticamente o mês atual.', `<div class="config-note"><strong>Período automático</strong><span>${esc(monthLabel(todayISO().slice(0,7)))} · posição até ${esc(fmtDay(todayISO()))}</span></div><div class="control-row"><button type="button" class="btn" data-view="historico">Consultar histórico mensal</button></div>`)}
       <div class="gap"></div>
       ${panel('Alertas de orçamento', 'A faixa vermelha permanece acima de 100% do limite da categoria.', `<div class="field-grid two"><label class="field"><span>Alertar ao utilizar</span><select data-pref-select="budgetWarningPct">${[[65,'65% do limite'],[75,'75% do limite'],[85,'85% do limite'],[90,'90% do limite']].map(([v,l])=>configOpt(v,l,pref('budgetWarningPct'))).join('')}</select></label></div>`)}
       <div class="gap"></div>
@@ -2924,6 +2937,81 @@ function reportHTML() {
   </div>`;
 }
 
+
+function auditMonthEnd(month){const [y,m]=month.split('-').map(Number);return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10);}
+function auditPreviousEnd(month){const [y,m]=month.split('-').map(Number);return new Date(Date.UTC(y,m-1,0)).toISOString().slice(0,10);}
+function auditValidMonth(month){return /^20\d{2}-(?:0[1-9]|1[0-2])$/.test(month||'')&&month<=todayISO().slice(0,7);}
+function historicalTransactions(month=auditMonth,account=auditAccount){
+ return state.transactions.filter(t=>inMonth(t,month)&&(account==='Todas'||t.accountId===account||t.toAccountId===account))
+  .slice().sort((a,b)=>effective(b).localeCompare(effective(a))||b.date.localeCompare(a.date));
+}
+function historicalSummary(month=auditMonth,account=auditAccount){
+ const entries=historicalTransactions(month,account);
+ const done=entries.filter(t=>t.status==='Realizado');
+ const income=done.reduce((s,t)=>s+(t.kind==='Receita'&&(account==='Todas'||t.accountId===account)?t.amountCents:0)+(t.kind==='Transferência'&&account!=='Todas'&&t.toAccountId===account?t.amountCents:0),0);
+ const expense=done.reduce((s,t)=>s+(t.kind==='Despesa'&&(account==='Todas'||t.accountId===account)?t.amountCents:0)+(t.kind==='Transferência'&&account!=='Todas'&&t.accountId===account?t.amountCents:0),0);
+ const outstanding=entries.filter(t=>t.status==='Pendente').reduce((s,t)=>s+t.amountCents,0);
+ const chosen=account==='Todas'?state.accounts:state.accounts.filter(a=>a.id===account);
+ const start=chosen.reduce((s,a)=>s+accountBalance(a.id,auditPreviousEnd(month)),0);
+ const until=month===todayISO().slice(0,7)?todayISO():auditMonthEnd(month);
+ const end=chosen.reduce((s,a)=>s+accountBalance(a.id,until),0);
+ const reconciliations=state.reconciliations.filter(r=>r.date.slice(0,7)===month&&(account==='Todas'||r.accountId===account));
+ return {income,expense,outstanding,start,end,net:end-start,entries,reconciliations,until};
+}
+function renderHistorico(){
+ const current=todayISO().slice(0,7);
+ if(!auditValidMonth(auditMonth))auditMonth=plusMonth(current+'-01',-1).slice(0,7);
+ if(auditAccount!=='Todas'&&!state.accounts.some(a=>a.id===auditAccount))auditAccount='Todas';
+ const s=historicalSummary();
+ const previous=plusMonth(auditMonth+'-01',-1).slice(0,7),next=plusMonth(auditMonth+'-01',1).slice(0,7);
+ const accounts=state.accounts.map(a=>'<option value="'+esc(a.id)+'" '+(auditAccount===a.id?'selected':'')+'>'+esc(a.name)+'</option>').join('');
+ const accountRows=(auditAccount==='Todas'?state.accounts:state.accounts.filter(a=>a.id===auditAccount)).map(a=>{
+  const before=accountBalance(a.id,auditPreviousEnd(auditMonth)),after=accountBalance(a.id,s.until);
+  return '<div class="history-account"><strong>'+esc(a.name)+' <small class="muted">· '+esc(a.type)+'</small></strong><span>Saldo inicial: '+brl(before)+'</span><span>Saldo final: '+brl(after)+'</span><strong>Variação: '+brl(after-before)+'</strong></div>';
+ }).join('');
+ const transactions=s.entries.map(t=>{
+  const source=state.accounts.find(a=>a.id===t.accountId)?.name||'—',dest=state.accounts.find(a=>a.id===t.toAccountId)?.name||'—';
+  const account=t.kind==='Transferência'?source+' → '+dest:source;
+  return '<tr><td>'+esc(fmtDay(effective(t)))+'</td><td>'+esc(t.description)+'</td><td>'+esc(t.category||t.kind)+'</td><td>'+esc(account)+'</td><td>'+esc(t.status)+'</td><td class="num">'+brl(t.amountCents)+'</td></tr>';
+ }).join('');
+ const reconciliation=s.reconciliations.map(r=>{
+  const calculated=accountBalance(r.accountId,r.date),delta=r.statementCents-calculated;
+  const name=state.accounts.find(a=>a.id===r.accountId)?.name||'Conta removida';
+  return '<div class="list-row"><div class="left"><strong>'+esc(name)+'</strong><div class="secondary">'+esc(fmtDay(r.date))+' · Extrato '+brl(r.statementCents)+' · Calculado '+brl(calculated)+'</div></div><span class="pill '+(delta?'bad':'')+'">'+(delta?'Diferença '+brl(delta):'✓ Conciliado')+'</span></div>';
+ }).join('');
+ $('view-historico').innerHTML=`
+  <div class="toolbar-row"><div><h3 class="section-title">Histórico · ${esc(monthLabel(auditMonth))}</h3><p class="sub">Auditoria de meses anteriores sem alterar o mês atual do painel.</p></div><button type="button" class="btn" id="historyCsv">↓ Exportar CSV</button></div>
+  <div class="panel"><div class="history-controls">
+   <label class="field"><span>Mês para consulta</span><input id="historyMonth" type="month" min="2000-01" max="${current}" value="${auditMonth}"></label>
+   <label class="field"><span>Conta ou cartão</span><select id="historyAccount"><option value="Todas">Todas as contas</option>${accounts}</select></label>
+   <div class="history-action"><button type="button" class="btn small" id="historyPrev">← Anterior</button> <button type="button" class="btn small" id="historyNext" ${next>current?'disabled':''}>Próximo →</button></div>
+  </div><p class="helper">Os saldos são recalculados a partir dos registros existentes. Este relatório não constitui um registro imutável de alterações e exclusões.</p></div>
+  <div class="gap"></div><div class="history-kpis">
+   ${metric('Saldo inicial',brl(s.start),'Antes do período','', 'teal')}
+   ${metric('Saldo final',brl(s.end),'Até '+fmtDay(s.until),'',s.end>=0?'positive':'negative')}
+   ${metric('Variação',brl(s.net),'Diferença entre saldos','',s.net>=0?'positive':'negative')}
+  </div><div class="gap"></div><div class="three-metrics">
+   ${metric('Receitas realizadas',brl(s.income),'Receitas e transferências recebidas','', 'positive')}
+   ${metric('Despesas realizadas',brl(s.expense),'Despesas e transferências enviadas','', 'negative')}
+   ${metric('Lançamentos pendentes',brl(s.outstanding),'Total pendente do mês','', 'orange')}
+  </div><div class="gap"></div>
+  ${panel('Contas e cartões','Abertura, fechamento e variação','<div class="history-account-grid">'+(accountRows||'<div class="empty">Nenhuma conta cadastrada.</div>')+'</div>')}
+  <div class="gap"></div>
+  ${panel('Movimentações · '+s.entries.length,'Consulta em modo leitura; use Movimentações para editar','<div class="tablewrap"><table class="table history-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Situação</th><th class="num">Valor</th></tr></thead><tbody>'+(transactions||'<tr><td colspan="6">Nenhum lançamento no período.</td></tr>')+'</tbody></table></div>')}
+  <div class="gap"></div>
+  ${panel('Conciliações','Conferências realizadas no período','<div class="list">'+(reconciliation||'<div class="empty">Sem conciliações no mês.</div>')+'</div><div class="control-row"><button type="button" class="btn" data-view="conf">Abrir Conferências</button></div>')}
+ `;
+}
+function exportHistoricalCSV(){
+ const s=historicalSummary();
+ const rows=[['Clara Finanças - Histórico',auditMonth],['Conta',auditAccount==='Todas'?'Todas':state.accounts.find(a=>a.id===auditAccount)?.name||''],['Abertura (R$)',csvAmount(s.start)],['Fechamento (R$)',csvAmount(s.end)],['Variação (R$)',csvAmount(s.net)],[],['Data','Vencimento','Pagamento','Tipo','Situação','Descrição','Categoria','Origem','Destino','Valor (R$)']];
+ const name=id=>state.accounts.find(a=>a.id===id)?.name||'';
+ for(const t of s.entries)rows.push([effective(t),t.date,t.paidAt||'',t.kind,t.status,t.description,t.category,name(t.accountId),name(t.toAccountId),csvAmount(t.amountCents)]);
+ rows.push([],['Conciliações'],['Data','Conta','Saldo no extrato (R$)','Saldo calculado (R$)','Diferença (R$)']);
+ for(const r of s.reconciliations){const calc=accountBalance(r.accountId,r.date);rows.push([r.date,name(r.accountId),csvAmount(r.statementCents),csvAmount(calc),csvAmount(r.statementCents-calc)]);}
+ dl('Clara_Historico_'+auditMonth+(auditAccount==='Todas'?'':'_Conta')+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
+}
+
 function renderConf() {
   let flags = audits();
   const sums = state.reconciliations.map(r => ({ ...r, calculated: accountBalance(r.accountId, r.date) }));
@@ -2993,7 +3081,8 @@ const titleMap = {
   plan: ['Planejamento', 'Orçamentos mensais semânticos e metas de economia.'],
   ajustes: ['Configurações', 'Personalize o Clara, gerencie contas e categorias, privacidade e dados.'],
   assist: ['Assistentes', 'Automatize parcelamentos com precisão em centavos.'],
-  conf: ['Conferências', 'Conciliação de extratos e auditoria de movimentações.']
+  conf: ['Conferências', 'Conciliação de extratos e auditoria de movimentações.'],
+  historico: ['Histórico financeiro', 'Audite períodos anteriores, saldos e contas sem alterar o mês atual.']
 };
 
 function renderNav() {
@@ -3043,7 +3132,7 @@ function render() {
   $('pageTitle').textContent = titleMap[active][0];
   $('pageSubtitle').textContent = titleMap[active][1];
   for (const [key] of NAV) $('view-' + key).classList.toggle('active', key === active);
-  ({ painel: renderPainel, mov: renderMov, plan: renderPlan, ajustes: renderAjustes, assist: renderAssist, conf: renderConf }[active])();
+  ({ painel: renderPainel, mov: renderMov, plan: renderPlan, ajustes: renderAjustes, assist: renderAssist, conf: renderConf, historico: renderHistorico }[active])();
 }
 
 function go(to) {
@@ -3608,6 +3697,15 @@ document.addEventListener('click', e => {
       showToast(x.message, true);
     }
   }
+  if(id==='historyPrev'){
+   const candidate=plusMonth(auditMonth+'-01',-1).slice(0,7);
+   if(auditValidMonth(candidate)){auditMonth=candidate;renderHistorico();}
+  }
+  if(id==='historyNext'){
+   const candidate=plusMonth(auditMonth+'-01',1).slice(0,7);
+   if(auditValidMonth(candidate)){auditMonth=candidate;renderHistorico();}
+  }
+  if(id==='historyCsv')exportHistoricalCSV();
   if (id === 'exportAnnualCSV') exportAnnualReport();
   if (id === 'exportTxCSV') exportTransactionReport();
   if (id === 'printFinancialReport') {
@@ -3651,6 +3749,15 @@ document.addEventListener('input', e => {
 
 document.addEventListener('change', e => {
   const id = e.target.id;
+  if(id==='historyMonth'){
+   if(auditValidMonth(e.target.value)){auditMonth=e.target.value;renderHistorico();}
+   else{showToast('Mês histórico inválido.',true);renderHistorico();}
+   return;
+  }
+  if(id==='historyAccount'){
+   if(e.target.value==='Todas'||state.accounts.some(a=>a.id===e.target.value)){auditAccount=e.target.value;renderHistorico();}
+   return;
+  }
   if (id === 'statusFilter') { statusFilter = e.target.value; renderMov(); }
   if (id === 'accountFilter') { accountFilter = e.target.value; renderMov(); }
   if (id === 'm_kind' || id === 'm_status') updateCategoryForKind();
@@ -3663,23 +3770,9 @@ document.addEventListener('change', e => {
     const button = $('addInstall');
     if (button) button.disabled = true;
   }
-  if (id === 'cutoffInput') {
-    if (!dateValid(e.target.value)) {
-      e.target.value = state.settings.cutoff;
-      showToast('Data de corte inválida; mantida a anterior.', true);
-      return;
-    }
-    try { state.settings.cutoff = e.target.value; persistSuccess('Data de corte atualizada.'); }
-    catch (x) { showToast(x.message, true); }
-  }
   if (id === 'themeSelect') {
     try { state.settings.theme = e.target.value; persistSuccess('Tema atualizado.'); }
     catch (x) { showToast(x.message, true); }
-  }
-  if (id === 'periodConfig') {
-    const v = e.target.value;
-    if (!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(v)) { showToast('Mês inválido.', true); renderAjustes(); return; }
-    try { state.settings.period = v; persistSuccess('Período financeiro atualizado.'); } catch(x) { showToast(x.message, true); }
   }
   if (e.target.matches('[data-pref]')) {
     const key = e.target.dataset.pref;
@@ -4251,7 +4344,7 @@ window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraS
 <script id="clara-update-runtime">
 'use strict';
 const ClaraUpdate=(()=>{
- const INSTALLED_VERSION='3.6.4-rc';
+ const INSTALLED_VERSION='3.6.5-rc';
  let registration=null,started=false,applying=false;
  async function latest(){
    const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
