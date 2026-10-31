@@ -8,7 +8,7 @@ const DEFAULT_CATEGORIES=[
  ['Moradia','Despesa'],['Alimentação','Despesa'],['Transporte','Despesa'],['Contas fixas','Despesa'],['Saúde','Despesa'],['Educação','Despesa'],['Lazer','Despesa'],['Compras','Despesa'],['Assinaturas','Despesa'],['Outros','Despesa']
 ];
 export function uid(prefix='id'){return `${prefix}-${globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`}`;}
-export function blankData(){return {schemaVersion:SCHEMA_VERSION,appVersion:VERSION,isDemo:false,revision:0,updatedAt:new Date().toISOString(),accounts:[{id:uid('acc'),name:'Conta principal',type:'Conta',openingCents:0}],categories:DEFAULT_CATEGORIES.map(([name,group])=>({id:uid('cat'),name,group})),budgets:[],transactions:[],goals:[],debts:[],settings:{theme:'light',accent:'petrol',hideValues:false,selectedPeriod:new Date().toISOString().slice(0,7),monthlySavingsCents:0,reviewDay:1}};}
+export function blankData(){return {schemaVersion:SCHEMA_VERSION,appVersion:VERSION,isDemo:false,revision:0,updatedAt:new Date().toISOString(),accounts:[{id:uid('acc'),name:'Conta principal',type:'Conta',openingCents:0}],categories:DEFAULT_CATEGORIES.map(([name,group])=>({id:uid('cat'),name,group})),budgets:[],transactions:[],goals:[],debts:[],reconciliations:[],settings:{theme:'light',accent:'petrol',hideValues:false,selectedPeriod:new Date().toISOString().slice(0,7),monthlySavingsCents:0,reviewDay:1}};}
 export const brl=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100);
 export const isISODate=iso=>{if(typeof iso!=='string'||!/^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(iso))return false;const [y,m,d]=iso.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===m-1&&dt.getUTCDate()===d;};
 export const fmtDate=iso=>isISODate(iso)?`${iso.slice(8)}/${iso.slice(5,7)}/${iso.slice(0,4)}`:'—';
@@ -72,15 +72,23 @@ export function migrateData(input){if(!input||typeof input!=='object'||Array.isA
  data.settings.monthlySavingsCents??=0;
  data.settings.reviewDay??=1;
  data.debts??=[];
+ data.reconciliations??=[];
  data.appVersion=VERSION;
  return data;
 }
 function uniqueSet(items,key,message){const set=new Set();for(const item of items){const v=item?.[key];if(typeof v!=='string'||!v||set.has(v))throw Error(message);set.add(v);}return set;}
-export function validateBackup(d){if(!d||typeof d!=='object'||d.schemaVersion!==SCHEMA_VERSION||!Array.isArray(d.accounts)||!Array.isArray(d.transactions)||!Array.isArray(d.categories)||!Array.isArray(d.budgets)||!Array.isArray(d.goals)||(d.debts!==undefined&&!Array.isArray(d.debts)))throw Error('Arquivo não é um backup compatível do Clara Finanças.');
- if(d.accounts.length<1||d.accounts.length>10000||d.transactions.length>250000||d.categories.length>10000||d.budgets.length>10000||d.goals.length>10000||(d.debts||[]).length>10000)throw Error('Backup excede os limites ou não possui contas.');
- uniqueSet(d.accounts,'id','Contas inválidas ou duplicadas no backup.');uniqueSet(d.categories,'id','Categorias inválidas ou duplicadas no backup.');uniqueSet(d.transactions,'id','Movimentações duplicadas ou sem identificador.');uniqueSet(d.goals,'id','Metas duplicadas ou sem identificador.');if(d.debts)uniqueSet(d.debts,'id','Dívidas duplicadas ou sem identificador.');
+export function validateBackup(d){if(!d||typeof d!=='object'||d.schemaVersion!==SCHEMA_VERSION||!Array.isArray(d.accounts)||!Array.isArray(d.transactions)||!Array.isArray(d.categories)||!Array.isArray(d.budgets)||!Array.isArray(d.goals)||(d.debts!==undefined&&!Array.isArray(d.debts))||(d.reconciliations!==undefined&&!Array.isArray(d.reconciliations)))throw Error('Arquivo não é um backup compatível do Clara Finanças.');
+ if(d.accounts.length<1||d.accounts.length>10000||d.transactions.length>250000||d.categories.length>10000||d.budgets.length>10000||d.goals.length>10000||(d.debts||[]).length>10000||(d.reconciliations||[]).length>10000)throw Error('Backup excede os limites ou não possui contas.');
+ uniqueSet(d.accounts,'id','Contas inválidas ou duplicadas no backup.');uniqueSet(d.categories,'id','Categorias inválidas ou duplicadas no backup.');uniqueSet(d.transactions,'id','Movimentações duplicadas ou sem identificador.');uniqueSet(d.goals,'id','Metas duplicadas ou sem identificador.');if(d.debts)uniqueSet(d.debts,'id','Dívidas duplicadas ou sem identificador.');if(d.reconciliations)uniqueSet(d.reconciliations,'id','Conciliações duplicadas.');
  const names=new Set(),categories=new Set();for(const a of d.accounts){if(typeof a.name!=='string'||!a.name.trim()||!Number.isSafeInteger(a.openingCents)||(a.archived!==undefined&&typeof a.archived!=='boolean'))throw Error('Dados inválidos em conta.');const n=a.name.trim().toLocaleLowerCase('pt-BR');if(names.has(n))throw Error('Nomes de contas duplicados.');names.add(n);}
  for(const c of d.categories){if(typeof c.name!=='string'||!c.name.trim()||!['Receita','Despesa'].includes(c.group)||(c.archived!==undefined&&typeof c.archived!=='boolean'))throw Error('Categoria inválida.');const k=c.group+'|'+c.name.trim().toLocaleLowerCase('pt-BR');if(categories.has(k))throw Error('Categorias duplicadas.');categories.add(k);}
+ for(const r of (d.reconciliations||[])){
+  if(!d.accounts.some(a=>a.id===r.accountId)||!isISODate(r.asOfDate)||
+   !Number.isSafeInteger(r.statementCents)||!Number.isSafeInteger(r.calculatedCents)||
+   !Number.isSafeInteger(r.differenceCents)||r.statementCents-r.calculatedCents!==r.differenceCents||
+   typeof r.createdAt!=='string'||Number.isNaN(Date.parse(r.createdAt))||typeof r.note!=='string'||r.note.length>300)
+    throw Error('Registro de conciliação inválido.');
+ }
  for(const debt of (d.debts||[])){
   if(typeof debt.name!=='string'||debt.name.trim().length<2||typeof debt.creditor!=='string'||debt.creditor.trim().length<2||
    !Number.isSafeInteger(debt.totalCents)||debt.totalCents<=0||debt.totalCents>1_000_000_000_000||
