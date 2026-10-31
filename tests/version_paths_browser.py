@@ -10,7 +10,7 @@ site = Path('qa-scope/preview/clara')
 shutil.rmtree(Path('qa-scope'), ignore_errors=True)
 site.parent.mkdir(parents=True, exist_ok=True)
 shutil.copytree('dist', site)
-BASE = 'http://127.0.0.1:8766/preview/clara/'
+BASE = 'http://127.0.0.1:8766/qa-scope/preview/clara/'
 
 async def run():
   async with async_playwright() as p:
