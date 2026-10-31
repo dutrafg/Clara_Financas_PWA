@@ -79,3 +79,11 @@ test('Versão no painel deriva da mesma constante usada pelo atualizador',()=>{
  assert.equal(version.version,pkg.version);
  assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
 });
+
+test('Instalação preserva manifesto, Service Worker e opções de segurança',()=>{
+ assert.match(html,/id="claraInstallBtn"/);
+ assert.match(html,/id="claraInstallHelp"/);
+ assert.match(html,/window\.ClaraInstall\?\.paint\?\.\(\)/);
+ assert.match(html,/const CLARA_VAULT_KEY/);
+ assert.match(sw,/type === 'SKIP_WAITING'/);
+});
