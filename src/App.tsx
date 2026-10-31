@@ -447,18 +447,73 @@ export default function App(){
   try{const response=await fetch('./dados-demonstracao.json');if(!response.ok)throw Error('Não foi possível carregar o arquivo de exemplo.');const sample=deriveDemo(await response.json());await clearDirectoryHandle();setFolder(await folderPermission());await commit(sample,'Exemplos carregados.')}catch(e){notify((e as Error).message,true)}
  }
  async function reset(){if(!window.confirm('Começar do zero? Todos os registros locais serão substituídos. Baixe um backup antes. A pasta vinculada será preservada sem alterações e desvinculada.'))return;try{await clearDirectoryHandle();setFolder(await folderPermission());await commit(blankData(),'Nova base criada.')}catch(e){notify((e as Error).message,true)}}
- async function pickFolder(){if(!data)return;try{
-  // showDirectoryPicker é chamado diretamente no evento de clique, preservando a ativação exigida pelo navegador.
-  const handle=await chooseFolder();setFolder(await folderPermission());
-  let exists=false;try{await handle.getFileHandle('clara-financas-dados.json');exists=true}catch(e){if((e as Error).name!=='NotFoundError')throw e}
-  if(exists){
-   if(window.confirm('A pasta já contém um backup do Clara. Deseja RESTAURAR esse arquivo?'))await restore(await readFolderCopy(),'os dados desta pasta');
-   else if(window.confirm('Manter dados atuais e SUBSTITUIR o arquivo de backup existente na pasta?')){await writeFolderCopy(data);notify('Cópia atualizada na pasta.');}
-   else notify('Pasta vinculada. O backup existente não foi alterado.',false);
-  }else{await writeFolderCopy(data);notify('Pasta selecionada e cópia inicial criada.');}
- }catch(e){if((e as Error).name!=='AbortError')notify((e as Error).message,true)}
+ async function pickFolder(){
+  if(!data)return;
+  try{
+   // Seleção sob ativação direta do usuário, necessária no File System Access API.
+   await chooseFolder();
+   setFolder(await folderPermission());
+   const protectedCopy=await hasFolderCopy();
+   const legacyCopy=await hasLegacyFolderCopy();
+   setFolderLegacyPresent(legacyCopy);
+   if(protectedCopy){
+    if(window.confirm('A pasta já contém uma cópia criptografada. Deseja restaurá-la?')){
+     if(!folderPassword)throw Error('Informe a senha da cópia em pasta antes de restaurar.');
+     await restore(await readFolderCopy(folderPassword),'a cópia criptografada da pasta');
+    }else notify('Pasta vinculada. O arquivo protegido existente foi preservado.');
+   }else if(legacyCopy){
+    if(window.confirm('Encontrado backup JSON antigo, sem criptografia. Deseja restaurá-lo?')){
+     await restore(await readLegacyFolderCopy(),'o backup JSON antigo da pasta');
+    }else notify('Pasta vinculada. O JSON anterior foi preservado, sem sobrescrever.',true);
+   }else{
+    if(!folderPassword){notify('Pasta vinculada. Informe uma senha para gerar a primeira cópia criptografada.',true);return}
+    await writeFolderCopy(data,folderPassword);
+    notify('Pasta vinculada com cópia AES-GCM.');
+   }
+  }catch(e){if((e as Error).name!=='AbortError')notify((e as Error).message,true)}
  }
- async function saveFolder(){if(!data)return;try{let ok=await writeFolderCopy(data);if(!ok)ok=(await askFolderPermission())&&await writeFolderCopy(data);setFolder(await folderPermission());notify(ok?'Backup da pasta atualizado.':'Pasta sem permissão; use Exportar backup.',!ok)}catch(e){notify((e as Error).message,true)}}
+ async function saveFolder(){
+  if(!data)return;
+  try{
+   if(!folderPassword)throw Error('Informe a senha da cópia em pasta (mínimo 12 caracteres).');
+   let ok=await writeFolderCopy(data,folderPassword);
+   if(!ok)ok=(await askFolderPermission())&&await writeFolderCopy(data,folderPassword);
+   setFolder(await folderPermission());setFolderLegacyPresent(await hasLegacyFolderCopy());
+   notify(ok?'Backup AES-GCM atualizado na pasta.':'Pasta sem permissão de gravação.',!ok);
+  }catch(e){notify((e as Error).message,true)}
+ }
+ async function restoreFolder(){
+  try{
+   if(!folderPassword)throw Error('Informe a senha da cópia em pasta.');
+   await restore(await readFolderCopy(folderPassword),'a cópia protegida da pasta');
+  }catch(e){notify((e as Error).message,true)}
+ }
+ async function restoreLegacyFolder(){
+  try{
+   if(!window.confirm('O arquivo JSON antigo não é criptografado. Importá-lo para o Clara?'))return;
+   await restore(await readLegacyFolderCopy(),'o backup JSON legado em pasta');
+  }catch(e){notify((e as Error).message,true)}
+ }
+ async function discardLegacyCopy(){
+  try{
+   if(!await hasFolderCopy())throw Error('Crie uma cópia protegida antes de remover o JSON antigo.');
+   if(!window.confirm('Remover APENAS o arquivo JSON legível antigo desta pasta? Confirme que sua cópia protegida foi testada e que possui a senha.'))return;
+   await removeLegacyFolderCopy();setFolderLegacyPresent(false);
+   notify('Arquivo JSON antigo removido da pasta selecionada.');
+  }catch(e){notify((e as Error).message,true)}
+ }
+ async function setVaultProtection(){
+  try{
+   if(vaultEnabled){
+    if(!window.confirm('Desativar a proteção? O banco voltará a ser armazenado SEM criptografia no perfil do navegador.'))return;
+    await deactivateVault(vaultPass);
+   }else{
+    if(!window.confirm('Ativar o cofre local? Garanta primeiro um backup protegido externo. Sua senha será necessária ao reiniciar o aplicativo.'))return;
+    await activateVault(vaultPass);
+   }
+   setVaultPass('');
+  }catch(e){notify((e as Error).message,true)}
+ }
  const action=(fn:()=>Promise<unknown>)=>()=>{fn().catch(e=>notify((e as Error).message,true))};
  if(vaultLocked)return <main className="clara-lock">
   <div className="brand-sign">C</div><h1>Cofre financeiro protegido</h1>
@@ -672,7 +727,34 @@ export default function App(){
   <label className="form-field"><span>Dia do acompanhamento (1 a 28)</span><input aria-label="Dia do acompanhamento" type="number" min="1" max="28" value={reviewDraft} onChange={e=>setReviewDraft(e.target.value)}/></label>
   <Button icon="check" onClick={savePreferences}>Salvar preferências financeiras</Button>
  </div><p className="fine">A meta é calculada sobre receitas e despesas realizadas. Ajustes permanecem no banco local e são incluídos nos backups.</p></Pane>
- <Pane title="Pasta de dados local" detail="O IndexedDB é o banco principal. A pasta recebe um espelho JSON quando o navegador permitir."><div className="folder-info"><Icon name="folder" size={23}/><div><b>{folder.name||'Nenhuma pasta vinculada'}</b><span>{folder.state==='granted'?'Acesso concedido':folder.state==='none'?'Backup em pasta opcional':`Permissão: ${folder.state}`}</span></div></div><div className="wrap-actions"><Button icon="folder" onClick={pickFolder}>Escolher pasta</Button><Button icon="upload" onClick={saveFolder}>Atualizar cópia</Button><Button icon="download" onClick={action(async()=>restore(await readFolderCopy(),'a cópia da pasta'))}>Restaurar pasta</Button><Button variant="ghost" onClick={action(async()=>{if(window.confirm('Desvincular a pasta? O arquivo externo será preservado.')){await clearDirectoryHandle();setFolder(await folderPermission());notify('Pasta desvinculada.')}})}>Desvincular</Button></div><p className="fine">A seleção direta de pasta exige navegador compatível e contexto seguro (HTTPS ou localhost). No celular, utilize exportação e importação de backup quando esta opção não estiver disponível.</p></Pane>
+ <Pane title="Cofre criptografado do navegador" detail="Proteção opcional AES-256-GCM do IndexedDB. O modo legado continua funcionando até você ativar.">
+ <div className="setting-row"><div><b>Proteção do banco local</b><p>{vaultEnabled?'Ativada — o banco é armazenado cifrado.':'Desativada — o banco permanece legível no perfil do navegador.'}</p></div><b>{vaultEnabled?'Protegido':'Legado'}</b></div>
+ <label className="form-field"><span>{vaultEnabled?'Senha atual para desativar o cofre':'Definir senha para ativar o cofre (mínimo 12 caracteres)'}</span>
+ <input aria-label="Senha do cofre local" autoComplete="new-password" type="password" value={vaultPass} onChange={e=>setVaultPass(e.currentTarget.value)}/></label>
+ <div className="wrap-actions">
+ <Button icon="check" onClick={setVaultProtection}>{vaultEnabled?'Desativar proteção do banco':'Ativar proteção do banco'}</Button>
+ {vaultEnabled&&<Button variant="ghost" onClick={()=>{closeVault();setVaultPass('')}}>Bloquear cofre agora</Button>}
+ </div>
+ <p className="fine">A mudança é transacional: o IndexedDB substitui o registro legível pelo criptografado na mesma operação. Sem a senha não há recuperação direta; faça backup externo cifrado antes de ativar.</p>
+ </Pane>
+ <Pane title="Cópia criptografada em pasta" detail="O IndexedDB continua como fonte principal. As cópias em pasta usam AES-256-GCM e extensão .clara.">
+ <div className="folder-info"><Icon name="folder" size={23}/><div><b>{folder.name||'Nenhuma pasta vinculada'}</b>
+ <span>{folder.state==='granted'?'Acesso concedido':folder.state==='none'?'Pasta opcional':`Permissão: ${folder.state}`}</span></div></div>
+ <label className="form-field"><span>Senha para cópia em pasta (mínimo 12 caracteres, válida enquanto a página estiver aberta)</span>
+ <input aria-label="Senha da cópia em pasta" type="password" autoComplete="new-password" value={folderPassword}
+ onChange={e=>setFolderPassword(e.currentTarget.value)}/></label>
+ <div className="wrap-actions">
+ <Button icon="folder" onClick={pickFolder}>Escolher pasta</Button>
+ <Button icon="upload" onClick={saveFolder}>Atualizar cópia protegida</Button>
+ <Button icon="download" onClick={restoreFolder}>Restaurar pasta protegida</Button>
+ <Button variant="ghost" onClick={action(async()=>{if(window.confirm('Desvincular a pasta? Seus arquivos externos serão preservados.')){await clearDirectoryHandle();setFolder(await folderPermission());setFolderLegacyPresent(false);notify('Pasta desvinculada.')}})}>Desvincular</Button>
+ </div>
+ <div className="wrap-actions">
+ <Button variant="ghost" onClick={restoreLegacyFolder}>Restaurar JSON antigo</Button>
+ {folderLegacyPresent&&<Button variant="ghost" onClick={discardLegacyCopy}>Remover JSON antigo após migração</Button>}
+ </div>
+ <p className="fine">Nunca substituímos um arquivo já encontrado ao selecionar a pasta. A gravação automática só funciona enquanto a senha estiver informada e o navegador conceder permissão. Android/Firefox podem não oferecer seleção de pasta: utilize Exportar backup protegido.</p>
+ </Pane>
  <Pane title="Instalação do PWA" detail="Instale o Clara na tela inicial após publicá-lo em HTTPS ou executar no localhost."><div className="wrap-actions"><Button icon="download" disabled={!installPrompt} onClick={action(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;setInstallPrompt(null)})}>Instalar Clara</Button></div><p className="fine">Caso o botão esteja desativado, use o menu do navegador → Instalar aplicativo / Adicionar à tela inicial, quando disponível.</p></Pane>
  <Pane title="Backup criptografado e recuperação" detail="Criptografia AES-256-GCM. A senha nunca é enviada nem armazenada.">
  <label className="form-field"><span>Senha do backup (mínimo 12 caracteres)</span>
@@ -684,8 +766,8 @@ export default function App(){
  <div className="wrap-actions"><Button variant="ghost" icon="download" onClick={()=>{if(window.confirm('Exportar JSON SEM criptografia? O arquivo conterá seus dados financeiros legíveis.'))download(`clara-backup-${today()}.json`,JSON.stringify(data,null,2),'application/json')}}>Exportar JSON sem proteção</Button>
  <Button variant="ghost" icon="upload" onClick={()=>importRef.current?.click()}>Restaurar JSON legado</Button></div>
  <input ref={importRef} hidden type="file" accept=".json,application/json"/>
- <p className="fine">Anote a senha: sem ela não é possível recuperar o backup protegido. A cópia automática de pasta ainda é JSON sem criptografia; use a exportação protegida para arquivos compartilhados.</p></Pane>
- <Pane title="Bloqueio local de interface" detail="Pede senha ao retornar do segundo plano. Não criptografa o IndexedDB.">
+ <p className="fine">Anote a senha: sem ela não é possível recuperar o backup protegido. A cópia em pasta também é criptografada quando configurada com senha; arquivos JSON antigos permanecem sem proteção até sua remoção.</p></Pane>
+ <Pane title="Bloqueio local de interface" detail="Pede senha ao retornar do segundo plano. Para proteger os dados em repouso, ative separadamente o cofre do navegador.">
  <label className="form-field"><span>{lockRecord?'Senha atual para desativar':'Criar senha (mínimo 12 caracteres)'}</span>
  <input type="password" aria-label="Senha do bloqueio" value={lockPassword} onChange={e=>setLockPassword(e.target.value)}/></label>
  <div className="wrap-actions">{lockRecord?<><Button icon="check" onClick={()=>setLocked(true)}>Bloquear agora</Button><Button variant="ghost" onClick={disableLock}>Desativar bloqueio</Button></>:<Button icon="check" onClick={enableLock}>Ativar bloqueio</Button>}</div>
