@@ -137,7 +137,8 @@ async def run():
     assert snapshot['sum']==snapshot['part'],snapshot
     checked.append('conservacao-do-saldo')
     # Preferências e ordem em armazenamento: salvamento, reload, backup válido.
-    await page.locator('[data-clw-action="editor"]').click()
+    # O editor continua aberto desde 'Mostrar todos'; não alternar para fechado.
+    assert await page.locator('.clw-editor').count()==1
     await page.locator('[data-clw-action="toggle"][data-clw-id="attention"]').click()
     assert await page.locator('[data-widget="attention"]').count()==0
     await page.reload(wait_until='load')
