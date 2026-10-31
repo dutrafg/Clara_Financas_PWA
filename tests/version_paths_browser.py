@@ -40,10 +40,11 @@ async def run():
     assert await page.locator('#dashboardMiniapps').count()==1
 
     meta=json.loads((site/'version.json').read_text())
-    meta['version']='3.6.0-rc-qa-upgrade'
+    meta['version']='3.6.9-rc'
+    meta['notes']=['Melhorias de atualização validadas no teste.']
     (site/'version.json').write_text(json.dumps(meta))
     online=await page.evaluate("""async () => (await (await fetch('./version.json',{cache:'no-store'})).json()).version""")
-    assert online=='3.6.0-rc-qa-upgrade',online
+    assert online=='3.6.9-rc',online
     original=(site/'index.html').read_text()
     (site/'index.html').write_text(original.replace('</head>','<!-- qa-version-two -->\n</head>',1))
     fresh=await page.evaluate("""async () => {
@@ -57,16 +58,23 @@ async def run():
     new_name='clara-financas-qa-upgrade-v2'
     assert new_name != old_name
     (site/'sw.js').write_text(old_sw.replace(old_name,new_name,1))
-    await page.evaluate("""async () => {
-      const registration=await navigator.serviceWorker.ready;
-      await registration.update();
-    }""")
-    # Em ambientes com registro sem clientes controlados, a instalação pode ativar
-    # imediatamente. Se estiver aguardando, simular o clique aprovado pelo usuário.
-    await page.evaluate("""async () => {
-      const reg=await navigator.serviceWorker.ready;
-      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }""")
+    await page.evaluate("window.ClaraUpdate.check(true)")
+    await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
+    assert await page.locator('#claraUpdateNoticeTitle').inner_text()=='Atualização pronta para instalar'
+    assert await page.locator('#claraUpdateNotice').is_visible()
+    assert await page.locator('#claraUpdateNoticeInstall').is_visible()
+    assert await page.locator('#claraUpdateNoticeText').inner_text()
+    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='3.6.9-rc'")
+    await page.locator('#claraUpdateNoticeLater').click()
+    assert not await page.locator('#claraUpdateNotice').is_visible()
+    await page.evaluate("window.ClaraUpdate.check(false)")
+    assert not await page.locator('#claraUpdateNotice').is_visible()
+    await page.evaluate("localStorage.removeItem('clara-update-dismissed-v1');window.ClaraUpdate.paint()")
+    assert await page.locator('#claraUpdateNotice').is_visible()
+    page.once('dialog',lambda dialog: asyncio.create_task(dialog.accept()))
+    await page.locator('#claraUpdateNoticeInstall').click()
+    # A ativação é feita pela interface após confirmação. Nunca chamar
+    # SKIP_WAITING diretamente no teste do fluxo de atualização.
     await page.wait_for_function("""async () => {
       const names=await caches.keys();
       return names.includes('clara-financas-qa-upgrade-v2') &&
