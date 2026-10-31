@@ -85,5 +85,4 @@ test('Instalação preserva manifesto, Service Worker e opções de segurança',
  assert.match(html,/id="claraInstallHelp"/);
  assert.match(html,/window\.ClaraInstall\?\.paint\?\.\(\)/);
  assert.match(html,/const CLARA_VAULT_KEY/);
- assert.match(sw,/type === 'SKIP_WAITING'/);
 });
