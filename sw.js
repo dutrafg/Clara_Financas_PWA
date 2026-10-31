@@ -15,7 +15,7 @@ self.addEventListener('install', event => event.waitUntil((async () => {
     if (!response.ok) throw Error('Falha ao preparar atualização PWA: ' + path);
     await cache.put(url, response);
   }));
-  await self.skipWaiting();
+  // O novo SW fica aguardando confirmação pelo atualizador da interface.
 })()));
 
 self.addEventListener('activate', event => event.waitUntil((async () => {
@@ -56,4 +56,8 @@ self.addEventListener('fetch', event => {
     try { return await fetch(request); }
     catch { return Response.error(); }
   })());
+});
+
+self.addEventListener('message', event => {
+  if(event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
