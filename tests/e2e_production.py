@@ -274,9 +274,25 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   print('ALERTAS:',page.get_by_role('alert').all_text_contents())
   page.get_by_role('button',name='Ativar proteção do banco').wait_for(timeout=10000)
   page.wait_for_function('''async () => new Promise(resolve=>{const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const s=r.result.transaction('app','readonly').objectStore('app');const a=s.get('state'),b=s.get('state-vault');let plain,enc; a.onsuccess=()=>{plain=a.result;if(b.readyState==='done')resolve(!!plain&&!b.result)};b.onsuccess=()=>{enc=b.result;if(a.readyState==='done')resolve(!!plain&&!enc)}}})''')
+  before_reload=page.evaluate("""async()=>new Promise(resolve=>{
+   const req=indexedDB.open('clara-financas-local-v1');
+   req.onsuccess=()=>{const tx=req.result.transaction('app','readonly');
+    const store=tx.objectStore('app'),plain=store.get('state'),cipher=store.get('state-vault');
+    tx.oncomplete=()=>resolve({hasPlain:!!plain.result,hasCipher:!!cipher.result,revision:plain.result?.revision||0});}
+  })""")
+  print('COFRE ANTES RELOAD:',before_reload)
+  assert before_reload['hasPlain'] and not before_reload['hasCipher'],before_reload
   page.reload()
   print('COFRE REVERSAO TELA:',page.locator('body').inner_text(timeout=10000)[:1100])
   print('ERROS JS REVERSAO:',errors[-5:])
+  after_reload=page.evaluate("""async()=>new Promise(resolve=>{
+   const req=indexedDB.open('clara-financas-local-v1');
+   req.onsuccess=()=>{const tx=req.result.transaction('app','readonly');const store=tx.objectStore('app');
+    const plain=store.get('state'),cipher=store.get('state-vault');
+    tx.oncomplete=()=>resolve({hasPlain:!!plain.result,hasCipher:!!cipher.result,revision:plain.result?.revision||0});}
+  })""")
+  print('COFRE DEPOIS RELOAD:',after_reload)
+  assert after_reload['hasPlain'] and not after_reload['hasCipher'],after_reload
   page.locator('.clara-balance-hero').wait_for(timeout=15000)
   assert not errors,errors
   print('PASSOU: migração do IndexedDB criptografado, senha, recarga e reversão sem perda')
