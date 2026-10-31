@@ -1,7 +1,7 @@
-name: Homologar Clara Finanças RC3 Planilha Atualizada
+name: Homologar Clara Finanças RC3.2 Acessibilidade
 on:
   push:
-    branches: [homologacao/planilha-optio-atualizada]
+    branches: [homologacao/rc3-2-acessibilidade]
     paths:
       - 'src/**'
       - 'public/**'
