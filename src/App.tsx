@@ -91,7 +91,26 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  {field('description','Descrição da compra',input('description','text',true,'Ex.: Notebook'),true)}
  {field('purchaseDate','Data da compra',input('purchaseDate','date',true))}
  {field('firstDueDate','Primeiro vencimento',input('firstDueDate','date',true))}
- {field('amount','Valor da compra em R
+ {field('amount','Valor da compra em R$',input('amount','text',true,'0,00'))}
+ {field('downPayment','Entrada em R$',input('downPayment','text',true,'0,00'))}
+ {field('fees','Encargos financiados em R$',input('fees','text',true,'0,00'))}
+ {field('monthlyRate','Juros ao mês (%)',input('monthlyRate','text',true,'Ex.: 1,50'))}
+ {field('installmentCount','Quantidade de parcelas (2–60)',<input name="installmentCount" type="number" min="2" max="60" step="1" required value={values.installmentCount} onChange={e=>change('installmentCount',e.currentTarget.value)}/>)}
+ {field('accountId','Conta de pagamento',select('accountId',accts))}
+ {field('category','Categoria de despesa',select('category',[{value:'',label:'Selecione a categoria'},...expenseCats]))}
+ <div className="installment-preview full" aria-live="polite">
+  <strong>Simulação antes de salvar</strong>
+  {preview?<><div className="installment-preview-metrics">
+   <span>Financiado: <b>{brl(preview.financedCents)}</b></span>
+   <span>Juros totais: <b>{brl(preview.totalInterestCents)}</b></span>
+   <span>Total a pagar (com entrada): <b>{brl(preview.totalPayableCents)}</b></span>
+  </div><div className="installment-preview-scroll"><table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Principal</th><th>Juros</th><th>Valor</th></tr></thead><tbody>
+   {preview.rows.map(row=><tr key={row.index}><td>{row.index}/{preview.count}</td><td>{fmtDate(row.dueDate)}</td><td>{brl(row.principalCents)}</td><td>{brl(row.interestCents)}</td><td><b>{brl(row.amountCents)}</b></td></tr>)}
+  </tbody></table></div>
+  <p>Ao salvar, todas as parcelas serão lançadas como <b>pendentes</b>. Somente pagamentos confirmados alteram o saldo.</p></>:
+  <p className="fine">{previewError||'Informe o valor da compra para simular.'}</p>}
+ </div>
+ </>:modal.type==='transaction'?<>
  {field('date','Data / vencimento',input('date','date',true))}
  {field('paidAt','Data de pagamento',<input name="paidAt" type="date" value={status==='Realizado'?values.paidAt||'':''} disabled={status!=='Realizado'} onChange={e=>change('paidAt',e.currentTarget.value)}/>)}
  {field('kind','Tipo',select('kind',[{value:'Despesa',label:'Despesa'},{value:'Receita',label:'Receita'},{value:'Transferência',label:'Transferência'}]))}
