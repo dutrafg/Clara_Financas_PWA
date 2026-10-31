@@ -45,6 +45,7 @@ async def main():
     assert not await page.locator('.shell').is_visible()
     await page.locator('#securityPassword').fill('Senha-Incorreta-2026!')
     await page.locator('#securitySubmit').click()
+    await page.wait_for_function("!document.getElementById('securitySubmit').disabled && document.getElementById('securityStatus').textContent.length>0",timeout=30000)
     assert await page.locator('#securityCover').is_visible()
     await page.locator('#securityPassword').fill(PWD)
     await page.locator('#securitySubmit').click()
