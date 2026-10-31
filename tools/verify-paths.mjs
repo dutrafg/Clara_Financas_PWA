@@ -16,7 +16,7 @@ assert.equal(JSON.parse(await text(dist,'version.json')).version,pkg.version);
 assert.deepEqual([manifest.id,manifest.start_url,manifest.scope],['./','./','./'],'PWA deve seguir caminhos relativos');
 assert.ok(html.includes('Clara Finanças RC'+pkg.version.split('.').slice(0,2).join('.')),'Título da interface divergente');
 assert.ok(html.includes('href="./manifest.webmanifest"'),'Manifesto não referenciado');
-assert.ok(html.includes("serviceWorker.register('./sw.js')"),'Service Worker fora do caminho canônico');
+assert.ok(html.includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
 for (const path of files) {
   assert.deepEqual(await get(root,path),await get(dist,path),'Arquivo divergente: '+path);
   assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
