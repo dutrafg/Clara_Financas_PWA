@@ -1,0 +1,14 @@
+import * as source from '../legacy/planning.mjs';
+import type {FinanceData,Debt,Transaction,Goal} from './types';
+export type DebtInput={name:string;creditor:string;totalCents:number;openingPaidCents:number;monthlyCents:number;dueDate:string;category:string};
+export type DebtSummary=Debt&{paidCents:number;remainingCents:number;scheduledCents:number;ratio:number;settled:boolean;payments:number};
+export type ForecastMonth={month:string;openingCents:number;incomeCents:number;expenseCents:number;netCents:number;closingCents:number;plannedCents:number;realizedCents:number;transfersCents:number};
+export type GoalPace={remainingCents:number;monthsLeft:number|null;monthlyRequiredCents:number|null;overdue:boolean;achieved:boolean};
+export const addDebt=source.addDebt as (data:FinanceData,form:DebtInput)=>Debt;
+export const updateDebt=source.updateDebt as (data:FinanceData,id:string,form:Omit<DebtInput,'openingPaidCents'>)=>Debt;
+export const deleteDebt=source.deleteDebt as (data:FinanceData,id:string)=>true;
+export const allDebtSummaries=source.allDebtSummaries as (data:FinanceData)=>DebtSummary[];
+export const recordDebtPayment=source.recordDebtPayment as (data:FinanceData,form:{debtId:string;accountId:string;amountCents:number;date:string;description?:string})=>Transaction;
+export const setGoalSaved=source.setGoalSaved as (data:FinanceData,id:string,savedCents:number)=>Goal;
+export const goalPace=source.goalPace as (goal:Goal,referenceMonth:string)=>GoalPace;
+export const cashflowForecast=source.cashflowForecast as (data:FinanceData,fromMonth:string,count?:number)=>ForecastMonth[];
