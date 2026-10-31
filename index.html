@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.1</title>
+<title>Clara Finanças RC3.6.3 • Proteção e atualizações</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1433,9 +1433,48 @@ a { color: inherit; }
 .clw-sim-fields .field,.clw-sim-fields input,.clw-sim-fields select{min-width:0}
 .clw-sim-result{margin:12px 0;padding:12px;background:var(--panel2);border-radius:10px;overflow-wrap:anywhere}
 @media(max-width:600px){.clw-sim-fields{grid-template-columns:1fr}}
+/* Cofre bloqueado antes de exibir qualquer conteúdo financeiro */
+html:not([data-unlocked="true"]) .shell,
+html:not([data-unlocked="true"]) .float-menu,
+html:not([data-unlocked="true"]) .float-trigger,
+html:not([data-unlocked="true"]) .qa-cover,
+html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
+.secure-cover{position:fixed;inset:0;z-index:2147480000;display:grid;place-items:center;padding:20px;background:#0c1320;color:#e9f1f7;overflow:auto}
+.secure-cover[hidden],.secure-field[hidden],.secure-field [hidden]{display:none!important}
+.secure-card{width:min(100%,450px);background:#182536;border:1px solid #3b4e65;border-radius:22px;padding:clamp(20px,4vw,34px);box-shadow:0 20px 65px #0008}
+.secure-brand{font-size:20px;font-weight:800;margin-bottom:26px;display:flex;align-items:center;gap:12px}
+.secure-brand-mark{display:grid;place-items:center;width:42px;height:42px;background:linear-gradient(135deg,#8668ed,#3978b5);color:white;border-radius:12px}
+.secure-card h2{font-size:24px;margin:0 0 8px;color:white}
+.secure-card p{font-size:14px;line-height:1.5;color:#bac9d5;margin:0 0 20px}
+.secure-field{display:grid;gap:7px;font-weight:650;font-size:13px;margin:0 0 14px}
+.secure-field input{background:#0b1725;border:1px solid #617289;border-radius:10px;padding:14px;color:white;font-size:16px;width:100%}
+.secure-field input:focus-visible{outline:2px solid #ad98ff;outline-offset:2px}
+.secure-button{width:100%;background:#a88df9;color:#100e22;border:0;border-radius:11px;padding:14px;font-size:14px;font-weight:800;cursor:pointer}
+.secure-button:disabled{opacity:.5}
+.secure-status{color:#ffabae!important;min-height:20px;margin:12px 0 0!important}
+.secure-foot{margin-top:20px;padding-top:14px;border-top:1px solid #3b4e65;font-size:12px;line-height:1.55;color:#bfd0dc}
+@media print{.secure-cover{display:none!important}}
 </style>
 </head>
 <body>
+<div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
+  <section class="secure-card">
+    <div class="secure-brand"><span class="secure-brand-mark">C</span>Clara Finanças</div>
+    <h2 id="securityTitle">Proteção dos seus dados</h2>
+    <p id="securityMessage">Inicializando cofre criptografado…</p>
+    <form id="securityForm" autocomplete="off">
+      <label class="secure-field">Senha do cofre
+        <input id="securityPassword" type="password" minlength="12" maxlength="128" autocomplete="current-password" required>
+      </label>
+      <label class="secure-field" id="securityConfirmWrap" hidden>Confirme a senha
+        <input id="securityConfirm" type="password" minlength="12" maxlength="128" autocomplete="new-password">
+      </label>
+      <button class="secure-button" id="securitySubmit" type="submit">Continuar</button>
+    </form>
+    <p class="secure-status" id="securityStatus" role="alert" aria-live="polite"></p>
+    <div class="secure-foot">A senha do Clara é local: ela não vai à Vercel. Não pode ser recuperada. Salve um backup criptografado e guarde sua senha. A instalação existente será migrada sem apagar os lançamentos.</div>
+  </section>
+</div>
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
@@ -2222,6 +2261,7 @@ window.addEventListener('afterprint', () => document.body.classList.remove('repo
 
 window.addEventListener('storage', e => {
   if (e.key !== KEY) return;
+  if (safeStorageGet('clara-financas-vault-aesgcm-v1')) return;
   if (!e.newValue) {
     storageConflict = true;
     showToast('Dados apagados por outra aba. Recarregue antes de editar.', true);
@@ -2670,10 +2710,11 @@ function renderAjustes() {
   } else if (t === 'dados') {
     body = `${panel('Segurança e privacidade', 'Controle de dados locais e de exposição de valores.', `<div class="list">
       ${prefSwitch('hideValues','Ocultar valores na interface','Impede visualização casual; não cifra o armazenamento do navegador.')}
-      <div class="config-note"><strong>Proteção dos dados</strong><span>Este aplicativo armazena dados locais no navegador sem criptografia. Proteja o dispositivo e faça backups; não use informações financeiras sensíveis até habilitarmos o cofre criptografado.</span></div>
-      <div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
+      <div class="config-note"><strong>Proteção dos dados</strong><span>Após criar sua senha, os dados são criptografados neste navegador com AES-256-GCM. Os registros e backups antigos sem proteção devem ser eliminados com cuidado.</span></div>
+      <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão 3.6.3-rc. Busca versões novas e permite aplicar somente depois da sua autorização, preservando o cofre.</small></div><button class="btn" id="checkClaraUpdate" type="button">Verificar atualizações</button></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
     </div>`)}<div class="gap"></div>
-    ${panel('Cópias de segurança', 'Baixe e restaure registros e preferências. O JSON é legível e não deve ser compartilhado.', `<div class="config-actions"><div><strong>Exportar backup JSON</strong><small>Guarde sua cópia em local privado.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div><div class="config-actions"><div><strong>Restaurar backup JSON</strong><small>Verifica integridade e pede confirmação antes de substituir.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
+    <div class="config-actions"><div><strong>Bloquear aplicativo</strong><small>Oculta os saldos e exige novamente a senha pessoal.</small></div><button class="btn" type="button" id="lockClaraNow">Bloquear</button></div><div class="gap"></div>
+    ${panel('Cópias de segurança', 'O backup .clara é criptografado; arquivos JSON anteriores podem ser importados apenas para migração.', `<div class="config-actions"><div><strong>Exportar backup protegido (.clara)</strong><small>Protegido pela senha atual.</small></div><button class="btn" type="button" id="exportJson">Exportar .clara</button></div><div class="config-actions"><div><strong>Restaurar backup .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar .clara</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div><div class="config-actions"><div><strong>Importar JSON antigo</strong><small>Migração de backup legado não criptografado.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar JSON</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
     ${panel('Diagnóstico e manutenção', 'Ferramentas de diagnóstico. Não utilize a base de testes com dados reais.', `<div class="config-actions"><div><strong>Central ClaraQA</strong><small>Executa verificações internas, incluindo preferências.</small></div><button class="btn" type="button" data-open-qa="1">Executar testes</button></div><div class="config-actions"><div><strong>Começar do zero</strong><small>Exporta um backup e inicia uma base vazia.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>`)}`;
   }
   $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
@@ -3445,16 +3486,16 @@ document.addEventListener('click', e => {
     document.body.classList.add('report-printing');
     window.print();
   }
-  if (id === 'exportJson') dl('clara-preview-dados.json', JSON.stringify(state, null, 2), 'application/json');
+  if (id === 'exportJson') window.ClaraSecurity.exportBackup().catch(err=>showToast(err.message,true));
+  if (id === 'lockClaraNow') window.ClaraSecurity.lock();
+  if (id === 'checkClaraUpdate') window.ClaraUpdate.check(true).catch(err=>showToast(err.message,true));
   if (id === 'startEmpty') {
-    openConfirmModal('Criar base financeira vazia', 'A base atual será substituída por uma conta sem saldo e categorias padrão. Um backup JSON da base atual será baixado antes da mudança. Confirma?', () => {
-      const previous = state;
-      try {
-        dl('clara-backup-antes-de-iniciar-' + todayISO() + '.json', JSON.stringify(state, null, 2), 'application/json');
-        state = cleanData();
-        persistSuccess('Base vazia criada. Cadastre seus dados financeiros.');
-        go('painel');
-      } catch (err) { state = previous; showToast(err.message, true); }
+    openConfirmModal('Começar do zero', 'O Clara baixará uma cópia cifrada antes de limpar os lançamentos.', () => {
+      window.ClaraSecurity.exportBackup().then(()=>{
+        const previous=state;state=cleanData();
+        try{persistSuccess('Nova base protegida criada.');go('painel');}
+        catch(err){state=previous;showToast(err.message,true);}
+      }).catch(err=>showToast(err.message,true));
     });
   }
 });
@@ -3885,11 +3926,239 @@ window.ClaraQA = {
   scope: 'standalone'
 };
 </script>
-<script>
-// HTML local continua funcionando; Service Worker só é ativado via HTTPS/localhost.
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+<script id="clara-security-runtime">
+'use strict';
+// Clara 3.6: vault is the sole persistent financial store after enrollment.
+const CLARA_VAULT_KEY = 'clara-financas-vault-aesgcm-v1';
+const CLARA_ROUNDS = 310000;
+const secureDom = id => document.getElementById(id);
+const bytesB64 = bytes => { let s=''; for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s); };
+const b64Bytes = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+const encoder = new TextEncoder(), decoder = new TextDecoder();
+let claraKey=null, claraVaultRaw=null, claraUnlocked=false, claraSaving=Promise.resolve(), claraError=null, claraBooted=false;
+const strongPass=p=>typeof p==='string'&&p.length>=12&&p.length<=128&&p.trim().length>=12;
+function secureStatus(message='') { secureDom('securityStatus').textContent=message; }
+function secureMode(isCreate) {
+  secureDom('securityTitle').textContent=isCreate?'Criar proteção do Clara':'Desbloquear Clara';
+  secureDom('securityMessage').textContent=isCreate
+    ? 'Defina uma senha de pelo menos 12 caracteres. Os registros existentes serão convertidos para um cofre criptografado, sem apagar seus lançamentos.'
+    : 'Informe sua senha para abrir os registros financeiros protegidos neste dispositivo.';
+  secureDom('securityConfirmWrap').hidden=!isCreate;
+  secureDom('securityConfirm').required=isCreate;
+  secureDom('securityPassword').setAttribute('autocomplete',isCreate?'new-password':'current-password');
+  secureDom('securitySubmit').textContent=isCreate?'Criar cofre protegido':'Abrir cofre';
+  secureStatus('');
 }
+function readVault() {
+  const raw=safeStorageGet(CLARA_VAULT_KEY);
+  if (!storageAvailable) throw Error('Armazenamento indisponível. Abra em um navegador compatível para preservar os dados.');
+  return raw;
+}
+function validateVault(raw) {
+  const v=JSON.parse(raw);
+  if (!v||v.format!=='CLARA-VAULT-1'||v.kdf!=='PBKDF2-SHA256'||v.iterations!==CLARA_ROUNDS||v.cipher!=='AES-256-GCM'||typeof v.salt!=='string'||typeof v.iv!=='string'||typeof v.data!=='string'||b64Bytes(v.salt).length!==16||b64Bytes(v.iv).length!==12) throw Error('Cofre inválido ou incompleto. Não redefina os dados.');
+  return v;
+}
+async function deriveKey(password,salt) {
+  const material=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:CLARA_ROUNDS,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptState(data,key,salt) {
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const result=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encoder.encode('CLARA-VAULT-1')},key,encoder.encode(JSON.stringify(data)));
+  return JSON.stringify({format:'CLARA-VAULT-1',kdf:'PBKDF2-SHA256',iterations:CLARA_ROUNDS,cipher:'AES-256-GCM',salt:bytesB64(salt),iv:bytesB64(iv),data:bytesB64(new Uint8Array(result))});
+}
+async function decryptState(v,key) {
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64Bytes(v.iv),additionalData:encoder.encode('CLARA-VAULT-1')},key,b64Bytes(v.data));
+  return parseImportedJSON(decoder.decode(plain));
+}
+function secureShow(message) {
+  document.documentElement.removeAttribute('data-unlocked');
+  secureDom('securityCover').hidden=false;
+  secureMode(!readVault());
+  if(message)secureStatus(message);
+  secureDom('securityPassword').value='';secureDom('securityConfirm').value='';
+  secureDom('securityPassword').focus();
+}
+function secureHide() {
+  secureDom('securityCover').hidden=true;
+  document.documentElement.dataset.unlocked='true';
+  if(!claraBooted){claraBooted=true;window.ClaraUpdate?.init?.();}
+}
+async function secureSaveSnapshot(snapshot) {
+  if(!claraKey||!claraUnlocked) throw Error('Cofre bloqueado; operação cancelada.');
+  const existing=readVault();
+  if(existing!==claraVaultRaw){storageConflict=true;throw Error('Cofre atualizado em outra aba. Reabra para evitar conflito de dados.');}
+  const salt=b64Bytes(validateVault(claraVaultRaw).salt);
+  const raw=await encryptState(snapshot,claraKey,salt);
+  if(!safeStorageSet(CLARA_VAULT_KEY,raw)) throw Error('Não foi possível gravar o cofre criptografado.');
+  claraVaultRaw=raw;
+}
+function secureQueue(snapshot) {
+  claraSaving=claraSaving.then(()=>secureSaveSnapshot(snapshot)).catch(e=>{
+    claraError=e;
+    document.documentElement.removeAttribute('data-unlocked');
+    secureDom('securityCover').hidden=false;
+    secureDom('securityTitle').textContent='Erro ao proteger os dados';
+    secureDom('securityMessage').textContent='Não continue editando. O salvamento protegido falhou.';
+    secureStatus(e.message);
+    throw e;
+  });
+  // A próxima operação pode ser tentada apenas após resolver a falha e reabrir.
+  return claraSaving;
+}
+// Replace the legacy plaintext save path before allowing the user to interact.
+save=function() {
+  if(!claraUnlocked||!claraKey||claraError)throw Error('Desbloqueie o cofre antes de salvar.');
+  if(storageConflict)throw Error('Os dados foram alterados em outra aba. Reabra o aplicativo.');
+  validateData(state);
+  const snapshot=structuredClone(state);
+  secureQueue(snapshot);
+  render();
+  return true;
+};
+persistSuccess=function(message) {
+  save();
+  claraSaving.then(()=>showToast(message)).catch(()=>{});
+};
+async function secureEnter(password,confirm) {
+  if(!crypto?.subtle||!crypto?.getRandomValues)throw Error('Este navegador não suporta criptografia Web Crypto. Abra o Clara via HTTPS.');
+  const raw=readVault();
+  if(!raw) {
+    if(!strongPass(password))throw Error('A senha deve ter pelo menos 12 caracteres e não pode ser apenas espaços.');
+    if(password!==confirm)throw Error('As senhas não coincidem.');
+    if(initializationError)throw Error(initializationError);
+    validateData(state);
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const key=await deriveKey(password,salt);
+    const encrypted=await encryptState(state,key,salt);
+    if(!safeStorageSet(CLARA_VAULT_KEY,encrypted))throw Error('Falha ao armazenar cofre. Nada foi apagado.');
+    claraKey=key;claraVaultRaw=encrypted;
+    try{localStorage.removeItem(KEY);}catch{throw Error('Cofre criado, mas dados antigos não puderam ser removidos. Verifique a privacidade do armazenamento.');}
+  } else {
+    const v=validateVault(raw);
+    const key=await deriveKey(password,b64Bytes(v.salt));
+    let original;
+    try {original=await decryptState(v,key);}catch {throw Error('Senha incorreta ou arquivo do cofre adulterado. Seus dados não foram apagados.');}
+    claraKey=key;claraVaultRaw=raw;state=original;
+    if(safeStorageGet(KEY))try{localStorage.removeItem(KEY);}catch{}
+    render();
+  }
+  claraUnlocked=true;claraError=null;storageConflict=false;
+  secureHide();
+}
+async function secureLock() {
+  if(!claraUnlocked)return;
+  claraUnlocked=false;
+  document.documentElement.removeAttribute('data-unlocked');
+  secureDom('securityCover').hidden=false;
+  secureDom('securityTitle').textContent='Bloqueando Clara…';
+  secureDom('securityMessage').textContent='Concluindo a proteção dos lançamentos.';
+  await claraSaving.catch(()=>{});
+  claraKey=null;state=fresh();
+  active='painel';render();
+  secureShow(claraError?.message);
+}
+async function secureExport() {
+  if(!claraUnlocked||!claraKey)throw Error('Desbloqueie o cofre para exportar.');
+  await claraSaving;
+  const raw=readVault();
+  validateVault(raw);
+  dl('clara-financas-backup-'+todayISO()+'.clara',raw,'application/octet-stream');
+}
+secureDom('securityForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const button=secureDom('securitySubmit');button.disabled=true;
+  const p=secureDom('securityPassword').value,q=secureDom('securityConfirm').value;
+  try{await secureEnter(p,q);}catch(err){secureStatus(err.message);}
+  finally{secureDom('securityPassword').value='';secureDom('securityConfirm').value='';button.disabled=false;}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)secureLock();});
+window.addEventListener('pagehide',()=>{if(claraUnlocked)secureLock();});
+window.addEventListener('storage',e=>{if(e.key===CLARA_VAULT_KEY&&claraUnlocked&&e.newValue!==claraVaultRaw){storageConflict=true;secureLock();}});
+document.addEventListener('change',async e=>{
+  if(e.target.id!=='importClara')return;
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  try{
+    if(file.size>15_000_000)throw Error('Backup excede 15 MB.');
+    const raw=await file.text(),v=validateVault(raw);
+    const pass=window.prompt('Informe a senha do backup .clara:');if(pass===null)return;
+    const key=await deriveKey(pass,b64Bytes(v.salt));
+    const imported=await decryptState(v,key);
+    openConfirmModal('Restaurar cofre protegido','O backup foi autenticado e validado. Substituir os dados atuais?',()=>{
+      const previous=state;state=imported;
+      try{persistSuccess('Backup criptografado restaurado no cofre atual.');}catch(err){state=previous;showToast(err.message,true);}
+    });
+  }catch(err){showToast(err.message,true);}
+});
+window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+(async()=>{
+  try {
+    if(!crypto?.subtle||!storageAvailable)throw Error('Navegador sem armazenamento criptografável. Use Chrome ou Edge em HTTPS.');
+    secureMode(!readVault());
+    if(initializationError)secureStatus(initializationError);
+  } catch(err) {
+    secureDom('securityTitle').textContent='Proteção indisponível';
+    secureDom('securityMessage').textContent='Não é seguro abrir registros neste ambiente.';
+    secureStatus(err.message);secureDom('securitySubmit').disabled=true;
+  }
+})();
+
+</script>
+<script id="clara-update-runtime">
+'use strict';
+const ClaraUpdate=(()=>{
+ const INSTALLED_VERSION='3.6.3-rc';
+ let registration=null,started=false,applying=false;
+ async function latest(){
+   const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
+   if(!res.ok)throw Error('Sem conexão para consultar atualizações.');
+   const info=await res.json();
+   if(!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/.test(info.version||''))throw Error('Versão remota inválida.');
+   return info.version;
+ }
+ async function init(){
+   if(started)return;
+   started=true;
+   if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;
+   registration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+   navigator.serviceWorker.addEventListener('controllerchange',()=>{
+     if(applying){applying=false;location.reload();}
+   });
+   registration.addEventListener('updatefound',()=>{
+     const worker=registration.installing;
+     worker?.addEventListener('statechange',()=>{
+       if(worker.state==='installed'&&registration.waiting&&navigator.serviceWorker.controller)
+         showToast('Atualização pronta. Acesse Configurações e selecione Verificar atualizações.');
+     });
+   });
+   await registration.update();
+   if(registration.waiting&&navigator.serviceWorker.controller)
+     showToast('Atualização disponível em Configurações.');
+ }
+ async function check(interactive=true){
+   if(!registration)await init();
+   if(!registration){if(interactive)showToast('Atualizações disponíveis apenas no PWA instalado via HTTPS.',true);return false;}
+   const version=await latest();
+   await registration.update();
+   if(registration.waiting){
+     if(!confirm('Instalar versão '+version+'? O aplicativo reiniciará sem apagar o cofre.'))return false;
+     await window.ClaraSecurity.flush();
+     applying=true;
+     registration.waiting.postMessage({type:'SKIP_WAITING'});
+     return true;
+   }
+   if(interactive)showToast(version===INSTALLED_VERSION
+     ? 'Clara atualizado. Versão '+INSTALLED_VERSION+'.'
+     : 'Versão '+version+' encontrada. Download em andamento; verifique novamente.');
+   return version!==INSTALLED_VERSION;
+ }
+ return {init,check,get installedVersion(){return INSTALLED_VERSION;}};
+})();
+window.ClaraUpdate=ClaraUpdate;
+</script>
+<script>
+// O Service Worker agora é registrado após a abertura do cofre.
 </script>
 </body>
 </html>
