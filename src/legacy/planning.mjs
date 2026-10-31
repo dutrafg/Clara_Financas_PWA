@@ -79,6 +79,34 @@ export function recordDebtPayment(data,{debtId,accountId,amountCents,date,descri
  validateTransaction(tx,data);
  data.transactions.push(tx);return tx;
 }
+/* Qualquer alteração em pagamento ligado a dívida deve manter sua identidade
+   e ser verificada junto com os demais pagamentos da mesma obrigação. */
+export function reviseDebtPayment(data,next){
+ const index=data.transactions.findIndex(t=>t.id===next?.id);
+ if(index<0)throw Error('Pagamento não encontrado.');
+ const previous=data.transactions[index];
+ if(!previous.debtId)throw Error('Movimentação sem vínculo de dívida.');
+ const debt=group(data,previous.debtId);
+ if(next.debtId!==previous.debtId||next.id!==previous.id||
+    next.kind!=='Despesa'||next.category!==debt.category||
+    next.installmentGroupId||next.recurrenceGroupId)
+  throw Error('Não é permitido desvincular, transferir de dívida ou mudar o tipo/categoria deste pagamento.');
+ validateTransaction(next,data);
+ const paidOthers=data.transactions
+  .filter(t=>t.id!==previous.id&&t.debtId===debt.id&&t.status==='Realizado')
+  .reduce((sum,t)=>sum+t.amountCents,debt.openingPaidCents);
+ if(next.status==='Realizado'&&paidOthers+next.amountCents>debt.totalCents)
+  throw Error('O pagamento excede o saldo restante da dívida.');
+ data.transactions[index]=next;
+ return next;
+}
+export function removeDebtPayment(data,id){
+ const tx=data.transactions.find(t=>t.id===id);
+ if(!tx||!tx.debtId)throw Error('Pagamento vinculado não encontrado.');
+ group(data,tx.debtId);
+ data.transactions=data.transactions.filter(t=>t.id!==id);
+ return tx;
+}
 export function setGoalSaved(data,id,savedCents){
  money(savedCents,'Total reservado',{allowZero:true});
  const goal=data.goals.find(g=>g.id===id);
