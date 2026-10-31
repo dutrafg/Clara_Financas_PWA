@@ -58,11 +58,12 @@ export function updateCategory(data,id,{name,group}){
  if(!['Receita','Despesa'].includes(group))throw Error('Tipo de categoria inválido.');
  ensureCategoryUnique(data,cleaned,group,id);
  const used=data.transactions.some(t=>t.kind===c.group&&t.category===c.name);
- const budgetUsed=data.budgets.some(b=>c.group==='Despesa'&&b.category===c.name);
+ const budgetUsed=data.budgets.some(b=>c.group==='Despesa'&&b.category===c.name)|| (data.debts||[]).some(d=>c.group==='Despesa'&&d.category===c.name);
  if(group!==c.group&&(used||budgetUsed))throw Error('Categoria em uso não pode mudar de tipo.');
  const oldName=c.name,oldGroup=c.group;
  for(const t of data.transactions)if(t.kind===oldGroup&&t.category===oldName)t.category=cleaned;
  if(oldGroup==='Despesa')for(const b of data.budgets)if(b.category===oldName)b.category=cleaned;
+ if(oldGroup==='Despesa')for(const d of (data.debts||[]))if(d.category===oldName)d.category=cleaned;
  c.name=cleaned;c.group=group;return c;
 }
 export function archiveCategory(data,id,archived){
@@ -73,7 +74,7 @@ export function archiveCategory(data,id,archived){
 export function deleteCategory(data,id){
  const c=category(data,id);
  if(data.transactions.some(t=>t.kind===c.group&&t.category===c.name)||
-    (c.group==='Despesa'&&data.budgets.some(b=>b.category===c.name)))
+    (c.group==='Despesa'&&(data.budgets.some(b=>b.category===c.name)||(data.debts||[]).some(d=>d.category===c.name))))
   throw Error('Categoria com lançamentos ou orçamentos não pode ser excluída; arquive-a.');
  data.categories=data.categories.filter(x=>x.id!==id);return true;
 }
