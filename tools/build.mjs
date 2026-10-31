@@ -43,6 +43,7 @@ for(const ref of referenced) await load(ref);
 const cacheHash=createHash('sha256');
 cacheHash.update(pkg.version+'\n');
 for(const name of files) {cacheHash.update(name+'\n');cacheHash.update(await load(name));}
+cacheHash.update('sw.js\n');cacheHash.update(serviceWorker);
 const revision=cacheHash.digest('hex').slice(0,16);
 const cacheName='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
 

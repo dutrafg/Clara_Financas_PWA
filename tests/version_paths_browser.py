@@ -60,9 +60,15 @@ async def run():
     snapshot=await page.evaluate("""async () => {
       const registration=await navigator.serviceWorker.ready;
       const cache=await caches.open('clara-financas-qa-upgrade-v2');
-      const response=await cache.match(new URL('./index.html',location.href));
-      return {active:registration.active?.state,
-        marker:response? (await response.text()).includes('qa-version-two'):false};
+      const lookup=new URL('./index.html',location.href);
+      const response=await cache.match(lookup);
+      const keys=(await cache.keys()).map(k=>k.url);
+      const body=response?await response.text():'';
+      const network=await fetch(lookup,{cache:'no-store'});
+      const networkBody=await network.text();
+      return {active:registration.active?.state,found:!!response,keys,lookup:lookup.href,
+        marker:body.includes('qa-version-two'),networkMarker:networkBody.includes('qa-version-two'),
+        bodyLength:body.length,networkLength:networkBody.length,version:registration.active?.scriptURL};
     }""")
     assert snapshot['active']=='activated' and snapshot['marker'],snapshot
     # Nova navegação offline não deve usar documentos de um controlador antigo.
