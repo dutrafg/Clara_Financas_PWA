@@ -4456,7 +4456,7 @@ window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraS
 <script id="clara-update-runtime">
 'use strict';
 const ClaraUpdate=(()=>{
- const INSTALLED_VERSION='3.6.5-rc';
+ const INSTALLED_VERSION='3.6.6-rc';
  let registration=null,started=false,applying=false;
  async function latest(){
    const res=await fetch('./version.json?fresh='+Date.now(),{cache:'no-store'});
