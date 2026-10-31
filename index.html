@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.7 • Versão sincronizada</title>
+<title>Clara Finanças RC3.6.8 • Atualizador inteligente</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1488,6 +1488,26 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 .secure-status{color:#ffabae!important;min-height:20px;margin:12px 0 0!important}
 .secure-foot{margin-top:20px;padding-top:14px;border-top:1px solid #3b4e65;font-size:12px;line-height:1.55;color:#bfd0dc}
 @media print{.secure-cover{display:none!important}}
+
+/* Cartão de atualização e avisos: padrão EvoluFísico2 no Clara */
+.clara-update-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 18px}
+.clara-update-metrics>div{padding:14px;background:var(--panel2);border:1px solid var(--stroke);border-radius:14px;display:grid;gap:6px}
+.clara-update-metrics small{font-size:11px;color:var(--muted)}
+.clara-update-metrics strong{font-size:16px;color:var(--text);overflow-wrap:anywhere}
+.clara-update-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 16px;color:var(--muted);font-size:13px;line-height:1.5}
+.clara-update-indicator{padding:6px 12px;border:1px solid var(--stroke-strong);border-radius:100px;background:var(--panel2);color:var(--text);font-weight:760;white-space:nowrap}
+.clara-release-notes{padding:10px 0;color:var(--text)}
+.clara-release-notes>strong{display:block;font-size:14px}
+.clara-release-notes ul{margin:12px 0 0;padding-left:22px;line-height:1.7;font-size:13px}
+.clara-update-notice[hidden]{display:none!important}
+.clara-update-notice{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:135;width:min(420px,calc(100vw - 28px));background:var(--panel);color:var(--text);border:1px solid var(--stroke-strong);border-radius:20px;box-shadow:0 16px 50px #0007;padding:16px 18px;display:grid;gap:10px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.clara-update-notice strong{font-size:15px}
+.clara-update-notice p{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
+.clara-update-notice-actions{display:flex;flex-wrap:wrap;gap:8px}
+.clara-update-notice-actions button{min-height:40px}
+@media(max-width:760px){.clara-update-notice{top:auto;bottom:calc(90px + env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px)}}
+@media(max-width:350px){.clara-update-metrics{grid-template-columns:1fr}}
+@media print{.clara-update-notice{display:none!important}}
 </style>
 </head>
 <body>
@@ -1571,6 +1591,14 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
   <button class="profile-fab" id="profileFab" type="button" aria-label="Abrir perfil do usuário"><span id="profileFabContents">U</span></button>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<aside class="clara-update-notice" id="claraUpdateNotice" hidden aria-live="polite" aria-label="Nova versão do Clara">
+  <strong id="claraUpdateNoticeTitle">Atualização disponível</strong>
+  <p id="claraUpdateNoticeText">Uma nova versão foi identificada.</p>
+  <div class="clara-update-notice-actions">
+    <button type="button" id="claraUpdateNoticeInstall" class="btn primary" hidden>Atualizar agora</button>
+    <button type="button" id="claraUpdateNoticeLater" class="btn">Agora não</button>
+  </div>
+</aside>
 
 <div class="modal-backdrop" id="modalBg" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -2023,7 +2051,13 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='3.6.7-rc';
+const CLARA_APP_VERSION='3.6.8-rc';
+const CLARA_RELEASE_NOTES=Object.freeze([
+ 'Avisos automáticos de nova versão, sem atualização forçada',
+ 'Verificações periódicas e novidades disponíveis offline',
+ 'Histórico financeiro com alterações criptografadas',
+ 'Dock flutuante, Perfil e 15 miniaplicativos preservados'
+]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', largeText: false,
   reduceMotion: false, sidebarCompact: false, hideValues: false,
@@ -3821,6 +3855,8 @@ document.addEventListener('click', e => {
   if (id === 'exportJson') window.ClaraSecurity.exportBackup().catch(err=>showToast(err.message,true));
   if (id === 'lockClaraNow') window.ClaraSecurity.lock();
   if (id === 'checkClaraUpdate') window.ClaraUpdate.check(true).catch(err=>showToast(err.message,true));
+  if (id === 'applyClaraUpdate' || id==='claraUpdateNoticeInstall') window.ClaraUpdate.apply().catch(err=>showToast(err.message,true));
+  if (id === 'claraUpdateNoticeLater') window.ClaraUpdate.dismiss();
   if (id === 'startEmpty') {
     openConfirmModal('Começar do zero', 'O Clara baixará uma cópia cifrada antes de limpar os lançamentos.', () => {
       window.ClaraSecurity.exportBackup().then(()=>{
