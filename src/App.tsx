@@ -10,6 +10,7 @@ import {installmentSchedule,createInstallmentMovements,summarizeInstallmentGroup
 import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,updateCategory,archiveCategory,deleteCategory,setFinancialPreferences,savingsOverview} from './domain/catalogs';
 import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,removeDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
 import {reconcileAccount,deleteReconciliation,reconciliationHistory,financeAudit} from './domain/reconciliation';
+import {dashboardInsights} from './domain/dashboard';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -214,6 +215,7 @@ export default function App(){
   try{await modify(d=>deleteReconciliation(d,id),'Conferência excluída.');}catch(e){notify((e as Error).message,true)}
  };
  const budgets=useMemo(()=>data?budgetStatus(data,month):[],[data,month]);
+ const pro=useMemo(()=>data?dashboardInsights(data,month,{today:today()}):null,[data,month]);
  const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
  const forecast=useMemo(()=>data?cashflowForecast(data,month,6):[],[data,month]);
  const savings=useMemo(()=>data?savingsOverview(data,month):null,[data,month]);
@@ -361,6 +363,22 @@ export default function App(){
  {data.isDemo&&<div className="demo-notice"><Icon name="info" size={18}/> Dados fictícios importados da planilha. <Button variant="ghost" onClick={reset}>Iniciar minha base</Button></div>}
  <div className="intro"><div><div className="eyebrow">SEU CONTROLE FINANCEIRO EM UM SÓ LUGAR</div><h2>Visão geral <span>do seu dinheiro.</span></h2><p>Indicadores do período selecionado · {monthText(month)}</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'transaction'})}>Novo lançamento</Button></div>
  <div className="metrics"><Kpi title="Receitas realizadas" value={mask(summary.income)} icon="arrowup" tone="success" description="Entradas confirmadas no mês"/><Kpi title="Despesas realizadas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description="Saídas confirmadas no mês"/><Kpi title="Resultado do mês" value={mask(summary.result)} icon="reports" tone={summary.result<0?'danger':'blue'} description="Receitas menos despesas"/><Kpi title="Saldo total em contas" value={mask(summary.totalBalance)} icon="wallet" description="Saldo inicial + movimentações"/></div>
+ {pro&&<><div className="metrics pro-kpis">
+ <Kpi title="Compromissos do mês" value={mask(summary.pending)} icon="calendar" description="Despesas pendentes"/>
+ <Kpi title="Dívidas restantes" value={mask(pro.totalDebtCents)} icon="wallet" tone="danger" description="Saldo declarado a quitar"/>
+ <Kpi title="Aproveitamento da renda" value={pro.spendingRate===null?'—':percent(pro.spendingRate)} icon="reports" tone="blue" description="Despesas realizadas / receitas"/>
+ <Kpi title="Alertas financeiros" value={String(pro.auditCount+pro.exhaustedCount)} icon="info" description="Auditoria e orçamentos"/>
+ </div>
+ <div className="dashboard-grid pro-layout">
+ <Pane title="Próximos 3 meses" detail="Projeção baseada somente nos lançamentos cadastrados" actions={<Button variant="ghost" onClick={()=>show('planning')}>Detalhes</Button>}>
+  <div className="pro-forecast">{pro.forecast.map(f=><div className="pro-forecast-card" key={f.month}><small>{monthText(f.month)}</small><b className={f.closingCents<0?'value-negative':''}>{mask(f.closingCents)}</b><span>Variação {mask(f.netCents)}</span></div>)}</div>
+ </Pane>
+ <Pane title="Requer atenção" detail="Vencimentos, limites e divergências" actions={<Button variant="ghost" onClick={()=>show('accounts')}>Auditoria</Button>}>
+ {pro.alerts.length?<div className="pro-alerts">{pro.alerts.map((f,i)=><div key={f.code+i}><Icon name="info" size={15}/><span>{f.label}</span></div>)}</div>:<Empty text="Nenhuma pendência identificada pelas regras atuais."/>}
+ </Pane></div>
+ <Pane title="Metas e orçamentos" detail="Progresso financeiro dos objetivos cadastrados">
+ <div className="pro-goals">{pro.goals.slice(0,6).map(g=><div key={g.id}><div className="highlight-row"><span>{g.name}</span><strong>{percent(g.percentage)}</strong></div><Progress ratio={g.percentage}/><small>Faltam {mask(g.remainingCents)}</small></div>)}{!pro.goals.length&&<p className="fine">Cadastre uma meta em Planejamento para acompanhá-la aqui.</p>}</div>
+ </Pane></>}
  <div className="dashboard-grid"><Pane title="Fluxo financeiro" detail={`Receitas e despesas em ${month.slice(0,4)}`} actions={<span className="subtle-tag">Ano completo</span>}><YearChart data={data} month={month} mask={mask}/></Pane>
  <Pane title="Despesas por categoria" detail="Principais categorias do período"><div className="category-list">{summary.expensesByCategory.length?summary.expensesByCategory.slice(0,6).map(([name,value])=><div className="category-item" key={name}><div><b>{name}</b><span>{mask(value)}</span></div><Progress ratio={value/(summary.expense||1)}/></div>):<Empty text="Ainda não há despesas realizadas no período."/>}</div></Pane></div>
  <div className="dashboard-grid"><Pane title="Últimas movimentações" detail="Lançamentos e status no período" actions={<Button variant="ghost" onClick={()=>show('transactions')}>Ver todas <Icon name="chevron" size={14}/></Button>}>{smallTx(summary.recent)}</Pane>
@@ -469,7 +487,7 @@ export default function App(){
  <div className="metrics"><Kpi title="Entradas" value={mask(summary.income)} icon="arrowup" tone="success" description={monthText(month)}/><Kpi title="Saídas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description={monthText(month)}/><Kpi title="Resultado" value={mask(summary.result)} icon="reports" tone="blue" description={monthText(month)}/><Kpi title="Pendências" value={mask(summary.pending)} icon="calendar" description="Despesas não realizadas"/></div>
  <Pane title="Resumo anual"><YearChart data={data} month={month} mask={mask}/></Pane><Pane title="Contas e saldos"><div className="summary-list">{summary.accounts.map(a=><div key={a.id} className="highlight-row"><span>{a.name}</span><strong>{mask(a.balanceCents)}</strong></div>)}</div></Pane>
  <div className="tip"><Icon name="info" size={17}/>O PDF usa a impressão do navegador. Relatórios avançados de conciliação e análise serão implementados nas Etapas 7 e 9.</div></div>;
- const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 7 / 10 · v{VERSION}</span></div>
+ const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 8 / 10 · v{VERSION}</span></div>
  <div className="settings-grid"><Pane title="Aparência" detail="Identidade visual do Clara, inspirada na navegação do EvoluFísico2"><div className="setting-row"><div><b>Tema</b><p>Claro ou escuro</p></div><select aria-label="Tema" value={data.settings.theme} onChange={e=>modify(d=>{d.settings.theme=e.target.value as 'light'|'dark'})}><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div className="setting-row"><div><b>Cor de destaque</b><p>Verde-petróleo ou azul</p></div><select aria-label="Cor de destaque" value={data.settings.accent} onChange={e=>modify(d=>{d.settings.accent=e.target.value as 'petrol'|'blue'})}><option value="petrol">Petróleo</option><option value="blue">Azul</option></select></div><div className="setting-row"><div><b>Ocultar valores</b><p>Proteção visual na tela</p></div><input aria-label="Ocultar valores" type="checkbox" checked={data.settings.hideValues} onChange={e=>modify(d=>{d.settings.hideValues=e.target.checked})}/></div></Pane>
  <Pane title="Preferências financeiras" detail="Acompanhamento da economia e metas da planilha original">
  <div className="settings-finance-form">
