@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.3 • Proteção e atualizações</title>
+<title>Clara Finanças RC3.6.4 • Dock e Perfil</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1364,35 +1364,59 @@ a { color: inherit; }
 @media(min-width:761px) { .forecast-rows { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); } }
 
 
-/* RC3.6: botão flutuante e gaveta de módulos EXCLUSIVOS para smartphones. */
-.float-trigger, .float-menu { display: none; }
+/* RC3.6.4: dock em pílula + bolha de perfil, exclusivos do smartphone. */
+.float-trigger, .float-menu, .mobile-dock-wrap { display: none; }
 @media (max-width:760px) {
-  .main { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
-  .float-trigger { display: inline-flex; align-items:center; justify-content:center; gap:9px;
-    position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom));
-    z-index: 105; border:1px solid color-mix(in srgb,var(--teal) 60%,transparent);
-    border-radius: 24px; padding: 13px 19px; min-height:54px;
-    background: var(--teal); color:var(--teal-ink); box-shadow: 0 10px 28px #0005;
-    font-weight: 750; font-size:14px; cursor:pointer; }
-  .float-trigger:focus-visible { outline:3px solid var(--text);outline-offset:3px; }
-  .float-menu.open { display:block; position:fixed; inset:0; z-index:101; }
-  .float-backdrop { position:fixed; inset:0; display:block; width:100%; height:100%; border:0; border-radius:0;
-    background:#0008; padding:0; cursor:pointer; }
-  .float-menu .mobile-nav { position:absolute; left:auto; right:max(14px,env(safe-area-inset-right));
-    bottom:calc(84px + env(safe-area-inset-bottom)); width:min(340px,calc(100vw - 28px));
-    max-height:min(68dvh,530px); overflow-y:auto;
-    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;
-    padding:12px; background:var(--panel); color:var(--text);
-    border:1px solid var(--stroke-strong); border-radius:20px;
-    box-shadow:0 16px 48px #0009; }
-  .float-menu .mobile-nav button { min-height:74px; padding:10px 5px; gap:6px; font-size:12px;
-    border:1px solid var(--stroke); background:var(--panel2); color:var(--text); border-radius:12px; }
-  .float-menu .mobile-nav button.active { background:color-mix(in srgb,var(--teal) 14%,var(--panel2));
-    color:var(--teal); border-color:var(--teal); }
-  .float-menu .mobile-nav button span:last-child { font-size:12px; white-space:normal; }
-  .float-menu .mobile-nav svg { width:21px;height:21px; }
+ .main { padding-bottom:calc(100px + env(safe-area-inset-bottom)); }
+ .mobile-dock-wrap { position:fixed;display:flex;align-items:center;justify-content:center;gap:10px;
+  bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  max-width:calc(100vw - 18px);z-index:110; }
+ .mobile-dock { display:flex;align-items:center;gap:2px;padding:7px;
+  border:1px solid var(--stroke-strong);border-radius:25px;background:var(--panel);
+  box-shadow:0 14px 40px #0005;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px); }
+ .mobile-dock .dock-link,.mobile-dock .float-trigger { position:static;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;min-width:clamp(46px,13.6vw,64px);height:49px;
+  margin:0;padding:5px 6px;border:0;border-radius:17px;background:transparent;color:var(--muted);
+  font-family:inherit;font-size:10px;font-weight:720;line-height:1;
+  box-shadow:none;cursor:pointer;white-space:nowrap; }
+ .mobile-dock .dock-link.active,.mobile-dock .float-trigger[aria-expanded="true"] {
+  color:var(--teal);background:color-mix(in srgb,var(--teal) 14%,var(--panel2)); }
+ .mobile-dock svg {width:21px;height:21px;flex:none;}
+ .mobile-dock button:focus-visible,.profile-fab:focus-visible {outline:2px solid var(--teal);outline-offset:3px;}
+ .profile-fab {position:relative;display:grid;place-items:center;flex:none;width:56px;height:56px;
+  border-radius:50%;border:2px solid color-mix(in srgb,var(--teal) 45%,var(--panel));
+  background:linear-gradient(135deg,#7a61df,#2779da);box-shadow:0 13px 36px #0005;
+  color:white;cursor:pointer;font-weight:820;overflow:hidden; }
+ .profile-fab img {width:100%;height:100%;object-fit:cover;display:block;}
+ .profile-fab span {font-size:16px;letter-spacing:.3px;}
+ .profile-fab::after {content:"";width:8px;height:8px;position:absolute;right:2px;bottom:2px;
+  background:#39bb87;border:2px solid var(--panel);border-radius:50%;}
+ .float-menu.open {display:block;position:fixed;inset:0;z-index:105;}
+ .float-backdrop {position:fixed;inset:0;width:100%;height:100%;border:0;border-radius:0;background:#0008;cursor:pointer;}
+ .float-menu .mobile-nav {position:absolute;left:12px;right:12px;
+  bottom:calc(89px + env(safe-area-inset-bottom));max-height:min(68dvh,510px);overflow-y:auto;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  padding:12px;background:var(--panel);color:var(--text);
+  border:1px solid var(--stroke-strong);border-radius:22px;box-shadow:0 16px 48px #0009;}
+ .float-menu .mobile-nav button {min-height:70px;padding:10px 6px;gap:6px;font-size:12px;
+  border:1px solid var(--stroke);background:var(--panel2);color:var(--text);border-radius:14px;}
+ .float-menu .mobile-nav button.active {background:color-mix(in srgb,var(--teal) 14%,var(--panel2));
+  color:var(--teal);border-color:var(--teal);}
+ .float-menu .mobile-nav button span:last-child {font-size:12px;white-space:normal;text-align:center;}
+ .float-menu .mobile-nav svg {width:21px;height:21px;}
 }
-@media print { .float-menu,.float-trigger {display:none!important;} }
+@media (max-width:350px) { .mobile-dock-wrap{gap:8px;}
+ .mobile-dock{padding:5px;gap:0;}
+ .mobile-dock .dock-link,.mobile-dock .float-trigger{min-width:47px;font-size:9px;}
+ .profile-fab{width:52px;height:52px;}
+}
+@media print {.float-menu,.float-trigger,.mobile-dock-wrap{display:none!important;}}
+.profile-avatar-preview{width:82px;height:82px;display:grid;place-items:center;overflow:hidden;border-radius:50%;
+ background:linear-gradient(135deg,#7a61df,#2779da);border:2px solid var(--stroke-strong);
+ color:white;font-weight:800;font-size:23px;}
+.profile-avatar-preview img{width:100%;height:100%;object-fit:cover;}
+.profile-photo-row{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:18px;}
+.profile-photo-options{display:grid;gap:8px;}
 
 /* Clara Miniaplicativos: Cards operacionais em desktop, tablet e smartphone. */
 .clw-section{min-width:0}
@@ -1437,6 +1461,7 @@ a { color: inherit; }
 html:not([data-unlocked="true"]) .shell,
 html:not([data-unlocked="true"]) .float-menu,
 html:not([data-unlocked="true"]) .float-trigger,
+html:not([data-unlocked="true"]) .mobile-dock-wrap,
 html:not([data-unlocked="true"]) .qa-cover,
 html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 .secure-cover{position:fixed;inset:0;z-index:2147480000;display:grid;place-items:center;padding:20px;background:#0c1320;color:#e9f1f7;overflow:auto}
@@ -1521,13 +1546,20 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 </div>
 
 <div class="float-menu" id="floatMenu" aria-hidden="true">
-  <button class="float-backdrop" id="floatBackdrop" type="button" tabindex="-1" aria-label="Fechar menu de módulos"></button>
-  <nav class="mobile-nav" id="mobileNav" aria-label="Navegação por módulos"></nav>
+  <button class="float-backdrop" id="floatBackdrop" type="button" tabindex="-1" aria-label="Fechar lista de módulos"></button>
+  <nav class="mobile-nav" id="mobileNav" aria-label="Todos os módulos"></nav>
 </div>
-<button type="button" class="float-trigger" id="floatTrigger" aria-label="Abrir menu de módulos" aria-expanded="false" aria-controls="mobileNav">
-  <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-  <span>Módulos</span>
-</button>
+<div class="mobile-dock-wrap" aria-label="Navegação flutuante do smartphone">
+  <nav class="mobile-dock" aria-label="Atalhos rápidos">
+    <button class="dock-link" type="button" data-view="painel" aria-label="Painel"><span class="ico">${SVG_ICONS.painel}</span><span>Painel</span></button>
+    <button class="dock-link" type="button" data-view="mov" aria-label="Movimentações"><span class="ico">${SVG_ICONS.mov}</span><span>Lançar</span></button>
+    <button class="dock-link" type="button" data-view="plan" aria-label="Planejamento"><span class="ico">${SVG_ICONS.plan}</span><span>Planejar</span></button>
+    <button type="button" class="float-trigger" id="floatTrigger" aria-label="Abrir todos os módulos" aria-expanded="false" aria-controls="mobileNav">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg><span>Mais</span>
+    </button>
+  </nav>
+  <button class="profile-fab" id="profileFab" type="button" aria-label="Abrir perfil do usuário"><span id="profileFabContents">U</span></button>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="modal-backdrop" id="modalBg" aria-hidden="true">
@@ -1989,6 +2021,31 @@ const PREF_ENUMS = Object.freeze({
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
 const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook'];
+const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
+const safeProfile=()=>({...PROFILE_DEFAULTS,...(state?.profile||{})});
+function profileInitials(name) {
+ const parts=(name||'').trim().split(/\s+/).filter(Boolean);
+ return parts.length ? (parts[0][0]+(parts.length>1?parts.at(-1)[0]:'')).toUpperCase().slice(0,2) : 'U';
+}
+function validProfile(p) {
+ if(!p||typeof p!=='object'||Array.isArray(p))throw Error('Perfil inválido.');
+ for(const [k,max] of [['name',80],['email',120],['phone',30]]) {
+  if(typeof p[k]!=='string'||p[k].length>max)throw Error('Perfil inválido: '+k);
+ }
+ if(typeof p.photo!=='string'||p.photo.length>120000||
+    (p.photo&&!/^data:image\/jpeg;base64,[a-zA-Z0-9+/=]+$/.test(p.photo)))
+    throw Error('Foto de perfil inválida.');
+ if(p.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email))throw Error('E-mail do perfil inválido.');
+ return true;
+}
+function renderProfileBubble(){
+ const target=$('profileFabContents'); if(!target)return;
+ const p=safeProfile();
+ target.textContent=profileInitials(p.name);
+ if(p.photo){const img=document.createElement('img');img.src=p.photo;img.alt='';target.replaceChildren(img);}
+ $('profileFab').setAttribute('aria-label',p.name?'Abrir perfil de '+p.name:'Cadastrar perfil do usuário');
+}
+
 const pref = key => state?.settings?.[key] ?? PREF_DEFAULTS[key];
 function withDefaultPreferences(data) {
   data.settings = { ...PREF_DEFAULTS, ...data.settings };
@@ -2063,6 +2120,7 @@ function fresh() {
     goals: structuredClone(SOURCE_DATA.goals),
     transactions: structuredClone(SOURCE_DATA.transactions),
     reconciliations: [],
+    profile: {...PROFILE_DEFAULTS},
     settings: { ...PREF_DEFAULTS, period: todayISO().slice(0, 7), cutoff: todayISO(), theme: 'light' }
   };
 }
@@ -2074,12 +2132,14 @@ function cleanData() {
     accounts: [{ id: 'principal', name: 'Conta principal', type: 'Conta', openingCents: 0 }],
     categories: structuredClone(SOURCE_DATA.categories),
     goals: [], transactions: [], reconciliations: [],
+    profile: {...safeProfile()},
     settings: { ...PREF_DEFAULTS, ...(state?.settings || {}), period: date.slice(0, 7), cutoff: date, theme: state?.settings?.theme === 'light' ? 'light' : 'dark' }
   };
 }
 
 function validateData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Backup inválido: esperado objeto JSON.');
+  if(data.profile!==undefined)validProfile(data.profile);
   const keys = ['accounts', 'categories', 'goals', 'transactions', 'reconciliations'];
   for (const key of keys) if (!Array.isArray(data[key])) throw Error('Backup inválido: campo ' + key + ' deve ser uma lista.');
   if (!data.accounts.length || data.accounts.length > 1000 || data.categories.length > 500 || data.goals.length > 1000 || data.transactions.length > 100000 || data.reconciliations.length > 10000)
@@ -2153,6 +2213,7 @@ function parseImportedJSON(raw) {
   try { obj = JSON.parse(raw); } catch { throw Error('O arquivo não contém JSON válido.'); }
   if (obj && obj.reconciliations === undefined) obj.reconciliations = [];
   validateData(obj);
+  obj.profile={...PROFILE_DEFAULTS,...(obj.profile||{})};
   return withDefaultPreferences(obj);
 }
 
@@ -2941,6 +3002,12 @@ function renderNav() {
       `<button type="button" class="navlink ${active === key ? 'active' : ''}" data-view="${key}" title="${label}" aria-label="${label}"><span class="ico">${icon}</span><span>${id === 'mobileNav' ? MOBILE_NAV_LABELS[key] : label}</span></button>`
     ).join('');
   }
+  for(const btn of document.querySelectorAll('.mobile-dock .dock-link')){
+   const selected=btn.dataset.view===active;
+   btn.classList.toggle('active',selected);
+   if(selected)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');
+  }
+  renderProfileBubble();
 }
 
 function render() {
@@ -3027,12 +3094,38 @@ function modal(kind, itemId = '') {
     account: 'Nova conta ou cartão',
     editAccount: 'Editar conta ou cartão',
     goalSaved: 'Atualizar valor reservado',
-    editRecon: 'Editar conciliação'
+    editRecon: 'Editar conciliação',
+    profile: 'Meu perfil'
   };
   $('modalTitle').textContent = titles[kind] || 'Formulário';
 
   let body = '';
-  if (kind === 'transaction' || kind === 'editTransaction') {
+  if(kind==='profile'){
+    pendingProfilePhoto=null;
+    const p=safeProfile();
+    const avatar=p.photo?'<img src="'+p.photo+'" alt="Foto de perfil atual">':esc(profileInitials(p.name));
+    body=`<form id="modalForm" novalidate>
+      <div class="profile-photo-row">
+        <div class="profile-avatar-preview" id="profilePreview">${avatar}</div>
+        <div class="profile-photo-options">
+          <label class="btn" for="m_photo" style="cursor:pointer">Escolher foto</label>
+          <input id="m_photo" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+          <button type="button" class="btn" id="removeProfilePhoto">Remover foto</button>
+          <small class="muted">Imagem de até 2 MB, salva dentro do cofre.</small>
+        </div>
+      </div>
+      <div class="field-grid two">
+        ${field('name','Nome do usuário','text',p.name,'required maxlength="80" placeholder="Seu nome"')}
+        ${field('email','E-mail (opcional)','email',p.email,'maxlength="120" placeholder="nome@exemplo.com"')}
+        ${field('phone','Telefone (opcional)','tel',p.phone,'maxlength="30" placeholder="(00) 00000-0000"')}
+      </div>
+      <p class="helper">Este perfil é local e é guardado junto aos seus dados criptografados. Não cria uma conta online.</p>
+      <div class="control-row">
+        <button type="button" class="btn" id="lockFromProfile">Bloquear aplicativo</button>
+        <button type="submit" class="btn primary">Salvar perfil</button>
+      </div>
+    </form>`;
+  } else if (kind === 'transaction' || kind === 'editTransaction') {
     const tx = kind === 'editTransaction' ? state.transactions.find(x => x.id === itemId) : null;
     const defDate = tx ? tx.date : state.settings.cutoff;
     const defDesc = tx ? tx.description : '';
@@ -3124,6 +3217,7 @@ function modal(kind, itemId = '') {
 
 function closeModal() {
   pendingConfirmAction = null;
+  pendingProfilePhoto=null;
   $('modalBg').classList.remove('show');
   $('modalBg').setAttribute('aria-hidden', 'true');
   if (focusedBeforeModal?.isConnected) focusedBeforeModal.focus();
@@ -3174,6 +3268,23 @@ function setFieldError(name, msg) {
   throw Error(msg);
 }
 
+let pendingProfilePhoto=null;
+async function loadProfilePhoto(file){
+ if(!file||file.size>2000000)throw Error('Selecione uma foto menor que 2 MB.');
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Formato de foto não suportado.');
+ const picture=await createImageBitmap(file);
+ const canvas=document.createElement('canvas');
+ const scale=Math.min(1,192/Math.max(picture.width,picture.height));
+ canvas.width=Math.max(1,Math.round(picture.width*scale));
+ canvas.height=Math.max(1,Math.round(picture.height*scale));
+ const ctx=canvas.getContext('2d');
+ if(!ctx)throw Error('Não foi possível processar a foto.');
+ ctx.drawImage(picture,0,0,canvas.width,canvas.height);
+ picture.close?.();
+ const data=canvas.toDataURL('image/jpeg',0.78);
+ if(data.length>120000)throw Error('A foto processada ficou muito grande.');
+ return data;
+}
 function submitModal(form) {
   clearFieldErrors(form);
   const val = name => form.querySelector(`[name="${name}"]`)?.value || '';
@@ -3255,6 +3366,13 @@ function submitModal(form) {
       try { sum = parseBRL(val('saved')); } catch (e) { setFieldError('saved', e.message); }
       if (sum < 0) setFieldError('saved', 'Valor reservado negativo não permitido.');
       g.savedCents = sum;
+    } else if(kind==='profile'){
+      const name=val('name').trim(),email=val('email').trim(),phone=val('phone').trim();
+      if(!name)setFieldError('name','Informe seu nome.');
+      const photo=pendingProfilePhoto===null?safeProfile().photo:pendingProfilePhoto;
+      const updated={name,email,phone,photo};
+      validProfile(updated);
+      state.profile=updated;
     } else if (kind === 'editRecon') {
       const rIdx = state.reconciliations.findIndex(x => x.id === itemId);
       if (rIdx === -1) throw Error('Conciliação não encontrada.');
@@ -3377,6 +3495,12 @@ document.addEventListener('click', e => {
     closeModal();
     fn();
     return;
+  }
+  if(b.id==='lockFromProfile'){closeModal();window.ClaraSecurity.lock();return;}
+  if(b.id==='removeProfilePhoto'){
+   pendingProfilePhoto='';
+   const preview=$('profilePreview');if(preview)preview.textContent=profileInitials($('m_name')?.value);
+   return;
   }
   if (b.dataset.clwAction) { handleClaraWidgetAction(b); return; }
   if (b.dataset.view) { go(b.dataset.view); return; }
@@ -3580,13 +3704,28 @@ $('period').addEventListener('change', e => {
   catch (x) { showToast(x.message, true); }
 });
 
+document.getElementById('profileFab').addEventListener('click',()=>{
+ closeFloatMenu();
+ modal('profile');
+});
+document.addEventListener('change',async e=>{
+ if(e.target.id!=='m_photo')return;
+ try{
+  const img=await loadProfilePhoto(e.target.files?.[0]);
+  if($('modalBg').dataset.kind!=='profile')return;
+  pendingProfilePhoto=img;
+  const preview=$('profilePreview');
+  if(preview){const el=document.createElement('img');el.src=img;el.alt='Prévia da foto';preview.replaceChildren(el);}
+ }catch(err){showToast(err.message,true);}
+ finally{e.target.value='';}
+});
 let floatOpen = false;
 function setFloatMenu(open) {
   floatOpen = !!open && matchMedia('(max-width: 760px)').matches;
   $('floatMenu').classList.toggle('open', floatOpen);
   $('floatMenu').setAttribute('aria-hidden', String(!floatOpen));
   $('floatTrigger').setAttribute('aria-expanded', String(floatOpen));
-  $('floatTrigger').setAttribute('aria-label', floatOpen ? 'Fechar menu de módulos' : 'Abrir menu de módulos');
+  $('floatTrigger').setAttribute('aria-label', floatOpen ? 'Fechar lista de módulos' : 'Abrir todos os módulos');
   if (floatOpen) $('mobileNav').querySelector('.navlink.active')?.focus();
 }
 function closeFloatMenu() { if (floatOpen) setFloatMenu(false); }
