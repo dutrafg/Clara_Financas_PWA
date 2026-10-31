@@ -36,7 +36,7 @@ async def run():
     }""")
     await page.locator('#floatTrigger').click()
     await page.locator('#mobileNav [data-view="historico"]').click()
-    assert await page.locator('#pageTitle').inner_text()=='Histórico'
+    assert await page.locator('#pageTitle').inner_text()=='Histórico financeiro'
     assert await page.locator('#historyMonth').input_value()==prev
     totals=await page.evaluate("""() => {
       const r=historicalSummary();
