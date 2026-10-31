@@ -65,3 +65,9 @@ test('Referências relativas e atualizador vinculados à distribuição atual',(
  assert.match(html,/navigator\.serviceWorker\.register\('\.\/sw\.js'\)/);
  assert.doesNotMatch(html,/(?:href|src)=["'](?:\.\.\/|\/)(?:release|v[0-9]+|rc[0-9]+)[^"']*/i);
 });
+
+test('Atualização de recursos ignora o cache anterior',async()=>{
+ const sw=await readFile('sw.js','utf8');
+ assert.match(sw,/request\.cache === 'reload' \|\| request\.cache === 'no-store'/);
+ assert.match(sw,/return await fetch\(request\)/);
+});
