@@ -61,3 +61,18 @@ test('PWA atualiza HTML pela rede mas abre offline',()=>{
  assert.match(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
  assert.match(sw,/cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
 });
+
+test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
+ assert.match(html,/id="securityCover"/);
+ assert.match(html,/CLARA_ROUNDS = 310000/);
+ assert.match(html,/AES-256-GCM/);
+ assert.match(html,/html:not\(\[data-unlocked="true"\]\) \.shell/);
+ assert.doesNotMatch(html,/clara-preview-dados\.json/);
+});
+test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
+ assert.match(html,/id="checkClaraUpdate"/);
+ assert.match(html,/ClaraSecurity\.flush\(\)/);
+ assert.match(html,/INSTALLED_VERSION='3\.6\.3-rc'/);
+ assert.match(sw,/type === 'SKIP_WAITING'/);
+ assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
+});
