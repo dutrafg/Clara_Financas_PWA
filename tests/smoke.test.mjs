@@ -115,3 +115,14 @@ test('Categorias e limites do primeiro uso começam zerados',()=>{
  assert.ok(initial.categories.length>=10);
  assert.ok(initial.categories.every(c=>c.limitCents===0));
 });
+
+test('Registro de alterações com inclusão, edição e exclusão cifradas',()=>{
+ assert.match(html,/const AUDIT_MAX=2500/);
+ assert.match(html,/function recordAuditChanges\(/);
+ assert.match(html,/recordAuditChanges\(auditBaseline,state\)/);
+ assert.match(html,/function renderAuditJournal\(/);
+ assert.match(html,/renderAuditJournal\(\)/);
+ assert.match(html,/function auditEntriesForMonth\(/);
+ assert.match(html,/rows\.push\(\[\],\['Alterações registradas'\]/);
+ assert.match(html,/INSTALLED_VERSION='3\.6\.6-rc'/);
+});
