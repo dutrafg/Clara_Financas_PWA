@@ -27,6 +27,31 @@ async def run():
    display=await page.locator('#floatTrigger').evaluate('(el)=>getComputedStyle(el).display')
    assert (display!='none')==(width<=760),(width,display)
    if width==390:
+    prev=await page.evaluate("""() => {
+      const p=plusMonth(todayISO().slice(0,7)+'-01',-1).slice(0,7);
+      state.transactions.push({id:'auditoria-qa',kind:'Receita',description:'Receita histórica QA',
+        category:'Salário',amountCents:13000,accountId:'principal',toAccountId:'',
+        date:p+'-12',paidAt:p+'-12',status:'Realizado'});
+      save();return p;
+    }""")
+    await page.locator('#floatTrigger').click()
+    await page.locator('#mobileNav [data-view="historico"]').click()
+    assert await page.locator('#pageTitle').inner_text()=='Histórico'
+    assert await page.locator('#historyMonth').input_value()==prev
+    totals=await page.evaluate("""() => {
+      const r=historicalSummary();
+      return {income:r.income,net:r.net,period:state.settings.period,entries:r.entries.length};
+    }""")
+    assert totals['income']==13000 and totals['net']==13000 and totals['entries']==1,totals
+    assert totals['period']!=prev
+    assert await page.locator('#historyAccount option').count()>=2
+    await page.locator('#historyPrev').click()
+    assert await page.locator('#historyMonth').input_value()!=prev
+    await page.locator('#floatTrigger').click()
+    await page.locator('#mobileNav [data-view="painel"]').click()
+    assert await page.evaluate("state.settings.period===todayISO().slice(0,7)")
+    await page.evaluate("state.transactions=state.transactions.filter(t=>t.id!=='auditoria-qa');save()")
+   if width==390:
     await page.locator('#floatTrigger').click()
     assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='true'
     await page.locator('#mobileNav [data-view="ajustes"]').click()
