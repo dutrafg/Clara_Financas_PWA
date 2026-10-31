@@ -248,7 +248,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   # RC2: cofre no IndexedDB real; ativar, bloquear, senha incorreta e recuperar.
   vault_secret='Minha senha de cofre segura RC2 2026'
   page.get_by_label('Senha do cofre local').fill(vault_secret)
-  page.get_by_role('button',name='Ativar proteção do banco').click()
+  page.get_by_role('button',name='Ativar proteção do banco',exact=True).click()
   print('COFRE ATIVACAO TELA:',page.locator('body').inner_text(timeout=10000)[-950:])
   print('COFRE ATIVACAO ALERTAS:',page.get_by_role('alert').all_text_contents())
   page.get_by_text('Protegido',exact=True).first.wait_for(timeout=15000)
@@ -269,10 +269,11 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.locator('.debt-card').filter(has_text='Financiamento de notebook').wait_for(timeout=15000)
   page.get_by_role('button',name='Configurações',exact=True).last.click()
   page.get_by_label('Senha do cofre local').fill(vault_secret)
-  page.get_by_role('button',name='Desativar proteção do banco').click()
+  page.get_by_role('button',name='Desativar proteção do banco',exact=True).click()
   print('DEPOIS DE DESATIVAR:',page.locator('body').inner_text(timeout=10000)[-1200:])
   print('ALERTAS:',page.get_by_role('alert').all_text_contents())
-  page.get_by_role('button',name='Ativar proteção do banco').wait_for(timeout=10000)
+  page.get_by_role('button',name='Ativar proteção do banco',exact=True).wait_for(timeout=15000)
+  page.get_by_text('Proteção do banco desativada.',exact=False).first.wait_for(timeout=15000)
   page.wait_for_function('''async () => new Promise(resolve=>{const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const s=r.result.transaction('app','readonly').objectStore('app');const a=s.get('state'),b=s.get('state-vault');let plain,enc; a.onsuccess=()=>{plain=a.result;if(b.readyState==='done')resolve(!!plain&&!b.result)};b.onsuccess=()=>{enc=b.result;if(a.readyState==='done')resolve(!!plain&&!enc)}}})''')
   before_reload=page.evaluate("""async()=>new Promise(resolve=>{
    const req=indexedDB.open('clara-financas-local-v1');
