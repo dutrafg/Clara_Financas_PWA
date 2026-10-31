@@ -8,6 +8,7 @@ import {createMovements,changeMovementStatus,isOverdue,listMovements,movementTot
 import type {Frequency,MovementFilters} from './domain/movements';
 import {installmentSchedule,createInstallmentMovements,summarizeInstallmentGroups} from './domain/installments';
 import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,updateCategory,archiveCategory,deleteCategory,setFinancialPreferences,savingsOverview} from './domain/catalogs';
+import {addDebt,updateDebt,deleteDebt,recordDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -18,7 +19,7 @@ const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov',
 const monthText=(value:string)=>{const [y,m]=value.split('-');return `${months[Number(m)-1]} de ${y}`};
 const percent=(x:number)=>`${Math.round(x*100)}%`;
 const emptyFilter:MovementFilters={search:'',kind:'',status:'',account:'',category:'',from:'',to:'',basis:'effective',sort:'newest',overdue:false};
-type ModalKind='transaction'|'account'|'budget'|'goal'|'installment'|'category';
+type ModalKind='transaction'|'account'|'budget'|'goal'|'installment'|'category'|'debt'|'debtPayment';
 type ModalState={type:ModalKind;id?:string};
 function Pane({children,className='',title,detail,actions}:{children:React.ReactNode;className?:string;title?:string;detail?:string;actions?:React.ReactNode}){
  return <section className={`surface ${className}`}>
@@ -62,7 +63,7 @@ function useFinance(){
  return {data,error,saving,folder,setFolder,notice,notify,commit,modify};
 }
 function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalState;onClose:()=>void;onSave:(type:ModalKind,id:string|undefined,values:Record<string,string>)=>Promise<void>;saving:boolean}){
- const item:any=modal.type==='transaction'?data.transactions.find(t=>t.id===modal.id):modal.type==='account'?data.accounts.find(t=>t.id===modal.id):modal.type==='category'?data.categories.find(t=>t.id===modal.id):modal.type==='budget'?data.budgets.find(t=>t.category===modal.id):data.goals.find(t=>t.id===modal.id);
+ const item:any=modal.type==='transaction'?data.transactions.find(t=>t.id===modal.id):modal.type==='account'?data.accounts.find(t=>t.id===modal.id):modal.type==='category'?data.categories.find(t=>t.id===modal.id):(modal.type==='debt'||modal.type==='debtPayment')?(data.debts||[]).find(t=>t.id===modal.id):modal.type==='budget'?data.budgets.find(t=>t.category===modal.id):data.goals.find(t=>t.id===modal.id);
  const [kind,setKind]=useState<Kind>(item?.kind||'Despesa'),[status,setStatus]=useState<Status>(item?.status||'Realizado');
  const [values,setValues]=useState<Record<string,string>>(()=>({
  date:item?.date||today(),paidAt:item?.paidAt||'',description:item?.description||'',kind:item?.kind||'Despesa',category:item?.category||'',amount:item?.amountCents!=null?String(item.amountCents/100).replace('.',','):'',
@@ -70,7 +71,11 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  name:item?.name||'',type:item?.type||'Conta',group:item?.group||'Despesa',opening:item?.openingCents!=null?String(item.openingCents/100).replace('.',','):'0',
  limit:item?.limitCents!=null?String(item.limitCents/100).replace('.',','):'',target:item?.targetCents!=null?String(item.targetCents/100).replace('.',','):'',
  saved:item?.savedCents!=null?String(item.savedCents/100).replace('.',','):'0',dueDate:item?.dueDate||'',recurrence:'none',occurrences:'3',
- purchaseDate:today(),firstDueDate:today(),downPayment:'0',fees:'0',monthlyRate:'0',installmentCount:'6'}));
+ purchaseDate:today(),firstDueDate:today(),downPayment:'0',fees:'0',monthlyRate:'0',installmentCount:'6',
+ creditor:item?.creditor||'',total:item?.totalCents!=null?String(item.totalCents/100).replace('.',','):'',
+ openingPaid:item?.openingPaidCents!=null?String(item.openingPaidCents/100).replace('.',','):'0',
+ monthly:item?.monthlyCents!=null?String(item.monthlyCents/100).replace('.',','):'0',
+ paymentDate:today(),paymentAmount:'',paymentAccountId:data.accounts.find(a=>!a.archived)?.id||''}));
  const change=(name:string,value:string)=>{setValues(current=>({...current,[name]:value}));if(name==='kind'){setKind(value as Kind);setValues(c=>({...c,kind:value,category:''}))}if(name==='status'){setStatus(value as Status);if(value!=='Realizado')setValues(c=>({...c,status:value,paidAt:''}))}};
  const field=(name:string,label:string,el:React.ReactNode,full=false)=><label className={`form-field ${full?'full':''}`} key={name}><span>{label}</span>{el}</label>;
  const input=(name:string,type='text',required=false,placeholder='')=><input name={name} id={`f-${name}`} type={type} required={required} value={values[name]||''} placeholder={placeholder} onChange={e=>change(name,e.currentTarget.value)}/>;
@@ -88,7 +93,21 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  let preview:null|ReturnType<typeof installmentSchedule>=null;
  let previewError='';
  if(modal.type==='installment'&&values.amount.trim())try{preview=installmentSchedule(buildInstallmentParams());}catch(e){previewError=(e as Error).message}
- const form=modal.type==='installment'?<>
+ const form=modal.type==='debt'?<>
+ {field('name','Descrição da dívida',input('name','text',true,'Ex.: Financiamento do veículo'),true)}
+ {field('creditor','Credor',input('creditor','text',true,'Banco ou pessoa'))}
+ {field('total','Total da dívida (R$)',input('total','text',true,'0,00'))}
+ {field('openingPaid','Valor pago anteriormente (R$)',<input name="openingPaid" type="text" required value={values.openingPaid} disabled={!!item} onChange={e=>change('openingPaid',e.currentTarget.value)}/>)}
+ {field('monthly','Prestação de referência (R$)',input('monthly','text',true,'0,00'))}
+ {field('dueDate','Vencimento final (opcional)',input('dueDate','date'))}
+ {field('category','Categoria da despesa',select('category',[{value:'',label:'Selecione'},...expenseCats]))}
+ <p className="fine full">A dívida é um controle de obrigação. Seu valor não reduz o saldo bancário; somente os pagamentos confirmados geram despesas e afetam o caixa.</p>
+ </>:modal.type==='debtPayment'?<>
+ <p className="fine full">Dívida: <b>{item?.name}</b>. O pagamento será registrado imediatamente como despesa realizada.</p>
+ {field('paymentDate','Data do pagamento',input('paymentDate','date',true))}
+ {field('paymentAmount','Valor pago (R$)',input('paymentAmount','text',true,'0,00'))}
+ {field('paymentAccountId','Conta de origem',select('paymentAccountId',data.accounts.filter(a=>!a.archived).map(a=>({value:a.id,label:a.name}))))}
+ </>:modal.type==='installment'?<>
  {field('description','Descrição da compra',input('description','text',true,'Ex.: Notebook'),true)}
  {field('purchaseDate','Data da compra',input('purchaseDate','date',true))}
  {field('firstDueDate','Primeiro vencimento',input('firstDueDate','date',true))}
@@ -144,7 +163,7 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  {field('saved','Valor já reservado em R$',input('saved','text',true))}
  {field('dueDate','Prazo (opcional)',input('dueDate','date'))}
  </>;
- const names:{[k in ModalKind]:string}={transaction:'lançamento',account:'conta',budget:'orçamento',goal:'meta',installment:'parcelamento',category:'categoria'};
+ const names:{[k in ModalKind]:string}={transaction:'lançamento',account:'conta',budget:'orçamento',goal:'meta',installment:'parcelamento',category:'categoria',debt:'dívida',debtPayment:'pagamento da dívida'};
  return <div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><div className="dialog" role="dialog" aria-modal="true" aria-label={`${item?'Editar':'Adicionar'} ${names[modal.type]}`}>
  <div className="dialog-heading"><div><div className="eyebrow">CLARA / CADASTRO</div><h2>{item?'Editar':'Adicionar'} {names[modal.type]}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fechar"><Icon name="close"/></button></div>
  <form onSubmit={async e=>{e.preventDefault();await onSave(modal.type,modal.id,values)}}><div className="fields">{form}</div><div className="dialog-actions"><Button onClick={onClose}>Cancelar</Button><Button type="submit" variant="primary" disabled={saving} icon="check">{saving?'Salvando…':'Salvar'}</Button></div></form>
@@ -179,6 +198,8 @@ export default function App(){
  const month=data?.settings.selectedPeriod||today().slice(0,7);
  const summary=useMemo(()=>data?periodStats(data,month):null,[data,month]);
  const budgets=useMemo(()=>data?budgetStatus(data,month):[],[data,month]);
+ const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
+ const forecast=useMemo(()=>data?cashflowForecast(data,month,6):[],[data,month]);
  const savings=useMemo(()=>data?savingsOverview(data,month):null,[data,month]);
  const [savingsDraft,setSavingsDraft]=useState('');
  const [reviewDraft,setReviewDraft]=useState('1');
@@ -187,7 +208,15 @@ export default function App(){
   if(!data)return;
   try{
    await modify(d=>{
-    if(type==='installment'){
+    if(type==='debt'){
+     const form={name:v.name,creditor:v.creditor,totalCents:parseMoney(v.total),
+      openingPaidCents:parseMoney(v.openingPaid),monthlyCents:parseMoney(v.monthly),
+      dueDate:v.dueDate,category:v.category};
+     if(id)updateDebt(d,id,form);else addDebt(d,form);
+    }else if(type==='debtPayment'){
+     if(!id)throw Error('Dívida não encontrada.');
+     recordDebtPayment(d,{debtId:id,accountId:v.paymentAccountId,amountCents:parseMoney(v.paymentAmount),date:v.paymentDate});
+    }else if(type==='installment'){
      const rate=v.monthlyRate.trim().replace(',','.');
      if(!/^(?:\d{1,2}|100)(?:\.\d{1,2})?$/.test(rate))throw Error('Taxa mensal inválida. Use até duas casas decimais.');
      const plan=createInstallmentMovements({
@@ -234,13 +263,14 @@ export default function App(){
    },'Registro salvo.');setModal(null);
   }catch(e){notify((e as Error).message,true)}
  };
- const remove=async(type:Exclude<ModalKind,'installment'>,id:string)=>{
-  if(!data)return;const label=type==='transaction'?'lançamento':type==='account'?'conta':type==='category'?'categoria':type==='budget'?'orçamento':'meta';
+ const remove=async(type:Exclude<ModalKind,'installment'|'debtPayment'>,id:string)=>{
+  if(!data)return;const label=type==='transaction'?'lançamento':type==='account'?'conta':type==='category'?'categoria':type==='debt'?'dívida':type==='budget'?'orçamento':'meta';
   if(!window.confirm(`Excluir ${label}? Esta operação não pode ser desfeita.`))return;
   try{await modify(d=>{
    if(type==='transaction')d.transactions=d.transactions.filter(x=>x.id!==id);
    if(type==='account')deleteAccount(d,id);
    if(type==='category')deleteCategory(d,id);
+   if(type==='debt')deleteDebt(d,id);
    if(type==='budget')d.budgets=d.budgets.filter(x=>x.category!==id);
    if(type==='goal')d.goals=d.goals.filter(x=>x.id!==id);
   },'Registro excluído.')}catch(e){notify((e as Error).message,true)}
@@ -302,7 +332,7 @@ export default function App(){
    await modify(d=>setFinancialPreferences(d,{monthlySavingsCents:cents,reviewDay:day}),'Preferências financeiras salvas.');
   }catch(e){notify((e as Error).message,true)}
  };
- const actions=(type:Exclude<ModalKind,'installment'>,id:string)=><div className="row-actions"><button aria-label="Editar" title="Editar" onClick={()=>setModal({type,id})}><Icon name="edit" size={16}/></button><button aria-label="Excluir" title="Excluir" onClick={()=>remove(type,id)}><Icon name="trash" size={16}/></button></div>;
+ const actions=(type:Exclude<ModalKind,'installment'|'debtPayment'>,id:string)=><div className="row-actions"><button aria-label="Editar" title="Editar" onClick={()=>setModal({type,id})}><Icon name="edit" size={16}/></button><button aria-label="Excluir" title="Excluir" onClick={()=>remove(type,id)}><Icon name="trash" size={16}/></button></div>;
  const smallTx=(items:Transaction[])=><div className="recent-list">{items.length?items.slice(0,6).map(t=><div className="recent-item" key={t.id}><div className={`transaction-symbol ${t.kind==='Receita'?'in':'out'}`}><Icon name={t.kind==='Receita'?'arrowup':t.kind==='Despesa'?'arrowdown':'transactions'} size={18}/></div><div className="recent-desc"><b>{t.description}</b><span>{t.category||'Transferência'} · {fmtDate(effectiveDate(t))}</span></div><div className="recent-amount"><b>{mask((t.kind==='Despesa'?-1:1)*t.amountCents)}</b><StatusChip status={t.status}/></div></div>):<Empty text="Nenhum lançamento neste período." action={<Button onClick={()=>setModal({type:'transaction'})} icon="plus">Adicionar lançamento</Button>}/>}</div>;
  const dashboard=<div className="vertical">
  {data.isDemo&&<div className="demo-notice"><Icon name="info" size={18}/> Dados fictícios importados da planilha. <Button variant="ghost" onClick={reset}>Iniciar minha base</Button></div>}
