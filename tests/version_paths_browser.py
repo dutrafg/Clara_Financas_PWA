@@ -60,6 +60,9 @@ async def run():
     (site/'sw.js').write_text(old_sw.replace(old_name,new_name,1))
     await page.evaluate("window.ClaraUpdate.check(true)")
     await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
+    # O evento 'installed' pode preceder a atualização visual; sincronizar pelo estado do SW.
+    await page.evaluate("window.ClaraUpdate.check(false)")
+    await page.wait_for_function("window.ClaraUpdate.ready && !document.getElementById('claraUpdateNotice').hidden",timeout=12000)
     assert await page.locator('#claraUpdateNoticeTitle').inner_text()=='Atualização pronta para instalar'
     assert await page.locator('#claraUpdateNotice').is_visible()
     assert await page.locator('#claraUpdateNoticeInstall').is_visible()
