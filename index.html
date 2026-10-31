@@ -4361,7 +4361,7 @@ qaSpecs.push(
 /* RC3.4 — controles centralizados, compatibilidade e personalização responsiva. */
 qaSpecs.push(
   ['QA-101', 'Módulo Configurações ocupa o antigo Ajustes sem duplicar navegação', () => qaAssert(NAV.some(x => x[0] === 'ajustes' && x[2] === 'Configurações') && NAV.length === 7)],
-  ['QA-102', 'Paletas violeta, azul e petróleo disponíveis', () => qaAssert(PREF_ENUMS.palette.length === 3 && PREF_ENUMS.palette.includes('blue') && PREF_DEFAULTS.palette === 'violet')],
+  ['QA-102', 'Seis paletas disponíveis e preferências antigas preservadas', () => qaAssert(PREF_ENUMS.palette.length === 6 && ['violet','blue','petrol','bosque','coral','areia'].every(x=>PREF_ENUMS.palette.includes(x)) && PREF_DEFAULTS.palette === 'violet' && PREF_ENUMS.surface.length===3 && PREF_ENUMS.backdrop.length===3)],
   ['QA-103', 'Preferências antigas são complementadas sem alterar valores', () => {const old={settings:{period:'2026-10',cutoff:'2026-10-31',theme:'dark'}}; withDefaultPreferences(old); qaAssert(old.settings.theme === 'dark' && old.settings.palette==='violet');}],
   ['QA-104', 'Preferência de privacidade mascara exibição mas não altera centavos', () => qaFixture(() => {state.settings.hideValues=true; qaAssert(brl(10000)==='R$ ••••' && moneyValid(10000));})],
   ['QA-105', 'Preferência de privacidade é exportável e válida', () => qaFixture(() => {state.settings.hideValues=true; qaAssert(validateData(state));})],
