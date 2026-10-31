@@ -72,7 +72,7 @@ test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
 test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
  assert.match(html,/id="checkClaraUpdate"/);
  assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/INSTALLED_VERSION='3\.6\.5-rc'/);
+ assert.match(html,/INSTALLED_VERSION='3\.6\.6-rc'/);
  assert.match(sw,/type === 'SKIP_WAITING'/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
