@@ -184,3 +184,26 @@ test('Navegação sem botão órfão de QA, preservando acesso de manutenção',
  assert.match(html,/data-open-qa="1"/);
  assert.match(html,/const CLARA_APP_VERSION='3\.6\.10-rc'/);
 });
+
+
+test('RC3.6.10: notas da interface, metadata e instruções de segurança alinhadas',async()=>{
+ const pkg=JSON.parse(await readFile('package.json','utf8'));
+ const version=JSON.parse(await readFile('version.json','utf8'));
+ const readme=await readFile('README.md','utf8');
+ const qa=await readFile('docs/QA-RC3.6.10.md','utf8');
+ const notesSource=html.match(/const CLARA_RELEASE_NOTES=Object\.freeze\((\[[\s\S]*?\])\);/)?.[1];
+ assert.ok(notesSource,'Lista de novidades da interface ausente');
+ const notes=JSON.parse(notesSource);
+ assert.equal(version.version,'3.6.10-rc');
+ assert.equal(pkg.version,version.version);
+ assert.match(html,/Clara Finanças RC3\.6\.10/);
+ assert.deepEqual(notes,version.notes,'Notas do HTML e version.json divergentes');
+ assert.ok(notes.some(x=>x.includes('botão de testes isolado')));
+ assert.ok(notes.some(x=>x.includes('Manutenção avançada')));
+ assert.match(readme,/RC3\.6\.10/);
+ assert.match(readme,/AES-256-GCM/);
+ assert.match(readme,/PBKDF2-HMAC-SHA-256/);
+ assert.match(readme,/310\.000 iterações/);
+ for(const scenario of ['Chrome Android','Samsung Internet','Windows 11','offline','migração','M15'])
+   assert.ok(qa.toLowerCase().includes(scenario.toLowerCase()),'Cenário QA ausente: '+scenario);
+});
