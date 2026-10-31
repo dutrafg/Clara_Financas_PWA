@@ -254,6 +254,32 @@ export default function App(){
  const {data,error,saving,folder,setFolder,notice,notify,commit,modify,vaultLocked,vaultEnabled,folderPassword,setFolderPassword,openVault,activateVault,deactivateVault,closeVault}=useFinance();
  const [view,setView]=useState<View>('dashboard');
  const [projectionMonths,setProjectionMonths]=useState<3|6|12>(6);
+ const [updateReady,setUpdateReady]=useState(false);
+ const [isOnline,setIsOnline]=useState(()=>navigator.onLine);
+ useEffect(()=>{
+  const ready=()=>setUpdateReady(true);
+  const online=()=>setIsOnline(navigator.onLine);
+  window.addEventListener('clara-update-ready',ready);
+  window.addEventListener('online',online);window.addEventListener('offline',online);
+  navigator.serviceWorker?.getRegistration?.().then(reg=>{if(reg?.waiting)setUpdateReady(true)}).catch(()=>{});
+  return()=>{window.removeEventListener('clara-update-ready',ready);window.removeEventListener('online',online);window.removeEventListener('offline',online)};
+ },[]);
+ async function checkPwaUpdate(){
+  if(!('serviceWorker' in navigator)){notify('Este navegador não oferece Service Worker.',true);return}
+  try{const reg=await navigator.serviceWorker.getRegistration();
+   if(!reg){notify('O PWA será registrado quando o Clara for aberto por HTTPS em produção.');return}
+   await reg.update();
+   if(reg.waiting)setUpdateReady(true);
+   else notify('Verificação concluída. Você já está utilizando a versão instalada.');
+  }catch(e){notify('Não foi possível verificar a atualização sem conexão: '+(e as Error).message,true)}
+ }
+ async function applyPwaUpdate(){
+  const reg=await navigator.serviceWorker?.getRegistration?.();
+  if(!reg?.waiting){notify('Não há atualização preparada.');return}
+  if(!window.confirm('Aplicar atualização? Faça backup de seus dados antes de atualizar o aplicativo.'))return;
+  reg.waiting.postMessage({type:'SKIP_WAITING'});
+ }
+
  const [backupPassword,setBackupPassword]=useState('');
  const [vaultPass,setVaultPass]=useState('');
  const [vaultUnlockPass,setVaultUnlockPass]=useState('');
@@ -755,7 +781,15 @@ export default function App(){
  </div>
  <p className="fine">Nunca substituímos um arquivo já encontrado ao selecionar a pasta. A gravação automática só funciona enquanto a senha estiver informada e o navegador conceder permissão. Android/Firefox podem não oferecer seleção de pasta: utilize Exportar backup protegido.</p>
  </Pane>
- <Pane title="Instalação do PWA" detail="Instale o Clara na tela inicial após publicá-lo em HTTPS ou executar no localhost."><div className="wrap-actions"><Button icon="download" disabled={!installPrompt} onClick={action(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;setInstallPrompt(null)})}>Instalar Clara</Button></div><p className="fine">Caso o botão esteja desativado, use o menu do navegador → Instalar aplicativo / Adicionar à tela inicial, quando disponível.</p></Pane>
+ <Pane title="Instalação e atualizações PWA" detail="Mesmo funcionamento offline e instalação por navegador, com cache de release completo.">
+ <div className="setting-row"><div><b>Conectividade</b><p>{isOnline?'Conectado — atualizações disponíveis':'Sem conexão — arquivos instalados disponíveis offline'}</p></div><b>{isOnline?'Online':'Offline'}</b></div>
+ <div className="wrap-actions">
+ <Button icon="download" disabled={!installPrompt} onClick={action(async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;setInstallPrompt(null)})}>Instalar Clara</Button>
+ <Button icon="check" onClick={checkPwaUpdate}>Verificar atualizações</Button>
+ {updateReady&&<Button variant="primary" icon="download" onClick={applyPwaUpdate}>Aplicar atualização preparada</Button>}
+ </div>
+ <p className="fine">O aplicativo e os módulos são instalados com um Service Worker versionado. A atualização exige confirmação; o armazenamento local não é apagado. Instale pelo menu do navegador se o botão estiver desativado. Não existe sincronização entre dispositivos.</p>
+ </Pane>
  <Pane title="Backup criptografado e recuperação" detail="Criptografia AES-256-GCM. A senha nunca é enviada nem armazenada.">
  <label className="form-field"><span>Senha do backup (mínimo 12 caracteres)</span>
  <input type="password" aria-label="Senha do backup" autoComplete="new-password" value={backupPassword} onChange={e=>setBackupPassword(e.target.value)}/></label>
