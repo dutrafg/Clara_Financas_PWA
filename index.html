@@ -4333,7 +4333,13 @@ save=function() {
   if(!claraUnlocked||!claraKey||claraError)throw Error('Desbloqueie o cofre antes de salvar.');
   if(storageConflict)throw Error('Os dados foram alterados em outra aba. Reabra o aplicativo.');
   validateData(state);
+  const previousLog=Array.isArray(state.auditLog)?state.auditLog.slice():[];
+  try{
+    recordAuditChanges(auditBaseline,state);
+    validateData(state);
+  }catch(error){state.auditLog=previousLog;throw error;}
   const snapshot=structuredClone(state);
+  auditBaseline=structuredClone(snapshot);
   secureQueue(snapshot);
   render();
   return true;
@@ -4362,10 +4368,12 @@ async function secureEnter(password,confirm) {
     let original;
     try {original=await decryptState(v,key);}catch {throw Error('Senha incorreta ou arquivo do cofre adulterado. Seus dados não foram apagados.');}
     claraKey=key;claraVaultRaw=raw;state=original;
+    if(!Array.isArray(state.auditLog))state.auditLog=[];
     if(safeStorageGet(KEY))try{localStorage.removeItem(KEY);}catch{}
     render();
   }
   claraUnlocked=true;claraError=null;storageConflict=false;
+  auditBaseline=structuredClone(state);
   secureHide();
 }
 async function secureLock() {
@@ -4376,7 +4384,7 @@ async function secureLock() {
   secureDom('securityTitle').textContent='Bloqueando Clara…';
   secureDom('securityMessage').textContent='Concluindo a proteção dos lançamentos.';
   await claraSaving.catch(()=>{});
-  claraKey=null;state=fresh();
+  claraKey=null;auditBaseline=null;state=fresh();
   active='painel';render();
   secureShow(claraError?.message);
 }
