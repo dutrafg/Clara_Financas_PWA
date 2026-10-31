@@ -1,7 +1,7 @@
-name: Homologar Clara Finanças RC2 Integrada PWA Vercel
+name: Homologar Clara Finanças RC3 Planilha Atualizada
 on:
   push:
-    branches: [homologacao/rc-final-integrada]
+    branches: [homologacao/planilha-optio-atualizada]
     paths:
       - 'src/**'
       - 'public/**'
@@ -43,7 +43,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-rc2-integrada-evidencias
+          name: clara-rc3-planilha-evidencias
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
