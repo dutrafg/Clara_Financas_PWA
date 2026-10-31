@@ -25,7 +25,7 @@ if(!serviceWorker.includes('const APP_FILES = ')) throw Error('Pré-cache PWA au
 
 const localRef = path => {
   const trimmed=path.split(/[?#]/)[0];
-  if(!trimmed || trimmed.startsWith('#')) return null;
+  if(!trimmed || trimmed === './' || trimmed.startsWith('#')) return null;
   if(trimmed.startsWith('//') || /^[a-z][a-z\d+.-]*:/i.test(trimmed)) return null;
   if(trimmed.startsWith('/')) throw Error('Caminho absoluto no aplicativo: '+path);
   if(!trimmed.startsWith('./')) throw Error('Caminho não relativo no aplicativo: '+path);
