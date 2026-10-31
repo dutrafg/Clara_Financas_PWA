@@ -81,6 +81,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_text('Conta de energia teste mensal').first.wait_for(timeout=15000)
   page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1'); r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>resolve(q.result.transactions.filter(t=>t.description==='Conta de energia teste mensal').length===3)}})''')
   page.get_by_role('button',name='Confirmar pagamento').first.click()
+  page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>resolve(q.result.transactions.some(t=>t.description==='Conta de energia teste mensal'&&t.status==='Realizado'&&t.paidAt==='2026-10-31'))}})''')
   page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const t=q.result.transactions.filter(t=>t.description==='Conta de energia teste mensal');resolve(t.length===3&&t.filter(x=>x.status==='Realizado').length===1&&t.every(x=>x.recurrenceGroupId))}}})''')
   page.get_by_label('Filtrar tipo').select_option('Receita')
   assert page.get_by_text('Conta de energia teste mensal').count()==0
