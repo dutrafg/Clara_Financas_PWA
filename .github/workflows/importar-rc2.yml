@@ -6,6 +6,7 @@ on:
     paths:
       - Clara_Financas_PWA_GitHub_Etapa02.zip
       - clara-pwa.zip
+      - .github/workflows/importar-rc2.yml
 permissions:
   contents: write
 jobs:
@@ -29,7 +30,9 @@ jobs:
           if unzip -Z1 "$ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
             echo 'ERRO: caminhos inseguros no pacote'; exit 1
           fi
-          unzip -oq "$ARCHIVE"
+          unzip -oq "$ARCHIVE" -x '.github/workflows/*'
+          # Manter os workflows existentes intactos: o token do Actions
+          # não possui permissão para publicar novos arquivos de workflow.
           test -f package.json
           test -f src/App.tsx
           test -f tests/e2e_production.py
