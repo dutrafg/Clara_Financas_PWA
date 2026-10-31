@@ -1,6 +1,6 @@
 {
   "name": "clara-financas-pwa",
-  "version": "3.6.5-rc",
+  "version": "3.6.6-rc",
   "private": true,
   "type": "module",
   "scripts": {
