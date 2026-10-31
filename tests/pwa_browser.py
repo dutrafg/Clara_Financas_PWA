@@ -47,7 +47,7 @@ async def run():
     # Foto JPEG gerada localmente e sem tráfego de rede.
     await page.locator('#m_photo').set_input_files({
       'name':'avatar.png','mimeType':'image/png',
-      'buffer':__import__('base64').b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/X4kAAAAASUVORK5CYII=')
+      'buffer':__import__('base64').b64decode('iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAALUlEQVR4nGM0rTjKQEvARFPTRy0YtWDUglELRi0YtWDUglELRi0YtWDUAioCABQJAbKyokn6AAAAAElFTkSuQmCC')
     })
     await page.wait_for_function("!!document.querySelector('#profilePreview img')",timeout=10000)
     await page.locator('#modalForm button[type="submit"]').click()
