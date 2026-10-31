@@ -43,7 +43,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_text('R$ 5.205,00').first.wait_for(timeout=15000)
   page.get_by_role('button',name='Configurações',exact=True).first.click()
   with page.expect_download() as dl:
-   page.get_by_role('button',name='Exportar backup JSON').click()
+   page.get_by_role('button',name='Exportar JSON sem proteção').click()
   assert dl.value.suggested_filename.endswith('.json')
   print('PASSOU: acesso offline e backup JSON offline')
   ctx.set_offline(False)
