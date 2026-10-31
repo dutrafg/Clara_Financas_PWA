@@ -79,3 +79,6 @@ body[data-theme=dark] .debt-numbers b{color:var(--text)}
 
 /* Etapa 9: relatórios legíveis em todos os formatos */
 .report-mini-list{display:grid;gap:4px}.report-mini-list .highlight-row{border-bottom:1px solid var(--line)}.report-mini-list .highlight-row>span{min-width:0;overflow-wrap:anywhere}.report-mini-list .highlight-row small{display:block;color:var(--muted);font-size:11px;margin-top:5px}@media print{.report-mini-list{max-height:none!important}.section-top .head-actions{display:none!important}}
+
+/* Etapa 10: backup seguro e bloqueio visual */
+.clara-lock{min-height:100dvh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:15px;padding:24px;text-align:center;background:var(--bg);color:var(--text)}.clara-lock form{display:grid;gap:10px;width:min(360px,100%)}.clara-lock input{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface);color:var(--text)}.clara-lock small{max-width:490px;line-height:1.5;color:var(--muted)}.form-field input[type=password]{min-width:0;width:100%;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px}.form-field{max-width:450px;display:grid;gap:6px}
