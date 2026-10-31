@@ -133,7 +133,9 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  </>:modal.type==='account'?<>
  {field('name','Nome da conta',input('name','text',true),true)}
  {field('type','Tipo',select('type',[{value:'Conta',label:'Conta bancária'},{value:'Dinheiro',label:'Dinheiro'},{value:'Carteira',label:'Carteira digital'},{value:'Cartão',label:'Cartão'}]))}
- {field('opening','Saldo inicial em R?<>
+ {field('opening','Saldo inicial em R$',input('opening','text',true))}
+ {item&&<p className="fine full">A alteração do saldo inicial recalcula o histórico. Faça um backup antes de corrigir valores antigos.</p>}
+ </>:modal.type==='budget'?<>
  {field('category','Categoria de despesa',select('category',[{value:'',label:'Selecione uma categoria'},...expenseCats],!!item),true)}
  {field('limit','Limite mensal em R$',input('limit','text',true))}
  </>:<>
