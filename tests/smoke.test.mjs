@@ -172,7 +172,7 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/await prompt\.prompt\(\)/);
  assert.match(html,/id="claraInstallHelp"/);
  assert.match(html,/No Chrome, primeiro abra o site normalmente/);
- assert.match(html,/const CLARA_APP_VERSION='3\.6\.9-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='3\.6\.10-rc'/);
 });
 
 test('Navegação sem botão órfão de QA, preservando acesso de manutenção',()=>{
