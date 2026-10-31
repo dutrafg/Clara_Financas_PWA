@@ -2941,6 +2941,19 @@ function renderAjustes() {
         ${prefSwitch('reduceMotion','Reduzir animações','Evita transições desnecessárias.')} 
         ${prefSwitch('sidebarCompact','Barra lateral compacta','Recolhe os nomes no desktop, sem afetar a navegação do celular.')}
       </div>`)}
+
+    <div class="gap"></div>
+    ${panel('Acabamento da interface', 'Escolha o estilo dos cartões e do fundo.', `
+      <div class="field-grid two">
+        <label class="field"><span>Cartões</span><select data-pref-select="surface">
+          ${configOpt('soft','Suave',pref('surface'))}${configOpt('flat','Essencial',pref('surface'))}${configOpt('floating','Elevado',pref('surface'))}
+        </select></label>
+        <label class="field"><span>Fundo</span><select data-pref-select="backdrop">
+          ${configOpt('none','Discreto',pref('backdrop'))}${configOpt('aurora','Aurora',pref('backdrop'))}${configOpt('grid','Linhas finas',pref('backdrop'))}
+        </select></label>
+      </div>
+      <p class="helper">Preferências de aparência salvas no cofre, sem alterar seus registros.</p>
+    `)}
     </div>`;
   } else if (t === 'painel') {
     body = `${panel('Privacidade e visualização', 'O painel é seu: escolha o que aparece. Nenhum indicador é excluído do banco.', `<div class="list">
