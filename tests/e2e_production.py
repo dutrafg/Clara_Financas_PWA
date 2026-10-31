@@ -252,6 +252,8 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.wait_for_function('''async () => new Promise(resolve=>{const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const s=r.result.transaction('app','readonly').objectStore('app');let open,locked;const a=s.get('state'),b=s.get('state-vault');a.onsuccess=()=>{open=a.result;if(locked!==undefined)resolve(open===undefined&&typeof locked==='string'&&locked.includes('clara-encrypted-backup'))};b.onsuccess=()=>{locked=b.result;if(open!==undefined)resolve(false);else if(a.readyState==='done')resolve(typeof locked==='string'&&locked.includes('clara-encrypted-backup'))}}})''')
   page.reload()
   print('COFRE DEBUG:',page.locator('body').inner_text(timeout=10000)[:650])
+  print('COFRE ESTADO IDB:', page.evaluate("""async()=>new Promise(resolve=>{const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const s=r.result.transaction('app','readonly').objectStore('app');const a=s.get('state'),b=s.get('state-vault');let plain,crypt; a.onsuccess=()=>{plain=a.result;if(b.readyState==='done')resolve({plain:!!plain,encrypted:typeof crypt,hasCipher:typeof crypt==='string'})};b.onsuccess=()=>{crypt=b.result;if(a.readyState==='done')resolve({plain:!!plain,encrypted:typeof crypt,hasCipher:typeof crypt==='string'})}}})"""))
+
   print('ERROS JS:',errors[-3:])
   page.get_by_role('heading',name='Cofre financeiro protegido').wait_for(timeout=15000)
   page.get_by_label('Senha do cofre').fill('Senha incorreta bem longa')
