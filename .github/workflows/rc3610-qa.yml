@@ -1,0 +1,57 @@
+name: Clara Finanças RC3.6.10 — QA
+
+on:
+  push:
+    branches:
+      - release/rc3610-menu-clean
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-rc3610:
+    name: Node + PWA Chromium 390/768/1440
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Executar testes de regressão
+        run: npm test
+      - name: Gerar pacote PWA
+        run: npm run build
+      - name: Validar caminhos, versão e cache
+        run: npm run verify:paths
+      - name: Instalar Playwright
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Testar no Chromium com servidor de distribuição
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-http-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Guardar logs de QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clara-rc3610-qa-logs
+          path: |
+            /tmp/clara-http-server.log
+            /tmp/clara-pwa-browser.log
+          if-no-files-found: ignore
