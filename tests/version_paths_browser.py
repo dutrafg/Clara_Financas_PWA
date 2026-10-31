@@ -40,11 +40,11 @@ async def run():
     assert await page.locator('#dashboardMiniapps').count()==1
 
     meta=json.loads((site/'version.json').read_text())
-    meta['version']='3.6.10-rc'
+    meta['version']='3.6.11-rc'
     meta['notes']=['Melhorias de atualização validadas no teste.']
     (site/'version.json').write_text(json.dumps(meta))
     online=await page.evaluate("""async () => (await (await fetch('./version.json',{cache:'no-store'})).json()).version""")
-    assert online=='3.6.10-rc',online
+    assert online=='3.6.11-rc',online
     original=(site/'index.html').read_text()
     (site/'index.html').write_text(original.replace('</head>','<!-- qa-version-two -->\n</head>',1))
     fresh=await page.evaluate("""async () => {
@@ -67,7 +67,7 @@ async def run():
     assert await page.locator('#claraUpdateNotice').is_visible()
     assert await page.locator('#claraUpdateNoticeInstall').is_visible()
     assert await page.locator('#claraUpdateNoticeText').inner_text()
-    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='3.6.10-rc'")
+    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='3.6.11-rc'")
     await page.locator('#claraUpdateNoticeLater').click()
     assert not await page.locator('#claraUpdateNotice').is_visible()
     await page.evaluate("window.ClaraUpdate.check(false)")
