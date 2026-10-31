@@ -2978,7 +2978,7 @@ function renderAjustes() {
       </div>
       <details class="config-disclosure" id="claraReleaseNotes"><summary>O que há de novidade</summary>
         <ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(item=>'<li>'+esc(item)+'</li>').join('')}</ul>
-      </details>`;
+      </details>
     `)}<div class="gap"></div>
     ${panel('Backup protegido', 'Seus dados permanecem criptografados.', `
       <div class="config-actions"><div><strong>Exportar .clara</strong><small>Cópia criptografada dos seus registros.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div>
@@ -2994,7 +2994,7 @@ function renderAjustes() {
         <div class="config-actions"><div><strong>Diagnóstico</strong><small>Testes internos do Clara.</small></div><button class="btn" type="button" data-open-qa="1">Executar</button></div>
         <div class="config-actions"><div><strong>Começar do zero</strong><small>Exige backup antes da redefinição.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>
       `)}
-    </details>
+    </details>`;
   }
   $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
   window.ClaraUpdate?.paint?.();
