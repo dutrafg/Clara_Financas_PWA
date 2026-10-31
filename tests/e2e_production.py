@@ -168,7 +168,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   # Regressão 6.1: corrigir pagamento, reabrir e excluir pela interface.
   page.get_by_role('button',name='Movimentações',exact=True).last.click()
   page.get_by_label('Pesquisar movimentações').fill('Pagamento: Financiamento de notebook')
-  row=page.locator('.table-scroller tbody tr').filter(has_text='Pagamento: Financiamento de notebook')
+  row=page.locator('.movement-mobile-card').filter(has_text='Pagamento: Financiamento de notebook')
   row.wait_for(timeout=15000)
   row.get_by_role('button',name='Editar').click()
   page.locator('input[name="amount"]').fill('150,00')
