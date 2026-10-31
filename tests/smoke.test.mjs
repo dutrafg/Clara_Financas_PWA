@@ -127,8 +127,8 @@ test('Registro de alterações com inclusão, edição e exclusão cifradas',()=
  assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
 });
 
-test('Versão exibida acompanha a única constante do aplicativo',()=>{
- const pkgVersion=JSON.parse(pkg).version;
+test('Versão exibida acompanha a única constante do aplicativo',async()=>{
+ const pkgVersion=JSON.parse(await readFile('package.json','utf8')).version;
  const expected=html.match(/const CLARA_APP_VERSION='([^']+)'/);
  assert.ok(expected,'Constante de versão ausente');
  assert.equal(expected[1],pkgVersion);
