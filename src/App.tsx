@@ -207,6 +207,7 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
 export default function App(){
  const {data,error,saving,folder,setFolder,notice,notify,commit,modify}=useFinance();
  const [view,setView]=useState<View>('dashboard');
+ const [projectionMonths,setProjectionMonths]=useState<3|6|12>(6);
  const [backupPassword,setBackupPassword]=useState('');
  const [lockPassword,setLockPassword]=useState('');
  const [unlockPassword,setUnlockPassword]=useState('');
@@ -259,7 +260,7 @@ export default function App(){
  const report=useMemo(()=>data?monthlyReport(data,month):null,[data,month]);
  const yearly=useMemo(()=>data?annualReport(data,month.slice(0,4)):null,[data,month]);
  const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
- const forecast=useMemo(()=>data?cashflowForecast(data,month,6):[],[data,month]);
+ const forecast=useMemo(()=>data?cashflowForecast(data,month,projectionMonths):[],[data,month,projectionMonths]);
  const savings=useMemo(()=>data?savingsOverview(data,month):null,[data,month]);
  const [savingsDraft,setSavingsDraft]=useState('');
  const [reviewDraft,setReviewDraft]=useState('1');
@@ -570,7 +571,12 @@ export default function App(){
    {debt.monthlyCents>0&&<p className="fine">Prestação de referência: {mask(debt.monthlyCents)}</p>}
    <div className="catalog-actions"><Button disabled={debt.settled} icon="check" onClick={()=>setModal({type:'debtPayment',id:debt.id})}>Registrar pagamento</Button></div>
   </Pane>):<div className="surface"><Empty text="Nenhuma dívida cadastrada." action={<Button icon="plus" onClick={()=>setModal({type:'debt'})}>Cadastrar dívida</Button>}/></div>}</div>
- <Pane title="Projeção de fluxo de caixa · 6 meses" detail="Simulação com receitas e despesas realizadas e pendentes já cadastradas.">
+ <Pane title={`Projeção de fluxo de caixa · ${projectionMonths} meses`} detail="Simulação com receitas e despesas realizadas e pendentes já cadastradas.">
+  <div className="projection-horizon" role="group" aria-label="Período da projeção">
+   {([3,6,12] as const).map(n=><button type="button" key={n}
+    className={projectionMonths===n?'selected':''} aria-pressed={projectionMonths===n}
+    onClick={()=>setProjectionMonths(n)}>{n} meses</button>)}
+  </div>
   <div className="planning-table"><table><thead><tr><th>Mês</th><th>Receitas</th><th>Despesas</th><th>Resultado</th><th>Saldo projetado</th></tr></thead><tbody>
   {forecast.map(row=><tr key={row.month}><td>{monthText(row.month)}</td><td>{mask(row.incomeCents)}</td><td>{mask(row.expenseCents)}</td><td>{mask(row.netCents)}</td><td><strong>{mask(row.closingCents)}</strong></td></tr>)}
   </tbody></table></div>
