@@ -8,6 +8,7 @@ export const writeFolderCopy = source.writeFolderCopy as (data:FinanceData,passw
 export const readFolderCopy = source.readFolderCopy as (password:string)=>Promise<FinanceData>;
 export const readLegacyFolderCopy = source.readLegacyFolderCopy as ()=>Promise<FinanceData>;
 export const removeLegacyFolderCopy = source.removeLegacyFolderCopy as ()=>Promise<boolean>;
+export const hasFolderCopy = source.hasFolderCopy as ()=>Promise<boolean>;
 export const hasLegacyFolderCopy = source.hasLegacyFolderCopy as ()=>Promise<boolean>;
 export const vaultExists = source.vaultExists as ()=>Promise<boolean>;
 export const enableVault = source.enableVault as (password:string)=>Promise<boolean>;
