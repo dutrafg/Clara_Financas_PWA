@@ -1,71 +1,41 @@
-name: Homologar Clara Finanças Etapa 03
+name: Homologar Clara Finanças Etapa 04
 on:
   push:
-    branches:
-      - homologacao/etapa-03
-    paths:
-      - clara-etapa03.zip
+    branches: [homologacao/etapa-04]
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  importar-e-testar:
+  validar:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Descompactar o pacote preparado
-        shell: bash
-        run: |
-          set -euo pipefail
-          ARCHIVE=clara-etapa03.zip
-          test -f "$ARCHIVE"
-          unzip -t "$ARCHIVE"
-          if unzip -Z1 "$ARCHIVE" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
-            echo 'ERRO: caminhos inseguros no pacote'; exit 1
-          fi
-          unzip -oq "$ARCHIVE" -x '.github/workflows/*'
-          # Manter os workflows existentes intactos: o token do Actions
-          # não possui permissão para publicar novos arquivos de workflow.
-          test -f package.json
-          test -f src/App.tsx
-          test -f tests/e2e_production.py
-          test -f tests/stage3.test.mjs
-          test -f src/legacy/movements.mjs
-          rm "$ARCHIVE"
-      - name: Salvar fontes somente na branch de homologação
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m 'feat: importar Clara PWA RC 0.4.0 para homologação da Etapa 3'
-            git push origin HEAD:homologacao/etapa-03
-          fi
-      - uses: actions/setup-node@v4
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+      - name: Dependências
+        run: npm install --no-audit --no-fund
+      - name: Testes financeiros (etapas 1 a 4)
+        run: npm test
+      - name: TypeScript e compilação de produção
+        run: npm run build
+      - name: Configurar Python e Chromium
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Instalar dependências
-        run: npm install --no-audit --no-fund
-      - name: Testar regras financeiras
-        run: npm test
-      - name: Verificar TypeScript e compilar Vite
-        run: npm run build
-      - name: Instalar Chromium de teste
+      - name: Instalar Playwright
         run: |
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Homologar IndexedDB, Service Worker e offline
+      - name: Homologar banco real, offline, UI e parcelamentos
         run: python tests/e2e_production.py
-      - name: Publicar evidências
+      - name: Evidências de interface
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-etapa03-instalacao-e-testes
+          name: clara-etapa04-testes
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
