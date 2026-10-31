@@ -174,3 +174,13 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/No Chrome, primeiro abra o site normalmente/);
  assert.match(html,/const CLARA_APP_VERSION='3\.6\.9-rc'/);
 });
+
+test('Navegação sem botão órfão de QA, preservando acesso de manutenção',()=>{
+ assert.doesNotMatch(html,/id="qaOpen"/);
+ assert.doesNotMatch(html,/\$\('qaOpen'\)/);
+ assert.match(html,/function qaOpen\(\)/);
+ assert.match(html,/if \(b\.dataset\.openQa\) \{ qaOpen\(\); return; \}/);
+ assert.match(html,/id="claraAdvancedSettings"/);
+ assert.match(html,/data-open-qa="1"/);
+ assert.match(html,/const CLARA_APP_VERSION='3\.6\.10-rc'/);
+});
