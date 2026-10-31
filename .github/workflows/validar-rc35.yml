@@ -30,3 +30,6 @@ jobs:
           sleep 3
           python tests/pwa_browser.py
           python tests/miniapps_extended.py
+          python -m http.server 8766 --directory . --bind 127.0.0.1 &
+          sleep 2
+          python tests/version_paths_browser.py
