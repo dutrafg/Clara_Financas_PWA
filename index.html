@@ -1509,6 +1509,63 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 @media(max-width:760px){.clara-update-notice{top:auto;bottom:calc(90px + env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px)}}
 @media(max-width:350px){.clara-update-metrics{grid-template-columns:1fr}}
 @media print{.clara-update-notice{display:none!important}}
+
+/* Configurações: visual minimalista, linhas de ação e seções progressivas. */
+#view-ajustes .config-intro{display:flex;align-items:center;justify-content:space-between;
+ gap:14px;background:transparent;border:0;border-bottom:1px solid var(--stroke);
+ border-radius:0;box-shadow:none;padding:6px 0 17px;margin-bottom:9px}
+#view-ajustes .config-intro h3{font-size:19px;margin:0 0 3px;font-weight:750;letter-spacing:-.4px}
+#view-ajustes .config-intro p{font-size:12px;line-height:1.4}
+#view-ajustes .config-version{font-size:11px;font-weight:650;color:var(--muted);white-space:nowrap}
+#view-ajustes .config-tabs{gap:4px;padding:7px 0 12px;margin:0 0 13px;scrollbar-width:none}
+#view-ajustes .config-tabs::-webkit-scrollbar{display:none}
+#view-ajustes .config-tab{border:0;background:transparent;color:var(--muted);border-radius:11px;
+ padding:10px 12px;font-size:13px;font-weight:650;min-height:39px}
+#view-ajustes .config-tab.active{background:color-mix(in srgb,var(--teal) 11%,var(--panel2));
+ color:var(--teal);box-shadow:none}
+#view-ajustes .config-content{max-width:980px;margin-inline:auto}
+#view-ajustes .config-content>.panel,
+#view-ajustes .config-advanced>.panel{box-shadow:none;border:1px solid var(--stroke);
+ border-radius:17px;padding:18px 19px;background:var(--panel)}
+#view-ajustes .config-content .panel-head{margin-bottom:12px}
+#view-ajustes .config-content .panel-head h3{font-size:15px;letter-spacing:-.15px}
+#view-ajustes .config-content .panel-head p{font-size:12px;line-height:1.4;max-width:60ch}
+#view-ajustes .config-content .gap{height:10px}
+#view-ajustes .config-content .config-actions{min-height:54px;padding:11px 0;gap:9px}
+#view-ajustes .config-actions strong,#view-ajustes .config-note strong{font-size:13px}
+#view-ajustes .config-actions small{font-size:11px;line-height:1.35}
+#view-ajustes .config-content .btn{border-radius:11px}
+#view-ajustes .config-content .config-disclosure{display:block;border-top:1px solid var(--stroke);
+ margin-top:13px;padding:12px 0 0;background:transparent}
+#view-ajustes .config-disclosure>summary{list-style:none;cursor:pointer;color:var(--muted);
+ font-size:12px;font-weight:700;line-height:1.4;min-height:30px;display:flex;align-items:center;justify-content:space-between}
+#view-ajustes .config-disclosure>summary::-webkit-details-marker{display:none}
+#view-ajustes .config-disclosure>summary:after{content:'+';font-size:18px;font-weight:500;line-height:1}
+#view-ajustes .config-disclosure[open]>summary:after{content:'−'}
+#view-ajustes .config-disclosure>summary:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:5px}
+#view-ajustes .config-advanced{border:1px solid var(--stroke);border-radius:15px;
+ padding:10px 16px;margin-top:10px}
+#view-ajustes .config-advanced>.panel{margin-top:10px;border:0;padding:4px 0 0;background:transparent}
+#view-ajustes .clara-update-metrics{gap:9px;margin:5px 0 10px}
+#view-ajustes .clara-update-metrics>div{padding:11px 12px;border:0;border-radius:12px;background:var(--panel2)}
+#view-ajustes .clara-update-metrics strong{font-size:15px}
+#view-ajustes .clara-update-status{margin:8px 0 12px;font-size:12px}
+#view-ajustes .clara-update-indicator{font-size:11px;padding:5px 9px}
+#view-ajustes .clara-release-notes{margin:7px 0 0;padding:0 0 0 17px}
+#view-ajustes .clara-release-notes li{padding:2px 0}
+#view-ajustes .config-content .palette-choice{border:1px solid var(--stroke);border-radius:13px;box-shadow:none;padding:10px}
+#view-ajustes .config-content .palette-choice.selected{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 8%,var(--panel2))}
+#view-ajustes .config-content .palette-swatches i{height:24px}
+@media(max-width:760px){
+ #view-ajustes .config-intro{padding:2px 0 13px}
+ #view-ajustes .config-tabs{gap:0}
+ #view-ajustes .config-tab{padding:9px 11px;font-size:12px}
+ #view-ajustes .config-content>.panel{padding:14px 15px}
+ #view-ajustes .config-content .layout-equal{gap:10px}
+ #view-ajustes .config-content .config-actions{align-items:center;flex-wrap:wrap}
+ #view-ajustes .config-content .config-actions .btn{min-height:39px}
+}
+
 </style>
 </head>
 <body>
@@ -2847,8 +2904,8 @@ function renderPlan() {
 }
 
 const CONFIG_TABS = [
-  ['aparencia', 'Aparência'], ['painel', 'Painel'], ['financeiro', 'Preferências'],
-  ['contas', 'Contas e categorias'], ['dados', 'Dados e manutenção']
+  ['aparencia', 'Aparência'], ['painel', 'Painel'], ['financeiro', 'Finanças'],
+  ['contas', 'Contas'], ['dados', 'Segurança']
 ];
 const prefChecked = id => pref(id) ? 'checked' : '';
 const prefSwitch = (key, title, desc) => `<label class="pref-toggle"><span><strong>${title}</strong><small>${desc}</small></span><input type="checkbox" data-pref="${key}" ${prefChecked(key)} aria-label="${title}"></label>`;
@@ -2858,7 +2915,7 @@ const confSelect = (id, title, subtitle, options) => `<label class="field"><span
 function renderAjustes() {
   const t = configTab;
   const tabs = `<nav class="config-tabs" aria-label="Seções das configurações">${CONFIG_TABS.map(([id, label]) => `<button type="button" class="config-tab ${id===t?'active':''}" data-config-tab="${id}" aria-current="${id===t?'page':'false'}">${label}</button>`).join('')}</nav>`;
-  const introductory = `<div class="config-intro"><div><span class="eyebrow">Personalize o seu Clara</span><h3>Um lugar para todos os ajustes</h3><p>As alterações são aplicadas imediatamente e armazenadas junto aos seus dados locais. Mantenha somente o que é útil na interface.</p></div><div class="config-intro-icon" aria-hidden="true">⚙</div></div>`;
+  const introductory = `<div class="config-intro"><div><h3>Suas preferências</h3><p>Alterações salvas automaticamente neste dispositivo.</p></div><span class="config-version">v${esc(CLARA_APP_VERSION)}</span></div>`;
 
   let body = '';
   if (t === 'aparencia') {
@@ -2904,23 +2961,40 @@ function renderAjustes() {
     const cats = state.categories.map((c,i)=>`<div class="list-row"><div class="left"><strong><i class="color" style="display:inline-block;margin-right:7px;background:${categoryColor(c.name,i)}"></i>${esc(c.name)}</strong><div class="secondary">${esc(c.group)}</div></div>${c.group==='Despesa'?`<label class="field limit-field"><span>Limite (R$)</span><input class="editable limit-input" data-category="${esc(c.name)}" inputmode="decimal" value="${numField(c.limitCents || 0)}" aria-label="Limite ${esc(c.name)}"></label>`:'<span class="pill">Receita</span>'}</div>`).join('');
     body = `${panel('Contas, reservas e cartões', 'Adicione, edite ou exclua contas. Contas vinculadas a movimentações têm proteção de integridade.', `<div class="account-grid">${accounts}</div>`, '<button class="btn small primary" type="button" data-open="account">＋ Nova conta</button>')}<div class="gap"></div>${panel('Categorias e limites mensais', 'Os limites alimentam o planejamento e o painel em todas as telas.', `<div class="list category-config-list">${cats}</div><div class="control-row"><button class="btn primary" type="button" id="saveLimits">Salvar limites</button></div>`)}`;
   } else if (t === 'dados') {
-    body = `${panel('Segurança e privacidade', 'Controle de dados locais e de exposição de valores.', `<div class="list">
-      ${prefSwitch('hideValues','Ocultar valores na interface','Impede visualização casual; não cifra o armazenamento do navegador.')}
-      <div class="config-note"><strong>Proteção dos dados</strong><span>Após criar sua senha, os dados são criptografados neste navegador com AES-256-GCM. Os registros e backups antigos sem proteção devem ser eliminados com cuidado.</span></div>
+    body = `${panel('Proteção', 'Seu cofre permanece protegido neste dispositivo.', `
+      <div class="list">
+        ${prefSwitch('hideValues','Ocultar valores','Oculta saldos na interface.')}
+        <div class="config-actions"><div><strong>Bloquear Clara</strong><small>Solicitar a senha novamente.</small></div><button class="btn" type="button" id="lockClaraNow">Bloquear</button></div>
+      </div>
+    `)}<div class="gap"></div>
+    ${panel('Atualizações', '', `
       <div class="clara-update-center" aria-label="Central de atualizações">
- <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão instalada, última verificação e status — sem reiniciar sem autorização.</small></div></div>
- <div class="clara-update-metrics">
-  <div><small>VERSÃO INSTALADA</small><strong id="claraUpdateInstalled">${esc(CLARA_APP_VERSION)}</strong><small>Canal de testes RC</small></div>
-  <div><small>ÚLTIMA VERIFICAÇÃO</small><strong id="claraUpdateLast">Ainda não verificado</strong><small>Consulta automática com internet</small></div>
- </div>
- <div class="clara-update-status"><span class="clara-update-indicator" id="claraUpdateState">Aguardando</span><span id="claraUpdateMessage">Verificação automática ao desbloquear.</span></div>
- <div class="control-row"><button type="button" class="btn" id="checkClaraUpdate">Verificar agora</button><button type="button" class="btn primary" id="applyClaraUpdate" hidden>Atualizar agora</button></div>
-</div>
-<div class="config-note clara-whats-new"><strong>O que há de novidade</strong><span>Versão ${esc(CLARA_APP_VERSION)} · Melhorias disponíveis mesmo offline.</span><ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
-    </div>`)}<div class="gap"></div>
-    <div class="config-actions"><div><strong>Bloquear aplicativo</strong><small>Oculta os saldos e exige novamente a senha pessoal.</small></div><button class="btn" type="button" id="lockClaraNow">Bloquear</button></div><div class="gap"></div>
-    ${panel('Cópias de segurança', 'O backup .clara é criptografado; arquivos JSON anteriores podem ser importados apenas para migração.', `<div class="config-actions"><div><strong>Exportar backup protegido (.clara)</strong><small>Protegido pela senha atual.</small></div><button class="btn" type="button" id="exportJson">Exportar .clara</button></div><div class="config-actions"><div><strong>Restaurar backup .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar .clara</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div><div class="config-actions"><div><strong>Importar JSON antigo</strong><small>Migração de backup legado não criptografado.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar JSON</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
-    ${panel('Diagnóstico e manutenção', 'Ferramentas de diagnóstico. Não utilize a base de testes com dados reais.', `<div class="config-actions"><div><strong>Central ClaraQA</strong><small>Executa verificações internas, incluindo preferências.</small></div><button class="btn" type="button" data-open-qa="1">Executar testes</button></div><div class="config-actions"><div><strong>Começar do zero</strong><small>Exporta um backup e inicia uma base vazia.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>`)}`;
+        <div class="clara-update-metrics">
+          <div><small>VERSÃO INSTALADA</small><strong id="claraUpdateInstalled">${esc(CLARA_APP_VERSION)}</strong></div>
+          <div><small>ÚLTIMA VERIFICAÇÃO</small><strong id="claraUpdateLast">Ainda não verificado</strong></div>
+        </div>
+        <div class="clara-update-status"><span class="clara-update-indicator" id="claraUpdateState">Aguardando</span><span id="claraUpdateMessage">Verificação automática com internet.</span></div>
+        <div class="control-row"><button type="button" class="btn" id="checkClaraUpdate">Verificar agora</button><button type="button" class="btn primary" id="applyClaraUpdate" hidden>Atualizar agora</button></div>
+      </div>
+      <details class="config-disclosure" id="claraReleaseNotes"><summary>O que há de novidade</summary>
+        <ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(item=>'<li>'+esc(item)+'</li>').join('')}</ul>
+      </details>`;
+    `)}<div class="gap"></div>
+    ${panel('Backup protegido', 'Seus dados permanecem criptografados.', `
+      <div class="config-actions"><div><strong>Exportar .clara</strong><small>Cópia criptografada dos seus registros.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div>
+      <div class="config-actions"><div><strong>Restaurar .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div>
+      <details class="config-disclosure"><summary>Importar dados de versões antigas</summary>
+        <p class="helper">Use apenas para migrar um backup JSON sem criptografia.</p>
+        <label class="btn" for="importJson" style="cursor:pointer">Importar JSON antigo</label><input hidden type="file" id="importJson" accept=".json,application/json">
+      </details>
+    `)}<div class="gap"></div>
+    <details class="config-disclosure config-advanced" id="claraAdvancedSettings">
+      <summary>Manutenção avançada</summary>
+      ${panel('Ferramentas', 'Verificações e ações de recuperação.', `
+        <div class="config-actions"><div><strong>Diagnóstico</strong><small>Testes internos do Clara.</small></div><button class="btn" type="button" data-open-qa="1">Executar</button></div>
+        <div class="config-actions"><div><strong>Começar do zero</strong><small>Exige backup antes da redefinição.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>
+      `)}
+    </details>
   }
   $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
   window.ClaraUpdate?.paint?.();
