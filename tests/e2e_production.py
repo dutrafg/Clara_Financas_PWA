@@ -104,7 +104,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   assert not errors,errors
   print('PASSOU: assistente Price 4x, entrada, juros, prévia, IndexedDB e persistência')
   # Etapa 5: categorias, arquivamento, meta mensal e persistência.
-  page.get_by_role('button',name='Contas',exact=True).last.click()
+  page.get_by_role('button',name='Contas e cartões',exact=True).last.click()
   page.get_by_role('button',name='Nova categoria',exact=True).click()
   page.locator('input[name="name"]').fill('Projetos pessoais')
   page.locator('select[name="group"]').select_option('Despesa')
