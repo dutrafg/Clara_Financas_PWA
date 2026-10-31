@@ -1400,7 +1400,9 @@ a { color: inherit; }
 .clw-section-head .question-title{margin:0}
 .clw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .clw-item{min-width:0}
-.clw-item>.panel{height:100%;min-width:0}
+.clw-item{display:flex;flex-direction:column;min-width:0}
+.clw-item>.panel{height:auto;flex:1 1 auto;min-width:0}
+.clw-item>.clw-toolstrip{flex:0 0 auto;position:relative;z-index:1}
 .clw-item .panel-head{flex-wrap:wrap;gap:8px}
 .clw-item .panel-head .btn{max-width:100%;white-space:normal}
 .clw-list{display:grid;gap:0}
