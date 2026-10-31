@@ -7,9 +7,10 @@ export interface Account { id:string; name:string; type:string; openingCents:num
 export interface Category { id:string; name:string; group:'Receita'|'Despesa'; archived?:boolean; }
 export interface Transaction { id:string; date:string; paidAt?:string; description:string; kind:Kind; category:string; amountCents:number; accountId:string; toAccountId?:string; status:Status; note?:string; debtId?:string; recurrenceGroupId?:string; recurrenceIndex?:number; recurrenceCount?:number; recurrenceFrequency?:'weekly'|'monthly'|'yearly'; installmentGroupId?:string; installmentIndex?:number; installmentCount?:number; installmentPrincipalCents?:number; installmentInterestCents?:number; }
 export interface Budget { category:string; limitCents:number }
+export interface Reconciliation {id:string;accountId:string;asOfDate:string;statementCents:number;calculatedCents:number;differenceCents:number;note:string;createdAt:string;}
 export interface Debt {id:string; name:string; creditor:string; totalCents:number; openingPaidCents:number; monthlyCents:number; dueDate?:string; category:string;}
 export interface Goal { id:string; name:string; targetCents:number; savedCents:number; dueDate?:string }
 export interface FinanceSettings { theme:Theme; accent:Accent; hideValues:boolean; selectedPeriod:string; monthlySavingsCents?:number; reviewDay?:number; }
-export interface FinanceData { schemaVersion:2; appVersion:string; isDemo:boolean; revision:number; updatedAt:string; accounts:Account[]; categories:Category[]; budgets:Budget[]; transactions:Transaction[]; goals:Goal[]; debts?:Debt[]; settings:FinanceSettings }
+export interface FinanceData { schemaVersion:2; appVersion:string; isDemo:boolean; revision:number; updatedAt:string; accounts:Account[]; categories:Category[]; budgets:Budget[]; transactions:Transaction[]; goals:Goal[]; debts?:Debt[]; reconciliations?:Reconciliation[]; settings:FinanceSettings }
 export interface FinancialStats { month:string; income:number; expense:number; result:number; pending:number; pendingIncome:number; cancelled:number; transfers:number; accounts:(Account&{balanceCents:number})[]; totalBalance:number; expensesByCategory:[string,number][]; daily:Map<string,{income:number;expense:number}>; recent:Transaction[]; transactionsCount:number; }
 export type FolderInfo = {state:string;name:string};
