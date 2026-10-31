@@ -6,7 +6,16 @@ const versionPath = scopedURL('./version.json').pathname;
 
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(CACHE_NAME);
-  await cache.addAll(APP_FILES.map(path => new Request(scopedURL(path), {cache:'reload'})));
+  // Baixa cada arquivo pela rede com um parâmetro exclusivo deste build.
+  // Cache HTTP e Service Workers de versões anteriores não podem responder com conteúdo antigo.
+  await Promise.all(APP_FILES.map(async path => {
+    const clean = scopedURL(path);
+    const fresh = new URL(clean);
+    fresh.searchParams.set('_clara_build', CACHE_NAME);
+    const response = await fetch(new Request(fresh, {cache:'no-store'}));
+    if (!response.ok) throw Error('Pré-cache não disponível: ' + path);
+    await cache.put(clean, response);
+  }));
   await self.skipWaiting();
 })()));
 
