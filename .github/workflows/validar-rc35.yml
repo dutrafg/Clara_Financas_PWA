@@ -28,6 +28,7 @@ jobs:
         run: |
           python -m http.server 8765 --directory dist --bind 127.0.0.1 &
           sleep 3
+          python tests/security_pwa.py
           python tests/pwa_browser.py
           python tests/miniapps_extended.py
           python -m http.server 8766 --directory . --bind 127.0.0.1 &
