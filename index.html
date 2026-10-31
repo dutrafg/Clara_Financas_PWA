@@ -1424,6 +1424,13 @@ a { color: inherit; }
 @media(min-width:1500px){.clw-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media print{.clw-actions,.clw-editor,.clw-quick{display:none!important}}
 
+
+.clw-toolstrip{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px 14px;border-top:1px solid var(--stroke)}
+.clw-toolstrip>.btn{white-space:normal;max-width:100%;min-height:30px}
+.clw-sim-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.clw-sim-fields .field,.clw-sim-fields input,.clw-sim-fields select{min-width:0}
+.clw-sim-result{margin:12px 0;padding:12px;background:var(--panel2);border-radius:10px;overflow-wrap:anywhere}
+@media(max-width:600px){.clw-sim-fields{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1535,9 +1542,122 @@ const SVG_ICONS = {
 
 
 /* Cards funcionais do Painel: catálogo local, não é uma loja de aplicativos. */
-const CLARA_WIDGETS = Object.freeze([{"id":"attention","name":"Central de atenção","description":"Contas atrasadas, limites e metas"},{"id":"agenda","name":"Agenda financeira","description":"Vencimentos e recebimentos dos próximos 14 dias"},{"id":"quick","name":"Lançamentos rápidos","description":"Registre receitas, despesas e transferências"},{"id":"budgets","name":"Orçamentos por categoria","description":"Limites, realizado e previsto"},{"id":"goals","name":"Metas financeiras","description":"Progresso, edição e atualização"},{"id":"accounts","name":"Contas e cartões","description":"Saldos, faturas e conciliações"},{"id":"comparison","name":"Comparativo de meses","description":"Evolução de receitas e despesas"},{"id":"recent","name":"Movimentações recentes","description":"Editar, duplicar ou excluir registros"},{"id":"insights","name":"Insights automáticos","description":"Indicadores com base nos seus dados"},{"id":"forecast","name":"Fluxo de caixa projetado","description":"Saldo e compromissos dos meses futuros"},{"id":"audit","name":"Conferências e auditoria","description":"Histórico, conciliação e exportação"},{"id":"categories","name":"Onde estou gastando?","description":"Distribuição por categorias"},{"id":"history","name":"Histórico mensal","description":"Resumo dos meses anteriores"}]);
+const CLARA_WIDGETS = Object.freeze([{"id":"attention","name":"Central de atenção","description":"Contas atrasadas, limites e metas"},{"id":"agenda","name":"Agenda financeira","description":"Vencimentos e recebimentos dos próximos 14 dias"},{"id":"quick","name":"Lançamentos rápidos","description":"Registre receitas, despesas e transferências"},{"id":"budgets","name":"Orçamentos por categoria","description":"Limites, realizado e previsto"},{"id":"goals","name":"Metas financeiras","description":"Progresso, edição e atualização"},{"id":"accounts","name":"Contas e cartões","description":"Saldos, faturas e conciliações"},{"id":"comparison","name":"Comparativo de meses","description":"Evolução de receitas e despesas"},{"id":"recent","name":"Movimentações recentes","description":"Editar, duplicar ou excluir registros"},{"id":"insights","name":"Insights automáticos","description":"Indicadores com base nos seus dados"},{"id":"forecast","name":"Fluxo de caixa projetado","description":"Saldo e compromissos dos meses futuros"},{"id":"audit","name":"Conferências e auditoria","description":"Histórico, conciliação e exportação"},{"id":"categories","name":"Onde estou gastando?","description":"Distribuição por categorias"},{"id":"history","name":"Histórico mensal","description":"Resumo dos meses anteriores"},{"id":"recurring","name":"Recorrências identificadas","description":"Encontrar despesas e receitas repetidas"},{"id":"simulator","name":"Simulador financeiro","description":"Comparar cenários sem alterar dados"}]);
 const CLARA_WIDGET_DEFAULT = Object.freeze(['attention','agenda','quick','budgets','goals','recent','insights']);
 let claraDashboardEditing = false;
+const claraWidgetUI = {agendaDays:14,agendaKind:'Todos',onlyRisk:false,onlyCards:false,recentStatus:'Todos',compareOffset:1};
+function recurringItems(){
+ const groups=new Map();
+ for(const t of state.transactions){
+  if(t.status==='Cancelado'||t.kind==='Transferência')continue;
+  const key=[normalized(t.description).trim().replace(/\s+/g,' '),t.kind,t.accountId].join('|');
+  if(!groups.has(key))groups.set(key,[]);
+  groups.get(key).push(t);
+ }
+ return [...groups.values()].filter(arr=>new Set(arr.map(t=>t.date.slice(0,7))).size>=2).map(arr=>{
+  arr.sort((a,b)=>a.date.localeCompare(b.date));const t=arr.at(-1);
+  return {id:t.id,name:t.description,kind:t.kind,months:new Set(arr.map(x=>x.date.slice(0,7))).size,count:arr.length,
+   amount:t.amountCents,last:t.date,next:plusMonth(t.date,1)};
+ }).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
+}
+
+function renderRecurring(action,line,empty){
+ const rows=recurringItems();
+ return panel('Recorrências identificadas','Padrões em pelo menos dois meses distintos',`
+ <div class="clw-list">${rows.slice(0,7).map(r=>line(r.name,
+ `${r.kind} · ${r.months} meses · último ${brl(r.amount)} · próxima referência estimada ${fmtDay(r.next)}`,
+ action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir',`data-clw-action="duplicate" data-clw-id="${esc(r.id)}"`))).join('')}
+ ${!rows.length?empty('Ainda não existem registros suficientes para identificar recorrências.'):''}</div>
+ <p class="helper">Estimativa baseada em registros: não cria cobranças automaticamente.</p>`,
+ action('Exportar CSV','data-clw-action="recurring-export"'));
+}
+
+function renderSimulator(action){
+ return panel('Simulador financeiro','Simule alterações no orçamento sem salvar dados',`
+ <div class="clw-sim-fields">
+ <label class="field"><span>Receita extra/mês (R$)</span><input id="clw-sim-income" inputmode="decimal" value="0,00"></label>
+ <label class="field"><span>Despesa extra/mês (R$)</span><input id="clw-sim-expense" inputmode="decimal" value="0,00"></label>
+ <label class="field"><span>Prazo</span><select id="clw-sim-months">
+ <option value="1">1 mês</option><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option>
+ </select></label></div>
+ <div class="clw-quick">
+ ${action('Calcular','data-clw-action="simulate"','primary')}
+ ${action('Preparar receita','data-clw-action="sim-draft" data-clw-kind="Receita"')}
+ ${action('Preparar despesa','data-clw-action="sim-draft" data-clw-kind="Despesa"')}
+ </div>
+ <div id="clw-sim-result" class="clw-sim-result" role="status">Preencha os valores e calcule o cenário.</div>
+ <p class="helper">Hipótese simplificada: resultado realizado do mês repetido pelo período indicado. Não considera obrigações não cadastradas nem garante saldo futuro. Nenhuma operação é salva pelo simulador.</p>`,
+ action('Planejamento','data-view="plan"'));
+}
+
+function exportRecurring(){
+ const q=x=>'"'+String(x).replace(/"/g,'""')+'"';
+ const csv=[['Descrição','Tipo','Meses','Ocorrências','Última data','Próxima referência estimada','Último valor (R$)'],
+ ...recurringItems().map(r=>[r.name,r.kind,r.months,r.count,r.last,r.next,(r.amount/100).toFixed(2).replace('.',',')])]
+ .map(row=>row.map(q).join(';')).join('\r\n');
+ dl('clara-recorrencias-'+todayISO()+'.csv','\uFEFF'+csv,'text/csv;charset=utf-8');
+}
+
+function exportBudget(){
+ const q=x=>'"'+String(x).replace(/"/g,'""')+'"';
+ const csv=[['Categoria','Limite (R$)','Realizado (R$)','Pendente (R$)','Previsto (R$)'],
+ ...budgetRows().map(r=>[r.name,...[r.limitCents,r.done,r.pending,r.planned].map(n=>(n/100).toFixed(2).replace('.',','))])]
+ .map(row=>row.map(q).join(';')).join('\r\n');
+ dl('clara-orcamentos-'+state.settings.period+'.csv','\uFEFF'+csv,'text/csv;charset=utf-8');
+}
+
+function computeSimulation(income,expense,months,p){
+ if(!Number.isSafeInteger(income)||!Number.isSafeInteger(expense)||income<0||expense<0||![1,3,6,12].includes(months))
+ throw Error('Use valores não negativos e um prazo válido.');
+ const monthly=stat(p).net+income-expense,estimated=totalBalance(state.settings.cutoff)+monthly*months;
+ if(!Number.isSafeInteger(estimated)||!moneyValid(estimated))throw Error('Simulação excede o limite financeiro permitido.');
+ return {monthly,estimated};
+}
+
+function runSimulation(){
+ const e=$('clw-sim-result');if(!e)return;
+ try{
+ const income=parseBRL($('clw-sim-income').value),expense=parseBRL($('clw-sim-expense').value),months=Number($('clw-sim-months').value);
+ const {monthly,estimated}=computeSimulation(income,expense,months,state.settings.period);
+ e.textContent=`Resultado mensal hipotético: ${brl(monthly)}. Saldo hipotético em ${months} mês(es): ${brl(estimated)}.`;
+ }catch(err){e.textContent=err.message;}
+}
+
+function widgetToolstrip(id,action){
+ const data={
+ attention:[['Ver agenda','focus','agenda'],['Consultar despesas','view','mov']],
+ agenda:[['7 dias','agenda-days','7'],['14 dias','agenda-days','14'],['30 dias','agenda-days','30'],['Só pagamentos','agenda-kind','Despesa'],['Só recebimentos','agenda-kind','Receita'],['Todos','agenda-kind','Todos']],
+ quick:[['Parcelar','view','assist'],['Nova conta','open','account']],
+ budgets:[['Mostrar alertas','budget-risk','toggle'],['Exportar CSV','budget-export','']],
+ goals:[['Todas as metas','view','plan']],
+ accounts:[['Só cartões','account-cards','toggle'],['Gerenciar contas','config','contas']],
+ comparison:[['Mês anterior','compare','1'],['3 meses antes','compare','3'],['12 meses antes','compare','12']],
+ recent:[['Todos','recent-status','Todos'],['Pendentes','recent-status','Pendente'],['Realizados','recent-status','Realizado'],['Exportar CSV','export-tx','']],
+ insights:[['Ver categorias','focus','categories'],['Configurar limites','config','contas']],
+ forecast:[['3 meses','forecast-months','3'],['6 meses','forecast-months','6'],['12 meses','forecast-months','12']],
+ audit:[['Conciliação nova','view','conf'],['Ver histórico','focus','history']],
+ categories:[['Nova despesa','new','Despesa'],['Planejamento','view','plan']],
+ history:[['Comparar meses','focus','comparison'],['Exportar CSV','export-tx','']],
+ recurring:[['Movimentações','view','mov']],
+ simulator:[['Criar meta','open','goal']]
+ };
+ return data[id]?`<div class="clw-toolstrip">${data[id].map(([label,kind,val])=>{
+ const attr=kind==='view'?`data-view="${val}"`:kind==='open'?`data-open="${val}"`:kind==='config'?`data-config-jump="${val}"`:
+ kind==='new'?`data-clw-action="new" data-clw-kind="${val}"`:`data-clw-action="${kind}" data-clw-value="${val}"`;
+ return action(label,attr);
+ }).join('')}</div>`:'';
+}
+
+function focusWidget(id){
+ if(!CLARA_WIDGETS.some(x=>x.id===id))return;
+ if(!claraWidgetEnabled().includes(id)){
+  state.settings.dashboardCards=[...claraWidgetEnabled(),id];
+  try{save();}catch(err){showToast(err.message,true);return;}
+ }
+ renderPainel();
+ document.querySelector('[data-widget="'+id+'"]')?.scrollIntoView({block:'start',behavior:pref('reduceMotion')?'auto':'smooth'});
+}
+
 
 function claraWidgetOrder() {
  const ids=CLARA_WIDGETS.map(x=>x.id), stored=state.settings.dashboardOrder;
@@ -1565,14 +1685,14 @@ function claraWidgetDifference(current,previous) {
 }
 
 function renderClaraMiniapps(p) {
- const today=todayISO(), in14=addDays(today,14);
+ const today=todayISO(), in14=addDays(today,claraWidgetUI.agendaDays);
  const pending=state.transactions.filter(t=>t.status==='Pendente' && t.kind!=='Transferência');
  const overdue=pending.filter(t=>t.date<today).sort((a,b)=>a.date.localeCompare(b.date));
- const upcoming=pending.filter(t=>t.date>=today && t.date<=in14).sort((a,b)=>a.date.localeCompare(b.date));
+ const upcoming=pending.filter(t=>t.date>=today && t.date<=in14 && (claraWidgetUI.agendaKind==='Todos'||t.kind===claraWidgetUI.agendaKind)).sort((a,b)=>a.date.localeCompare(b.date));
  const budgets=budgetRows(p), alerts=budgets.filter(r=>r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100).sort((a,b)=>b.ratio-a.ratio);
  const goalAlerts=state.goals.filter(g=>g.dueDate && g.dueDate<today && g.savedCents<g.targetCents);
- const current=stat(p), previousPeriod=plusMonth(p+'-01',-1).slice(0,7), previous=stat(previousPeriod);
- const recent=state.transactions.slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,5);
+ const current=stat(p), previousPeriod=plusMonth(p+'-01',-claraWidgetUI.compareOffset).slice(0,7), previous=stat(previousPeriod);
+ const recent=state.transactions.filter(t=>claraWidgetUI.recentStatus==='Todos'||t.status===claraWidgetUI.recentStatus).slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,5);
  const action=(label,attributes,kind='ghost')=>claraWidgetButton(label,attributes,kind);
  const line=claraWidgetLine, empty=claraWidgetEmpty;
  const allPending=overdue.length+alerts.length+goalAlerts.length;
@@ -1587,7 +1707,7 @@ function renderClaraMiniapps(p) {
       action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join('')}
     ${allPending===0?empty('Nenhum prazo vencido ou orçamento crítico identificado.'):''}
    </div>`,action('Ver registros','data-view="mov"')),
- agenda:()=>panel('Agenda financeira','Contas e recebimentos a vencer em até 14 dias',`
+ agenda:()=>panel('Agenda financeira','Contas e recebimentos a vencer em até '+claraWidgetUI.agendaDays+' dias',`
    <div class="clw-list">
     ${upcoming.slice(0,6).map(t=>line(t.description,`${fmtDay(t.date)} · ${t.kind==='Receita'?'Receber':'Pagar'} · ${brl(t.amountCents)}`,
       action('Editar',`data-edit-tx="${esc(t.id)}"`)+action(t.kind==='Receita'?'Recebido':'Pagar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join('')}
@@ -1604,7 +1724,7 @@ function renderClaraMiniapps(p) {
    <p class="helper">Nenhum valor é incluído sem confirmação no formulário.</p>`,
    action('Consultar registros','data-view="mov"')),
  budgets:()=>panel('Orçamentos por categoria','Previsto = realizado + pendente',`
-   <div class="clw-list">${budgets.slice().sort((a,b)=>b.ratio-a.ratio).slice(0,7).map(r=>`
+   <div class="clw-list">${budgets.filter(r=>!claraWidgetUI.onlyRisk||(r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100)).slice().sort((a,b)=>b.ratio-a.ratio).slice(0,7).map(r=>`
     <div class="clw-budget">${line(r.name,`Realizado ${brl(r.done)} · Previsto ${brl(r.planned)} · Limite ${brl(r.limitCents)}`,
      action('Ajustar','data-config-jump="contas"'))}
     <div class="pbar"><span class="${budgetSemanticClass(r.ratio)}" style="width:${Math.max(0,Math.min(100,r.ratio*100))}%"></span></div>
@@ -1620,7 +1740,7 @@ function renderClaraMiniapps(p) {
     ${!state.goals.length?empty('Crie uma meta para começar seu planejamento.'):''}
    </div>`,action('Nova meta','data-open="goal"')),
  accounts:()=>panel('Contas e cartões','Posição até a data de corte e pendências por cartão',`
-   <div class="clw-list">${state.accounts.slice(0,7).map(a=>line(a.name,
+   <div class="clw-list">${state.accounts.filter(a=>!claraWidgetUI.onlyCards||a.type==='Cartão').slice(0,7).map(a=>line(a.name,
     `${esc(a.type)} · ${brl(accountBalance(a.id,state.settings.cutoff))}${a.type==='Cartão'?' · Fatura pendente '+brl(accountPendingCard(a.id)):''}`,
     action('Editar',`data-edit-account="${esc(a.id)}"`)+action('Conferir','data-view="conf"'))).join('')}</div>`,
    action('Nova conta','data-open="account"')),
@@ -1679,6 +1799,8 @@ function renderClaraMiniapps(p) {
     <p class="helper">Examinar altera apenas o mês consultado; os registros originais permanecem preservados.</p>`,
     action('CSV anual','data-clw-action="export"'));}
  };
+ cards.recurring=()=>renderRecurring(action,line,empty);
+ cards.simulator=()=>renderSimulator(action);
  const active=claraWidgetEnabled(), order=claraWidgetOrder();
  const editor=claraDashboardEditing?`<div class="clw-editor">
   <p class="small muted">Personalize os miniaplicativos sem alterar lançamentos. Use as setas para mudar a ordem.</p>
@@ -1697,13 +1819,46 @@ function renderClaraMiniapps(p) {
     ${action(claraDashboardEditing?'Concluir edição':'Editar painel','data-clw-action="editor"')}
    </div>
    ${editor}
-   <div class="clw-grid">${order.filter(id=>active.includes(id)).map(id=>`<div class="clw-item" data-widget="${id}">${cards[id]()}</div>`).join('')||empty('Nenhum card visível. Clique em Editar painel para reativar seus miniaplicativos.')}</div>
+   <div class="clw-grid">${order.filter(id=>active.includes(id)).map(id=>`<div class="clw-item" data-widget="${id}">${cards[id]()}${widgetToolstrip(id,action)}</div>`).join('')||empty('Nenhum card visível. Clique em Editar painel para reativar seus miniaplicativos.')}</div>
  </section>`;
 }
 
 function handleClaraWidgetAction(b) {
  const action=b.dataset.clwAction, id=b.dataset.clwId;
  const persist=()=>{try{save();}catch(error){showToast(error.message,true);}};
+ if(action==='simulate'){runSimulation();return;}
+ if(action==='sim-draft'){
+   try{
+     const kind=b.dataset.clwKind;
+     if(!['Receita','Despesa'].includes(kind))return;
+     const value=parseBRL($(kind==='Receita'?'clw-sim-income':'clw-sim-expense').value);
+     if(value<=0)throw Error('Informe um valor positivo.');
+     modal('transaction');$('m_kind').value=kind;updateCategoryForKind();$('m_amount').value=numField(value);
+     showToast('Rascunho preenchido; revise e salve para registrar.');
+   }catch(e){showToast(e.message,true);}return;
+ }
+ if(action==='recurring-export'){exportRecurring();return;}
+ if(action==='budget-export'){exportBudget();return;}
+ if(action==='export-tx'){exportTransactionReport();return;}
+ if(action==='focus'){focusWidget(b.dataset.clwValue);return;}
+ if(action==='agenda-days'){
+  const v=Number(b.dataset.clwValue);if([7,14,30].includes(v)){claraWidgetUI.agendaDays=v;renderPainel();}return;
+ }
+ if(action==='agenda-kind'){
+  const v=b.dataset.clwValue;if(['Todos','Receita','Despesa'].includes(v)){claraWidgetUI.agendaKind=v;renderPainel();}return;
+ }
+ if(action==='recent-status'){
+  const v=b.dataset.clwValue;if(['Todos','Pendente','Realizado'].includes(v)){claraWidgetUI.recentStatus=v;renderPainel();}return;
+ }
+ if(action==='budget-risk'){claraWidgetUI.onlyRisk=!claraWidgetUI.onlyRisk;renderPainel();return;}
+ if(action==='account-cards'){claraWidgetUI.onlyCards=!claraWidgetUI.onlyCards;renderPainel();return;}
+ if(action==='compare'){
+  const v=Number(b.dataset.clwValue);if([1,3,12].includes(v)){claraWidgetUI.compareOffset=v;renderPainel();}return;
+ }
+ if(action==='forecast-months'){
+  const v=Number(b.dataset.clwValue);
+  if(PREF_ENUMS.forecastMonths.includes(v)){state.settings.forecastMonths=v;persist();}return;
+ }
  if(action==='editor'){claraDashboardEditing=!claraDashboardEditing;renderPainel();return;}
  if(action==='toggle'){
    const list=claraWidgetEnabled().slice();
@@ -3590,10 +3745,10 @@ const qaSpecs = [
   }],
   ['QA-087', 'Cores fixas determinísticas por categoria no gráfico', () => qaAssert(categoryColor('Moradia') === '#4cdbcd' && categoryColor('Alimentação') === '#858ff4' && categoryColor('Transporte') === '#f5aa72')],
   ['QA-088', 'Barras de orçamento por faixa configurável', () => qaAssert(budgetSemanticClass(0.5) === '' && budgetSemanticClass(pref('budgetWarningPct') / 100) === 'warn' && budgetSemanticClass(1.1) === 'over')],
-  ['QA-089', 'Hierarquia em 3 níveis e perguntas do usuário no Painel', () => qaFixture(() => {
+  ['QA-089', 'Resumo e miniaplicativos do painel financeiro', () => qaFixture(() => {
     renderPainel();
     const h = $('view-painel').innerHTML;
-    qaAssert(h.includes('Como estou este mês?') && h.includes('Onde estou gastando?') && h.includes('O que vem por aí?') && h.includes('sparkline-svg'));
+    qaAssert(h.includes('Como estou este mês?') && h.includes('Minha central financeira') && h.includes('data-widget="attention"') && h.includes('sparkline-svg'));
   })],
   ['QA-090', 'Ícones SVG inline presentes na navegação', () => qaAssert(!!document.querySelector('#sideNav svg.svg-ico') && !!document.querySelector('#mobileNav svg.svg-ico'))]
 ];
