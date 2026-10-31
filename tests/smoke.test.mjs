@@ -133,7 +133,7 @@ test('Versão exibida acompanha a única constante do aplicativo',async()=>{
  const expected=html.match(/const CLARA_APP_VERSION='([^']+)'/);
  assert.ok(expected,'Constante de versão ausente');
  assert.equal(expected[1],pkgVersion);
- assert.match(html,/Versão \$\{esc\(CLARA_APP_VERSION\)\}/);
+ assert.match(html,/id="claraUpdateInstalled">\$\{esc\(CLARA_APP_VERSION\)\}/);
  assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
  assert.doesNotMatch(html,/Versão 3\.6\.3-rc/);
 });
@@ -150,4 +150,14 @@ test('Atualizador EFI avisa e consulta automaticamente, sem instalação compuls
  assert.match(html,/ClaraSecurity\.flush\(\)/);
  assert.match(html,/waiting\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\);/);
+});
+
+test('Configurações minimalistas conservam os controles e escondem opções avançadas',()=>{
+ const render=html.match(/function renderAjustes\(\) \{([\s\S]*?)function generateInstallments\(/)?.[1];
+ assert.ok(render,'renderizador de Configurações não encontrado');
+ for(const field of ['id="claraUpdateInstalled"','id="claraUpdateLast"','id="checkClaraUpdate"','id="applyClaraUpdate"','id="exportJson"','id="importClara"','id="importJson"','id="lockClaraNow"','id="startEmpty"','data-open-qa="1"']) assert.ok(render.includes(field),field);
+ for(const disclosure of ['id="claraReleaseNotes"','id="claraAdvancedSettings"'])assert.ok(render.includes(disclosure),disclosure);
+ assert.match(html,/class="config-version"/);
+ assert.match(html,/config-disclosure/);
+ assert.doesNotMatch(html,/Um lugar para todos os ajustes/);
 });
