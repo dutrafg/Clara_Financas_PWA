@@ -9,6 +9,8 @@ export const updateDebt=source.updateDebt as (data:FinanceData,id:string,form:Om
 export const deleteDebt=source.deleteDebt as (data:FinanceData,id:string)=>true;
 export const allDebtSummaries=source.allDebtSummaries as (data:FinanceData)=>DebtSummary[];
 export const recordDebtPayment=source.recordDebtPayment as (data:FinanceData,form:{debtId:string;accountId:string;amountCents:number;date:string;description?:string})=>Transaction;
+export const reviseDebtPayment=source.reviseDebtPayment as (data:FinanceData,transaction:Transaction)=>Transaction;
+export const removeDebtPayment=source.removeDebtPayment as (data:FinanceData,id:string)=>Transaction;
 export const setGoalSaved=source.setGoalSaved as (data:FinanceData,id:string,savedCents:number)=>Goal;
 export const goalPace=source.goalPace as (goal:Goal,referenceMonth:string)=>GoalPace;
 export const cashflowForecast=source.cashflowForecast as (data:FinanceData,fromMonth:string,count?:number)=>ForecastMonth[];
