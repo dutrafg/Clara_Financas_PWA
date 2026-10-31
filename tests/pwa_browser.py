@@ -61,6 +61,10 @@ async def run():
    await page.locator('#claraAdvancedSettings summary').first.click()
    assert await page.locator('#claraAdvancedSettings').evaluate("(el)=>el.open")
    assert await page.locator('#claraAdvancedSettings [data-open-qa="1"]').is_visible()
+   await page.locator('#claraAdvancedSettings [data-open-qa="1"]').click()
+   assert await page.locator('#qaCover').get_attribute('aria-hidden')=='false'
+   await page.locator('#qaClose').click()
+   assert await page.locator('#qaCover').get_attribute('aria-hidden')=='true'
    assert await page.locator('#startEmpty').is_visible()
    for tab in ('aparencia','painel','financeiro','contas','dados'):
     await page.locator('[data-config-tab="'+tab+'"]').click()
