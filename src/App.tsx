@@ -11,6 +11,7 @@ import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,
 import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,removeDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
 import {reconcileAccount,deleteReconciliation,reconciliationHistory,financeAudit} from './domain/reconciliation';
 import {dashboardInsights} from './domain/dashboard';
+import {spreadsheetInsights} from './domain/spreadsheet-insights';
 import {monthlyReport,annualReport,monthlyReportCSV,annualReportCSV,exportReportPDF} from './domain/reporting';
 import {encryptBackup,decryptBackup} from './domain/security';
 import {createLockRecord,verifyLockRecord} from './domain/lock';
@@ -333,6 +334,7 @@ export default function App(){
  };
  const budgets=useMemo(()=>data?budgetStatus(data,month):[],[data,month]);
  const pro=useMemo(()=>data?dashboardInsights(data,month,{today:today()}):null,[data,month]);
+ const sheet=useMemo(()=>data?spreadsheetInsights(data,month,today()):null,[data,month]);
  const report=useMemo(()=>data?monthlyReport(data,month):null,[data,month]);
  const yearly=useMemo(()=>data?annualReport(data,month.slice(0,4)):null,[data,month]);
  const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
@@ -597,6 +599,11 @@ export default function App(){
    <Kpi title="Resultado do mês" value={mask(summary.result)} icon="reports" tone={summary.result<0?'danger':'blue'} description="Receitas menos despesas"/>
   </div>
  </div>
+ {sheet&&<div className="metrics sheet-kpis">
+  <Kpi title="Disponível após pendências · 30 dias" value={mask(sheet.availableAfter30Cents)} icon="wallet" tone={sheet.availableAfter30Cents<0?'danger':'success'} description="Saldo consolidado menos despesas pendentes até 30 dias"/>
+  <Kpi title="Despesas pendentes · 30 dias" value={mask(sheet.pendingNext30Cents)} icon="calendar" tone="danger" description="Inclui despesas já vencidas"/>
+  <Kpi title="Saldo em reservas" value={mask(sheet.reserveCents)} icon="target" tone="blue" description="Contas classificadas como Reserva"/>
+ </div>}
  {pro&&<><div className="metrics pro-kpis">
  <Kpi title="Compromissos do mês" value={mask(summary.pending)} icon="calendar" description="Despesas pendentes"/>
  <Kpi title="Dívidas restantes" value={mask(pro.totalDebtCents)} icon="wallet" tone="danger" description="Saldo declarado a quitar"/>
@@ -604,15 +611,26 @@ export default function App(){
  <Kpi title="Alertas financeiros" value={String(pro.auditCount+pro.exhaustedCount)} icon="info" description="Auditoria e orçamentos"/>
  </div>
  <div className="dashboard-grid pro-layout">
- <Pane title="Próximos 3 meses" detail="Projeção baseada somente nos lançamentos cadastrados" actions={<Button variant="ghost" onClick={()=>show('planning')}>Detalhes</Button>}>
-  <div className="pro-forecast">{pro.forecast.map(f=><div className="pro-forecast-card" key={f.month}><small>{monthText(f.month)}</small><b className={f.closingCents<0?'value-negative':''}>{mask(f.closingCents)}</b><span>Variação {mask(f.netCents)}</span></div>)}</div>
+ <Pane title="Fluxo pendente · próximos 4 meses" detail="Entradas e saídas futuras já cadastradas, a partir da data de corte" actions={<Button variant="ghost" onClick={()=>show('planning')}>Detalhes</Button>}>
+  <div className="pro-forecast sheet-forecast">{sheet?.flow4.map(f=><div className="pro-forecast-card" key={f.month}>
+   <small>{monthText(f.month)}</small><b className={f.closingCents<0?'value-negative':''}>{mask(f.closingCents)}</b>
+   <span>Entradas: {mask(f.incomingCents)}</span><span>Saídas: {mask(f.outgoingCents)}</span>
+  </div>)}</div>
  </Pane>
  <Pane title="Requer atenção" detail="Vencimentos, limites e divergências" actions={<Button variant="ghost" onClick={()=>show('accounts')}>Auditoria</Button>}>
  {pro.alerts.length?<div className="pro-alerts">{pro.alerts.map((f,i)=><div key={f.code+i}><Icon name="info" size={15}/><span>{f.label}</span></div>)}</div>:<Empty text="Nenhuma pendência identificada pelas regras atuais."/>}
  </Pane></div>
- <Pane title="Metas e orçamentos" detail="Progresso financeiro dos objetivos cadastrados">
- <div className="pro-goals">{pro.goals.slice(0,6).map(g=><div key={g.id}><div className="highlight-row"><span>{g.name}</span><strong>{percent(g.percentage)}</strong></div><Progress ratio={g.percentage}/><small>Faltam {mask(g.remainingCents)}</small></div>)}{!pro.goals.length&&<p className="fine">Cadastre uma meta em Planejamento para acompanhá-la aqui.</p>}</div>
- </Pane></>}
+ <div className="dashboard-grid">
+ <Pane title="Orçamento por categoria · Top 5" detail="Categorias com maiores despesas realizadas">
+ <div className="sheet-budget-list">{sheet?.budgets.length?sheet.budgets.map(b=><div className="sheet-budget-row" key={b.category}>
+  <div className="highlight-row"><span>{b.category}</span><strong>{mask(b.usedCents)} de {mask(b.limitCents)}</strong></div>
+  <Progress ratio={b.ratio}/><small>{percent(b.ratio)} do limite previsto · {mask(b.pendingCents)} pendentes</small>
+ </div>):<p className="fine">Sem orçamentos para este período.</p>}</div>
+ </Pane>
+ <Pane title="Metas financeiras · evolução" detail="Objetivos e valores reservados informados manualmente">
+ <div className="pro-goals">{sheet?.goals.map(g=><div key={g.id}><div className="highlight-row"><span>{g.name}</span><strong>{percent(g.ratio)}</strong></div>
+ <Progress ratio={g.ratio}/><small>{mask(g.savedCents)} reservado · faltam {mask(g.missingCents)}</small></div>)}{!sheet?.goals.length&&<p className="fine">Cadastre uma meta em Planejamento para acompanhá-la aqui.</p>}</div>
+ </Pane></div></>}
  <div className="dashboard-grid"><Pane title="Fluxo financeiro" detail={`Receitas e despesas em ${month.slice(0,4)}`} actions={<span className="subtle-tag">Ano completo</span>}><YearChart data={data} month={month} mask={mask}/></Pane>
  <Pane title="Despesas por categoria" detail="Distribuição do mês e participação de cada categoria"
   actions={<Button variant="ghost" onClick={()=>show('reports')}>Ver análise <Icon name="chevron" size={14}/></Button>}>
