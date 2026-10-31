@@ -27,9 +27,17 @@ ok('migração preserva a conta e o saldo',recovered.accounts[0].openingCents===
 let storeFile={};const folder={name:'Meus Documentos',async queryPermission(){return 'granted'},async requestPermission(){return 'granted'},async getFileHandle(name,opt){if(!storeFile[name]&&!opt?.create)throw Object.assign(new Error('NotFound'),{name:'NotFoundError'});return {async createWritable(){return {async write(s){storeFile[name]=s},async close(){},async abort(){}}},async getFile(){return {async text(){return storeFile[name]}}}};}};
 globalThis.showDirectoryPicker=async()=>folder;
 const selected=await mod.chooseFolder();ok('seleção de pasta autorizada',selected.name==='Meus Documentos');
-ok('espelha cópia em pasta escolhida',await mod.writeFolderCopy(recovered)===true&&'clara-financas-dados.json'in storeFile);
-const restored=await mod.readFolderCopy();ok('lê e valida cópia da pasta',restored.schemaVersion===2&&restored.accounts[0].openingCents===12345);
+const folderSecret='Senha forte de pasta para teste 2026';
+ok('espelha cópia AES-GCM na pasta escolhida',
+ await mod.writeFolderCopy(recovered,folderSecret)===true&&'clara-financas-dados.clara'in storeFile);
+ok('cópia protegida não contém dados legíveis',
+ !storeFile['clara-financas-dados.clara'].includes(recovered.accounts[0].name));
+const restored=await mod.readFolderCopy(folderSecret);ok('lê e valida cópia da pasta',restored.schemaVersion===2&&restored.accounts[0].openingCents===12345);
 const backupV1=structuredClone(restored);backupV1.schemaVersion=1;storeFile['clara-financas-dados.json']=JSON.stringify(backupV1);
-ok('importa backup antigo da pasta', (await mod.readFolderCopy()).schemaVersion===2);
-await mod.clearDirectoryHandle();ok('desvincula sem apagar backup externo',!!storeFile['clara-financas-dados.json']&&(await mod.getDirectoryHandle())==null);
+ok('importa backup antigo da pasta', (await mod.readLegacyFolderCopy()).schemaVersion===2);
+ok('JSON antigo é detectado sem ser sobrescrito',await mod.hasLegacyFolderCopy()===true);
+ok('Cópia cifrada é detectada',await mod.hasFolderCopy()===true);
+await assert.rejects(mod.readFolderCopy('Senha incorreta e longa'),/Senha incorreta/);
+ok('Senha incorreta não restaura dados',true);
+await mod.clearDirectoryHandle();ok('desvincula sem apagar backup externo',!!storeFile['clara-financas-dados.json']&&!!storeFile['clara-financas-dados.clara']&&(await mod.getDirectoryHandle())==null);
 console.log(`RESULTADO: ${count} verificações isoladas de persistência e pasta.`);
