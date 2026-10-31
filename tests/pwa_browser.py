@@ -47,6 +47,22 @@ async def run():
    await page.locator('[data-config-tab="dados"]').click()
    vw=await page.evaluate("({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth})")
    assert vw['scroll']<=vw['width']+3,(width,vw)
+   await page.locator('[data-config-tab="aparencia"]').click()
+   assert await page.locator('.palette-choice').count()==6
+   choice={390:'bosque',768:'coral',1440:'areia'}[width]
+   await page.locator('.palette-choice[data-palette="'+choice+'"]').click()
+   assert await page.locator('html').get_attribute('data-palette')==choice
+   await page.locator('[data-pref-select="surface"]').select_option('floating')
+   await page.locator('[data-pref-select="backdrop"]').select_option('aurora')
+   assert await page.locator('html').get_attribute('data-surface')=='floating'
+   assert await page.locator('html').get_attribute('data-backdrop')=='aurora'
+   await page.evaluate("window.ClaraSecurity.flush()")
+   await page.reload(wait_until='load')
+   await unlock(page)
+   assert await page.evaluate("pref('palette')")==choice
+   assert await page.locator('html').get_attribute('data-surface')=='floating'
+   assert await page.locator('html').get_attribute('data-backdrop')=='aurora'
+   assert await page.locator('#dashboardMiniapps').count()==1
    await page.evaluate("go('painel')")
 
    display=await page.locator('#floatTrigger').evaluate('(el)=>getComputedStyle(el).display')
