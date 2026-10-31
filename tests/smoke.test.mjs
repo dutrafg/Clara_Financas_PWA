@@ -50,3 +50,14 @@ test('Clara: não há execução de bibliotecas de terceiros para miniaplicativo
  assert.match(html,/localStorage/);
  assert.match(html,/function validateData/);
 });
+
+test('Cabeçalho sem Ajustar e seletor de meses',()=>{
+ assert.doesNotMatch(html,/id="settingsBtn"|⚙ Ajustar/);
+ assert.doesNotMatch(html,/type="month" aria-label="Período selecionado"/);
+ assert.match(html, /<input id="period" type="hidden"/);
+ assert.match(html,/state\.settings\.period = todayISO\(\)\.slice\(0, 7\)/);
+});
+test('PWA atualiza HTML pela rede mas abre offline',()=>{
+ assert.match(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
+ assert.match(sw,/cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
+});

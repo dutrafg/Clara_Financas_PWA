@@ -36,7 +36,12 @@ self.addEventListener('fetch', event => {
       catch { return await cache.match(scopedURL('./version.json')) || Response.error(); }
     }
     if (request.mode === 'navigate') {
-      return await cache.match(scopedURL('./index.html')) || await fetch(request);
+      // Navegação sempre tenta HTML novo pela rede. Somente offline usa a versão instalada.
+      try {
+        const fresh = await fetch(new Request(request, {cache:'no-store'}));
+        if (fresh.ok) return fresh;
+      } catch {}
+      return await cache.match(scopedURL('./index.html')) || Response.error();
     }
     const hit = await cache.match(request, {ignoreSearch:true});
     if (hit) return hit;
