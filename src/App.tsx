@@ -39,6 +39,35 @@ function Kpi({title,value,description,icon,tone='neutral'}:{title:string;value:s
 function StatusChip({status}:{status:Status}){return <span className={`status-chip status-${status.toLowerCase()}`}>{status}</span>}
 function Empty({text,action}:{text:string;action?:React.ReactNode}){return <div className="empty-state"><Icon name="info" size={26}/><p>{text}</p>{action}</div>}
 function Progress({ratio}:{ratio:number}){return <div className="progress"><div className={ratio>1?'over':ratio>=.8?'warn':''} style={{width:`${Math.min(100,Math.max(0,ratio*100))}%`}}/></div>}
+function CategoryDonut({categories,total,mask}:{categories:[string,number][];total:number;mask:(cents:number)=>string}){
+ const colors=['#45cec4','#7d86ff','#ff8c79','#ffbd72','#b18af7','#93a9bb'];
+ const top=categories.slice(0,5).filter(([,amount])=>amount>0);
+ const remainder=Math.max(0,total-top.reduce((sum,[,amount])=>sum+amount,0));
+ const parts=[...top,...(remainder>0?[['Outras',remainder] as [string,number]]:[])];
+ const circumference=2*Math.PI*66;
+ let position=0;
+ return <div className="category-donut-layout">
+ <div className="category-donut-figure">
+  <svg viewBox="0 0 200 200" role="img" aria-label={`Distribuição das despesas por categoria: ${parts.map(([label,value])=>label+' '+Math.round(value/total*100)+'%').join(', ')}`}>
+   <circle cx="100" cy="100" r="66" fill="none" stroke="var(--line)" strokeWidth="22"/>
+   {parts.map(([label,value],index)=>{
+    const length=circumference*value/total;
+    const offset=position;position+=length;
+    return <circle key={label} cx="100" cy="100" r="66" fill="none" stroke={colors[index]} strokeWidth="22"
+      strokeDasharray={`${Math.max(0,length-.9)} ${circumference}`} strokeDashoffset={-offset} transform="rotate(-90 100 100)">
+      <title>{label}: {mask(value)} ({Math.round(value/total*100)}%)</title>
+    </circle>;
+   })}
+  </svg>
+  <div className="category-donut-center"><small>Despesas</small><strong>{mask(total)}</strong></div>
+ </div>
+ <div className="category-donut-legend">{parts.map(([label,value],i)=><div className="category-legend-row" key={label}>
+  <i style={{backgroundColor:colors[i]}} aria-hidden="true"/>
+  <span title={label}>{label}</span>
+  <strong>{Math.round(value/total*100)}%</strong>
+ </div>)}</div>
+ </div>;
+}
 function YearChart({data,month,mask}:{data:FinanceData;month:string;mask:(x:number)=>string}){
  const year=month.slice(0,4), rows=months.map((_,i)=>periodStats(data,`${year}-${String(i+1).padStart(2,'0')}`));
  const peak=Math.max(1,...rows.flatMap(s=>[s.income,s.expense]));
@@ -442,7 +471,10 @@ export default function App(){
  <div className="pro-goals">{pro.goals.slice(0,6).map(g=><div key={g.id}><div className="highlight-row"><span>{g.name}</span><strong>{percent(g.percentage)}</strong></div><Progress ratio={g.percentage}/><small>Faltam {mask(g.remainingCents)}</small></div>)}{!pro.goals.length&&<p className="fine">Cadastre uma meta em Planejamento para acompanhá-la aqui.</p>}</div>
  </Pane></>}
  <div className="dashboard-grid"><Pane title="Fluxo financeiro" detail={`Receitas e despesas em ${month.slice(0,4)}`} actions={<span className="subtle-tag">Ano completo</span>}><YearChart data={data} month={month} mask={mask}/></Pane>
- <Pane title="Despesas por categoria" detail="Principais categorias do período"><div className="category-list">{summary.expensesByCategory.length?summary.expensesByCategory.slice(0,6).map(([name,value])=><div className="category-item" key={name}><div><b>{name}</b><span>{mask(value)}</span></div><Progress ratio={value/(summary.expense||1)}/></div>):<Empty text="Ainda não há despesas realizadas no período."/>}</div></Pane></div>
+ <Pane title="Despesas por categoria" detail="Distribuição do mês e participação de cada categoria"
+  actions={<Button variant="ghost" onClick={()=>show('reports')}>Ver análise <Icon name="chevron" size={14}/></Button>}>
+ {summary.expense>0?<CategoryDonut categories={summary.expensesByCategory as [string,number][]} total={summary.expense} mask={mask}/>:<Empty text="Ainda não há despesas realizadas no período."/>}
+ </Pane></div>
  <div className="dashboard-grid"><Pane title="Últimas movimentações" detail="Lançamentos e status no período" actions={<Button variant="ghost" onClick={()=>show('transactions')}>Ver todas <Icon name="chevron" size={14}/></Button>}>{smallTx(summary.recent)}</Pane>
  <div className="vertical"><Pane title="Acompanhamento financeiro" detail="Indicadores essenciais"><div className="highlight-row"><span>Despesas pendentes</span><strong>{mask(summary.pending)}</strong></div><div className="highlight-row"><span>Receitas pendentes</span><strong>{mask(summary.pendingIncome)}</strong></div><div className="highlight-row"><span>Contas cadastradas</span><strong>{data.accounts.length}</strong></div><div className="tip"><Icon name="info" size={18}/>{budgetInsight(data,month)}</div></Pane><Pane title="Atalhos" detail="Acesse seus recursos"><div className="quick-actions"><Button onClick={()=>show('accounts')} icon="wallet">Contas</Button><Button onClick={()=>show('planning')} icon="target">Orçamentos</Button><Button onClick={()=>show('reports')} icon="reports">Relatórios</Button></div></Pane></div></div>
  </div>;
