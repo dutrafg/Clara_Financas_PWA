@@ -24,6 +24,7 @@ for (const path of files) {
 const hash=createHash('sha256');
 hash.update(pkg.version+'\n');
 for (const path of files){hash.update(path+'\n');hash.update(await get(root,path));}
+hash.update('sw.js\n');hash.update(await get(root,'sw.js'));
 const revision=hash.digest('hex').slice(0,16);
 const expected='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
 const found=sw.match(/const CACHE_NAME = '([^']+)';/);
@@ -53,5 +54,6 @@ for(const path of files){
   const b=await get(root,path);
   syntheticHash.update(path==='index.html'?Buffer.concat([b,Buffer.from('\n<!-- alteração de referência -->')]):b);
 }
+syntheticHash.update('sw.js\n');syntheticHash.update(await get(root,'sw.js'));
 assert.notEqual(syntheticHash.digest('hex').slice(0,16),revision,'Hash não muda quando os recursos mudam');
 console.log('QA DE CAMINHOS OK | versão',pkg.version,'| cache',expected,'| arquivos',files.length,'| referências HTML',refs.length,'| pre-cache',items.length);
