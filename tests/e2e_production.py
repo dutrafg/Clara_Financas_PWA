@@ -176,7 +176,6 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');const t=d.transactions.filter(x=>x.debtId===debt?.id);resolve(t.length===1&&t[0].amountCents===15000&&t[0].status==='Realizado'&&t[0].debtId===debt.id)}}})''')
   row.get_by_role('button',name='Voltar a pendente').click()
   page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');const t=d.transactions.filter(x=>x.debtId===debt?.id);resolve(t.length===1&&t[0].status==='Pendente'&&!t[0].paidAt&&t[0].debtId===debt.id)}}})''')
-  page.once('dialog',lambda dialog:dialog.accept())
   row.get_by_role('button',name='Excluir').click()
   page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');resolve(!!debt&&d.transactions.every(x=>x.debtId!==debt.id))}}})''')
   page.reload()
@@ -227,7 +226,7 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_role('heading',name='Clara bloqueado').wait_for(timeout=15000)
   page.get_by_label('Senha de desbloqueio').fill('Senha visual do Clara segura 2026')
   page.get_by_role('button',name='Desbloquear').click()
-  page.get_by_role('heading',name='Configurações').wait_for(timeout=15000)
+  page.get_by_role('heading',name='Configurações',exact=True).first.wait_for(timeout=15000)
   assert not errors,errors
   print('PASSOU: AES-GCM exportado, restauração e senha local de interface')
   browser.close()
