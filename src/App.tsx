@@ -42,6 +42,8 @@ function Empty({text,action}:{text:string;action?:React.ReactNode}){return <div 
 function Progress({ratio}:{ratio:number}){return <div className="progress"><div className={ratio>1?'over':ratio>=.8?'warn':''} style={{width:`${Math.min(100,Math.max(0,ratio*100))}%`}}/></div>}
 function CategoryDonut({categories,total,mask}:{categories:[string,number][];total:number;mask:(cents:number)=>string}){
  const colors=['#45cec4','#7d86ff','#ff8c79','#ffbd72','#b18af7','#93a9bb'];
+ const fixed:Record<string,string>={Moradia:'#7d86ff',Alimentação:'#45cec4',Transporte:'#ffbd72',Saúde:'#ff8c79',Educação:'#b18af7',Lazer:'#93a9bb'};
+ const color=(name:string)=>{if(fixed[name])return fixed[name];let hash=0;for(const c of name)hash=(hash*31+c.charCodeAt(0))>>>0;return colors[hash%colors.length]};
  const top=categories.slice(0,5).filter(([,amount])=>amount>0);
  const remainder=Math.max(0,total-top.reduce((sum,[,amount])=>sum+amount,0));
  const parts=[...top,...(remainder>0?[['Outras',remainder] as [string,number]]:[])];
@@ -54,7 +56,7 @@ function CategoryDonut({categories,total,mask}:{categories:[string,number][];tot
    {parts.map(([label,value],index)=>{
     const length=circumference*value/total;
     const offset=position;position+=length;
-    return <circle key={label} cx="100" cy="100" r="66" fill="none" stroke={colors[index]} strokeWidth="22"
+    return <circle key={label} cx="100" cy="100" r="66" fill="none" stroke={color(label)} strokeWidth="22"
       strokeDasharray={`${Math.max(0,length-.9)} ${circumference}`} strokeDashoffset={-offset} transform="rotate(-90 100 100)">
       <title>{label}: {mask(value)} ({Math.round(value/total*100)}%)</title>
     </circle>;
@@ -63,7 +65,7 @@ function CategoryDonut({categories,total,mask}:{categories:[string,number][];tot
   <div className="category-donut-center"><small>Despesas</small><strong>{mask(total)}</strong></div>
  </div>
  <div className="category-donut-legend">{parts.map(([label,value],i)=><div className="category-legend-row" key={label}>
-  <i style={{backgroundColor:colors[i]}} aria-hidden="true"/>
+  <i style={{backgroundColor:color(label)}} aria-hidden="true"/>
   <span title={label}>{label}</span>
   <strong>{Math.round(value/total*100)}%</strong>
  </div>)}</div>
@@ -431,8 +433,20 @@ export default function App(){
   }catch(e){notify(`Importação não realizada: ${(e as Error).message}`,true)}
  }
  async function updatePayment(tx:Transaction,target:Status){
+  // Confirmação explícita da data efetiva: vencimento e pagamento pertencem a campos distintos.
+  let paidAt='';
+  if(target==='Realizado'){
+   const chosen=window.prompt('Data efetiva do pagamento (AAAA-MM-DD):',today());
+   if(chosen===null)return;
+   paidAt=chosen.trim();
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(paidAt)||
+      Number.isNaN(Date.parse(paidAt+'T00:00:00Z'))||
+      new Date(paidAt+'T00:00:00Z').toISOString().slice(0,10)!==paidAt){
+    notify('Informe uma data de pagamento real no formato AAAA-MM-DD.',true);return;
+   }
+  }else if(!window.confirm('Reabrir o lançamento e retirar o pagamento dos saldos realizados?'))return;
   try{await modify(d=>{const idx=d.transactions.findIndex(t=>t.id===tx.id);if(idx<0)throw Error('Lançamento não encontrado.');
-   const next=changeMovementStatus(d.transactions[idx],target,target==='Realizado'?today():'');
+   const next=changeMovementStatus(d.transactions[idx],target,paidAt);
    if(next.debtId)reviseDebtPayment(d,next);else{validateTransaction(next,d);d.transactions[idx]=next;}
   },target==='Realizado'?'Lançamento confirmado.':'Lançamento voltou a ficar pendente.');}
   catch(e){notify((e as Error).message,true)}
