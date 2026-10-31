@@ -1,7 +1,7 @@
-name: Homologar Clara Finanças — Redesign Visual RC
+name: Homologar Clara Finanças RC2 Integrada PWA Vercel
 on:
   push:
-    branches: [homologacao/visual-optio-referencia]
+    branches: [homologacao/rc-final-integrada]
     paths:
       - 'src/**'
       - 'public/**'
@@ -9,6 +9,8 @@ on:
       - 'package.json'
       - 'tsconfig.json'
       - 'vite.config.ts'
+      - 'vercel.json'
+      - 'tools/**'
       - '.github/workflows/importar-rc2.yml'
   workflow_dispatch:
 permissions:
@@ -35,13 +37,13 @@ jobs:
         run: |
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Validar PWA, layout móvel, criptografia, PDF e offline
+      - name: Validar PWA Vercel, cofre IndexedDB, migração, PDF e offline
         run: python tests/e2e_production.py
       - name: Publicar evidências
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-visual-rc-evidencias
+          name: clara-rc2-integrada-evidencias
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
