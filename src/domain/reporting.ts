@@ -1,8 +1,8 @@
 import {jsPDF} from 'jspdf';
 import * as src from '../legacy/reporting.mjs';
-import type {FinanceData} from './types';
+import type {FinanceData,Transaction} from './types';
 import {brl,fmtDate} from './finance';
-export const monthlyReport=src.monthlyReport as (data:FinanceData,month:string)=>{month:string;summary:{income:number;expense:number;net:number;toPay:number;toReceive:number;count:number;consolidatedCents:number};categories:{name:string;cents:number;share:number}[];transactions:{description:string;amountCents:number;date:string;category:string;status:string;kind:string}[];accounts:{name:string;balanceCents:number}[]};
+export const monthlyReport=src.monthlyReport as (data:FinanceData,month:string)=>{month:string;summary:{income:number;expense:number;net:number;toPay:number;toReceive:number;count:number;consolidatedCents:number};categories:{name:string;cents:number;share:number}[];transactions:Transaction[];accounts:{name:string;balanceCents:number}[]};
 export const annualReport=src.annualReport as (data:FinanceData,year:string)=>{year:string;months:{month:string;income:number;expense:number;net:number;toPay:number}[];income:number;expense:number;net:number};
 export const monthlyReportCSV=src.monthlyReportCSV as (data:FinanceData,month:string)=>string;
 export const annualReportCSV=src.annualReportCSV as (data:FinanceData,year:string)=>string;
