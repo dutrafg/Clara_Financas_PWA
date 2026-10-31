@@ -412,7 +412,19 @@ export default function App(){
  const dashboard=<div className="vertical">
  {data.isDemo&&<div className="demo-notice"><Icon name="info" size={18}/> Dados fictícios importados da planilha. <Button variant="ghost" onClick={reset}>Iniciar minha base</Button></div>}
  <div className="intro"><div><div className="eyebrow">SEU CONTROLE FINANCEIRO EM UM SÓ LUGAR</div><h2>Visão geral <span>do seu dinheiro.</span></h2><p>Indicadores do período selecionado · {monthText(month)}</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'transaction'})}>Novo lançamento</Button></div>
- <div className="metrics"><Kpi title="Receitas realizadas" value={mask(summary.income)} icon="arrowup" tone="success" description="Entradas confirmadas no mês"/><Kpi title="Despesas realizadas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description="Saídas confirmadas no mês"/><Kpi title="Resultado do mês" value={mask(summary.result)} icon="reports" tone={summary.result<0?'danger':'blue'} description="Receitas menos despesas"/><Kpi title="Saldo total em contas" value={mask(summary.totalBalance)} icon="wallet" description="Saldo inicial + movimentações"/></div>
+ <div className="clara-overview">
+  <section className="clara-balance-hero" aria-label="Resumo de saldo">
+   <div className="clara-hero-top"><span className="clara-hero-eyebrow"><span className="clara-hero-dot"/> SALDO CONSOLIDADO</span><span className="clara-hero-period">{monthText(month)}</span></div>
+   <div className="clara-hero-value">{mask(summary.totalBalance)}</div>
+   <p>Seu dinheiro, com mais clareza e controle.</p>
+   <div className="clara-hero-foot"><span><Icon name="wallet" size={15}/>{data.accounts.filter(a=>!a.archived).length} contas ativas</span><Button icon="plus" onClick={()=>setModal({type:'transaction'})}>Adicionar</Button></div>
+  </section>
+  <div className="clara-overview-kpis">
+   <Kpi title="Receitas realizadas" value={mask(summary.income)} icon="arrowup" tone="success" description="Entradas confirmadas no mês"/>
+   <Kpi title="Despesas realizadas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description="Saídas confirmadas no mês"/>
+   <Kpi title="Resultado do mês" value={mask(summary.result)} icon="reports" tone={summary.result<0?'danger':'blue'} description="Receitas menos despesas"/>
+  </div>
+ </div>
  {pro&&<><div className="metrics pro-kpis">
  <Kpi title="Compromissos do mês" value={mask(summary.pending)} icon="calendar" description="Despesas pendentes"/>
  <Kpi title="Dívidas restantes" value={mask(pro.totalDebtCents)} icon="wallet" tone="danger" description="Saldo declarado a quitar"/>
