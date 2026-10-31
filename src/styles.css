@@ -70,3 +70,6 @@ body[data-accent=blue]{--accent:#236bb8;--accent-hover:#185695;--soft:#eaf3fd;--
 .planning-note{font-size:12px;margin:10px 0 5px;color:var(--accent,#176f6a)}
 @media(max-width:550px){.debt-numbers{grid-template-columns:1fr;gap:3px}.debt-numbers span{display:flex;justify-content:space-between;gap:12px}}
 body[data-theme=dark] .debt-numbers b{color:var(--text)}
+
+/* Etapa 7 — conciliação de extrato */
+.recon-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.recon-grid label{display:grid;gap:5px;font-size:12px}.recon-grid input,.recon-grid select{min-width:0;width:100%;max-width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text)}.recon-list{display:grid;gap:9px}.recon-record{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:11px;border:1px solid var(--line);border-radius:11px}.recon-record>div{display:grid;gap:4px}.recon-record small{color:var(--muted)}.audit-list{display:grid;gap:8px}.audit-item{padding:10px;border:1px solid var(--line);border-radius:10px;font-size:12px}.audit-item strong{display:block;margin-bottom:3px}@media(max-width:690px){.recon-grid{grid-template-columns:1fr 1fr}}@media(max-width:420px){.recon-grid{grid-template-columns:1fr}}
