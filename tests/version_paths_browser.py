@@ -51,11 +51,20 @@ async def run():
       return names.includes('clara-financas-qa-upgrade-v2') &&
         !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-qa-upgrade-v2');
     }""",timeout=20000)
+    snapshot=await page.evaluate("""async () => {
+      const registration=await navigator.serviceWorker.ready;
+      const cache=await caches.open('clara-financas-qa-upgrade-v2');
+      const response=await cache.match(new URL('./index.html',location.href));
+      return {active:registration.active?.state,
+        marker:response? (await response.text()).includes('qa-version-two'):false};
+    }""")
+    assert snapshot['active']=='activated' and snapshot['marker'],snapshot
+    # Nova navegação offline não deve usar documentos de um controlador antigo.
     await context.set_offline(True)
-    await page.reload(wait_until='load')
-    html=await page.content()
-    assert 'qa-version-two' in html,'A página offline ainda aponta para HTML antigo'
-    assert await page.locator('#dashboardMiniapps').count()==1
+    new_page=await context.new_page()
+    await new_page.goto(BASE,wait_until='load')
+    assert 'qa-version-two' in await new_page.content(),'Nova navegação offline usa HTML obsoleto'
+    assert await new_page.locator('#dashboardMiniapps').count()==1
     assert not errors,errors
     print('QA SUBPASTA/VERSÕES OK: escopo relativo, versão online, atualização SW, substituição de cache e HTML novo offline.')
     await context.close()
