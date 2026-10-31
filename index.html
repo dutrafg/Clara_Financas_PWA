@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.9 • Instalação PWA</title>
+<title>Clara Finanças RC3.6.10 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1121,8 +1121,7 @@ a { color: inherit; }
   .brand { padding: 0; justify-content: center; }
   .brand > div, .navlink span:not(.ico), .sidefoot-text { display: none; }
   .navlink { justify-content: center; padding: 11px 8px; }
-  .qa-launch { font-size: 0; padding: 10px 6px; }
-  .qa-launch::before { content: "✓"; font-size: 14px; }
+  .sidefoot { display:none; }
   .layout-two, .layout-equal, .hero { grid-template-columns: 1fr; }
 }
 
@@ -1300,6 +1299,7 @@ a { color: inherit; }
   :root[data-sidebar="compact"] .brand { padding: 0; justify-content: center; }
   :root[data-sidebar="compact"] .brand > div, :root[data-sidebar="compact"] .navlink span:not(.ico), :root[data-sidebar="compact"] .sidefoot-text { display: none; }
   :root[data-sidebar="compact"] .navlink { justify-content: center; padding: 11px 8px; }
+  :root[data-sidebar="compact"] .sidefoot {display:none;}
 }
 [hidden] { display: none !important; }
 .config-intro { display:flex; justify-content:space-between; align-items:center; gap:24px; background:var(--panel2); border:1px solid var(--stroke); border-radius:var(--r-lg); padding:22px 24px; margin-bottom:14px; }
@@ -1680,7 +1680,6 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
         <span class="dot"></span><strong>Seus dados, no dispositivo</strong>
         Armazenamento local neste navegador. Faça backups periódicos em Configurações.
       </div>
-      <button id="qaOpen" class="qa-launch" type="button" aria-label="Abrir validação automatizada">✓ Testar Clara</button>
     </div>
   </aside>
 
@@ -2187,7 +2186,7 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='3.6.9-rc';
+const CLARA_APP_VERSION='3.6.10-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
  'Assistente de instalação para Chrome e Samsung Internet',
  'Verificação da disponibilidade da instalação e orientações por navegador',
@@ -3935,7 +3934,7 @@ document.addEventListener('click', e => {
   if (b.dataset.clwAction) { handleClaraWidgetAction(b); return; }
   if (b.dataset.view) { go(b.dataset.view); return; }
   if (b.dataset.open) { modal(b.dataset.open); return; }
-  if (b.dataset.openQa) { $('qaOpen').click(); return; }
+  if (b.dataset.openQa) { qaOpen(); return; }
   if (b.dataset.close) { closeModal(); return; }
   if (b.dataset.goalEdit) { modal('goalSaved', b.dataset.goalEdit); return; }
   if (b.dataset.editGoalFull) { modal('editGoal', b.dataset.editGoalFull); return; }
@@ -4457,15 +4456,19 @@ function qaMarkdown() {
 }
 
 function qaDownload(name, content, type) { dl(name, content, type); }
-$('qaOpen').addEventListener('click', () => {
+// O QA permanece acessível em Configurações > Manutenção e em Conferências.
+let qaReturnFocus=null;
+function qaOpen() {
+  qaReturnFocus=document.activeElement;
   $('qaCover').classList.add('open');
   $('qaCover').setAttribute('aria-hidden', 'false');
   $('qaClose').focus();
-});
+}
 function qaClose() {
   $('qaCover').classList.remove('open');
   $('qaCover').setAttribute('aria-hidden', 'true');
-  $('qaOpen').focus();
+  if(qaReturnFocus?.isConnected) qaReturnFocus.focus();
+  qaReturnFocus=null;
 }
 $('qaClose').addEventListener('click', qaClose);
 $('qaCover').addEventListener('click', e => { if (e.target === $('qaCover')) qaClose(); });
