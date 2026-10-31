@@ -1,6 +1,14 @@
 import asyncio
 from playwright.async_api import async_playwright
 
+async def unlock(page):
+    if await page.locator('#securityCover').is_visible():
+        await page.locator('#securityPassword').fill('Clara-QA-Senha-2026!')
+        if await page.locator('#securityConfirmWrap').is_visible():
+            await page.locator('#securityConfirm').fill('Clara-QA-Senha-2026!')
+        await page.locator('#securitySubmit').click()
+        await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+
 async def run():
  async with async_playwright() as p:
   browser=await p.chromium.launch(headless=True)
@@ -10,6 +18,7 @@ async def run():
    errors=[]
    page.on('pageerror',lambda exc:errors.append(str(exc)))
    await page.goto('http://127.0.0.1:8765/',wait_until='load')
+   await unlock(page)
    await page.wait_for_function('navigator.serviceWorker.controller!==null',timeout=30000)
    state=await page.evaluate('({tx:state.transactions.length,acct:state.accounts.length,last:NAV.at(-1)[0]})')
    assert state=={'tx':0,'acct':1,'last':'ajustes'},state
@@ -26,12 +35,15 @@ async def run():
    # Contratos dos miniaplicativos: catálogo, editor, persistência e ações reais.
    if width==390:
     await page.goto('http://127.0.0.1:8765/',wait_until='load')
+    await unlock(page)
     assert await page.locator('#dashboardMiniapps [data-widget]').count()>=7
     await page.get_by_role('button',name='Editar painel').click()
     assert await page.locator('.clw-editor').count()==1
     await page.get_by_role('button',name='Mostrar todos').click()
     assert await page.locator('#dashboardMiniapps [data-widget]').count()==15
+    await page.evaluate("window.ClaraSecurity.flush()")
     await page.reload(wait_until='load')
+    await unlock(page)
     assert await page.locator('#dashboardMiniapps [data-widget]').count()==15
     # Base de teste isolada: criar um vencimento pendente e verificar baixa auditável.
     await page.evaluate("""() => {
@@ -55,7 +67,9 @@ async def run():
     assert not errors,errors
    assert not errors,errors
    await context.set_offline(True)
+   await page.evaluate("window.ClaraSecurity.flush()")
    await page.reload(wait_until='load')
+   await unlock(page)
    assert await page.locator('#pageTitle').is_visible()
    await context.close()
   await browser.close()
