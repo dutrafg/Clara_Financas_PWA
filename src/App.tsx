@@ -11,6 +11,7 @@ import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,
 import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,removeDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
 import {reconcileAccount,deleteReconciliation,reconciliationHistory,financeAudit} from './domain/reconciliation';
 import {dashboardInsights} from './domain/dashboard';
+import {monthlyReport,annualReport,monthlyReportCSV,annualReportCSV,exportReportPDF} from './domain/reporting';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -216,6 +217,8 @@ export default function App(){
  };
  const budgets=useMemo(()=>data?budgetStatus(data,month):[],[data,month]);
  const pro=useMemo(()=>data?dashboardInsights(data,month,{today:today()}):null,[data,month]);
+ const report=useMemo(()=>data?monthlyReport(data,month):null,[data,month]);
+ const yearly=useMemo(()=>data?annualReport(data,month.slice(0,4)):null,[data,month]);
  const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
  const forecast=useMemo(()=>data?cashflowForecast(data,month,6):[],[data,month]);
  const savings=useMemo(()=>data?savingsOverview(data,month):null,[data,month]);
@@ -483,11 +486,27 @@ export default function App(){
   <p className="fine">Não prevê rendimentos ou gastos que ainda não foram cadastrados. Transferências entre contas são neutras no saldo consolidado; valores vencidos antes do mês inicial devem ser conferidos separadamente.</p>
  </Pane>
  </div>;
- const reports=<div className="vertical"><div className="section-top"><div><h2>Relatórios</h2><p>Síntese do período financeiro selecionado.</p></div><div className="head-actions"><Button icon="download" onClick={()=>download(`clara-movimentacoes-${month}.csv`,transactionsCSV(data),'text/csv;charset=utf-8')}>Exportar CSV</Button><Button icon="print" variant="primary" onClick={()=>window.print()}>Imprimir / PDF</Button></div></div>
- <div className="metrics"><Kpi title="Entradas" value={mask(summary.income)} icon="arrowup" tone="success" description={monthText(month)}/><Kpi title="Saídas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description={monthText(month)}/><Kpi title="Resultado" value={mask(summary.result)} icon="reports" tone="blue" description={monthText(month)}/><Kpi title="Pendências" value={mask(summary.pending)} icon="calendar" description="Despesas não realizadas"/></div>
- <Pane title="Resumo anual"><YearChart data={data} month={month} mask={mask}/></Pane><Pane title="Contas e saldos"><div className="summary-list">{summary.accounts.map(a=><div key={a.id} className="highlight-row"><span>{a.name}</span><strong>{mask(a.balanceCents)}</strong></div>)}</div></Pane>
- <div className="tip"><Icon name="info" size={17}/>O PDF usa a impressão do navegador. Relatórios avançados de conciliação e análise serão implementados nas Etapas 7 e 9.</div></div>;
- const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 8 / 10 · v{VERSION}</span></div>
+ const reports=<div className="vertical"><div className="section-top"><div><h2>Relatórios financeiros</h2><p>Demonstrativo mensal e consolidado anual — {monthText(month)}</p></div><div className="head-actions">
+ <Button icon="download" onClick={()=>download(`clara-relatorio-${month}.csv`,monthlyReportCSV(data,month),'text/csv;charset=utf-8')}>CSV mensal</Button>
+ <Button icon="download" onClick={()=>download(`clara-anual-${month.slice(0,4)}.csv`,annualReportCSV(data,month.slice(0,4)),'text/csv;charset=utf-8')}>CSV anual</Button>
+ <Button variant="primary" icon="download" onClick={()=>exportReportPDF(data,month)}>Baixar PDF</Button>
+ <Button icon="print" onClick={()=>window.print()}>Imprimir</Button></div></div>
+ <div className="metrics"><Kpi title="Entradas realizadas" value={mask(summary.income)} icon="arrowup" tone="success" description={monthText(month)}/><Kpi title="Saídas realizadas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description={monthText(month)}/><Kpi title="Resultado" value={mask(summary.result)} icon="reports" tone="blue" description={monthText(month)}/><Kpi title="Pendências" value={mask(summary.pending)} icon="calendar" description="Despesas não realizadas"/></div>
+ <Pane title="Comparativo anual" detail="Receitas, despesas e saldo acumulado dos meses"><YearChart data={data} month={month} mask={mask}/></Pane>
+ <Pane title="Demonstrativo anual" detail={`Total anual de receitas ${mask(yearly?.income||0)} · despesas ${mask(yearly?.expense||0)}`}>
+  <div className="planning-table"><table><thead><tr><th>Mês</th><th>Receitas</th><th>Despesas</th><th>Resultado</th><th>Pendente</th></tr></thead><tbody>{yearly?.months.map(m=><tr key={m.month}><td>{monthText(m.month)}</td><td>{mask(m.income)}</td><td>{mask(m.expense)}</td><td>{mask(m.net)}</td><td>{mask(m.toPay)}</td></tr>)}</tbody></table></div>
+ </Pane>
+ <div className="dashboard-grid">
+ <Pane title="Despesas por categoria" detail="Participação no período"><div className="category-list">
+ {report?.categories.length?report.categories.map(c=><div key={c.name} className="category-item"><div><b>{c.name}</b><span>{mask(c.cents)} · {percent(c.share)}</span></div><Progress ratio={c.share}/></div>):<Empty text="Nenhuma despesa realizada neste período."/>}
+ </div></Pane>
+ <Pane title="Saldos por conta" detail="Posição atual do banco local"><div className="summary-list">{report?.accounts.map(a=><div key={a.name} className="highlight-row"><span>{a.name}</span><strong>{mask(a.balanceCents)}</strong></div>)}</div></Pane></div>
+ <Pane title="Movimentações do período" detail="Lançamentos realizados, pendentes e cancelados na competência escolhida">
+ <div className="report-mini-list">{report?.transactions.slice(0,100).map(t=><div key={t.id} className="highlight-row"><span>{t.description}<small>{fmtDate(effectiveDate(t))} · {t.kind} · {t.status}</small></span><strong>{mask(t.kind==='Despesa'?-t.amountCents:t.amountCents)}</strong></div>)}</div>
+ {(report?.transactions.length||0)>100&&<p className="fine">Exibindo 100 registros. Exporte CSV para ver a lista completa.</p>}</Pane>
+ <p className="fine">CSV e PDF são criados no próprio dispositivo, sem enviar dados financeiros a servidores. O PDF contém o período selecionado; valores ocultados na tela são incluídos nos arquivos exportados.</p>
+ </div>;
+ const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 9 / 10 · v{VERSION}</span></div>
  <div className="settings-grid"><Pane title="Aparência" detail="Identidade visual do Clara, inspirada na navegação do EvoluFísico2"><div className="setting-row"><div><b>Tema</b><p>Claro ou escuro</p></div><select aria-label="Tema" value={data.settings.theme} onChange={e=>modify(d=>{d.settings.theme=e.target.value as 'light'|'dark'})}><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div className="setting-row"><div><b>Cor de destaque</b><p>Verde-petróleo ou azul</p></div><select aria-label="Cor de destaque" value={data.settings.accent} onChange={e=>modify(d=>{d.settings.accent=e.target.value as 'petrol'|'blue'})}><option value="petrol">Petróleo</option><option value="blue">Azul</option></select></div><div className="setting-row"><div><b>Ocultar valores</b><p>Proteção visual na tela</p></div><input aria-label="Ocultar valores" type="checkbox" checked={data.settings.hideValues} onChange={e=>modify(d=>{d.settings.hideValues=e.target.checked})}/></div></Pane>
  <Pane title="Preferências financeiras" detail="Acompanhamento da economia e metas da planilha original">
  <div className="settings-finance-form">
