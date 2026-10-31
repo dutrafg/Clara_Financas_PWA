@@ -24,6 +24,12 @@ self.addEventListener('fetch', event => {
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    // Pedidos de atualização do navegador ou de um novo Service Worker devem buscar a rede.
+    // Caso contrário, o controlador anterior pode devolver recursos obsoletos do próprio cache.
+    if (request.cache === 'reload' || request.cache === 'no-store') {
+      try { return await fetch(request); }
+      catch { return await cache.match(request, {ignoreSearch:true}) || Response.error(); }
+    }
     // A consulta de atualizações não pode ficar presa ao version.json em cache.
     if (url.pathname === versionPath) {
       try { return await fetch(request, {cache:'no-store'}); }
