@@ -4041,12 +4041,12 @@ qaSpecs.push(
   ['QA-097', 'Despesas pendentes não são somadas às despesas realizadas', () => qaFixture(() => { state.transactions.push(qaTx('d','Despesa','Pendente',8500,'2026-10-20')); const r = yearReport('2026'); qaAssert(r.total.expense === 0 && r.total.toPay === 8500); })],
   ['QA-098', 'Sparkline apresenta doze períodos e tendência conforme valor', () => qaFixture(() => { state.transactions.push(qaTx('r','Receita','Realizado',25000,'2026-10-20','2026-10-20')); const p = sparklineData(); qaAssert(p.balances.length === 12 && p.trend === 'Saldo em alta' && p.delta === 25000); })],
   ['QA-099', 'Relatórios e três ações integrados em Conferências', () => qaFixture(() => { renderConf(); qaAssert(!!$('claraReportArea') && !!$('exportAnnualCSV') && !!$('exportTxCSV') && !!$('printFinancialReport')); })],
-  ['QA-100', 'Rótulos preservam seis módulos no menu móvel', () => qaAssert(Object.keys(MOBILE_NAV_LABELS).length === 6 && MOBILE_NAV_LABELS.conf === 'Conferir' && !!document.querySelector('#mobileNav [aria-label="Conferências"]'))]
+  ['QA-100', 'Rótulos preservam sete módulos no menu móvel', () => qaAssert(Object.keys(MOBILE_NAV_LABELS).length === 7 && MOBILE_NAV_LABELS.conf === 'Conferir' && !!document.querySelector('#mobileNav [aria-label="Conferências"]'))]
 );
 
 /* RC3.4 — controles centralizados, compatibilidade e personalização responsiva. */
 qaSpecs.push(
-  ['QA-101', 'Módulo Configurações ocupa o antigo Ajustes sem duplicar navegação', () => qaAssert(NAV.some(x => x[0] === 'ajustes' && x[2] === 'Configurações') && NAV.length === 6)],
+  ['QA-101', 'Módulo Configurações ocupa o antigo Ajustes sem duplicar navegação', () => qaAssert(NAV.some(x => x[0] === 'ajustes' && x[2] === 'Configurações') && NAV.length === 7)],
   ['QA-102', 'Paletas violeta, azul e petróleo disponíveis', () => qaAssert(PREF_ENUMS.palette.length === 3 && PREF_ENUMS.palette.includes('blue') && PREF_DEFAULTS.palette === 'violet')],
   ['QA-103', 'Preferências antigas são complementadas sem alterar valores', () => {const old={settings:{period:'2026-10',cutoff:'2026-10-31',theme:'dark'}}; withDefaultPreferences(old); qaAssert(old.settings.theme === 'dark' && old.settings.palette==='violet');}],
   ['QA-104', 'Preferência de privacidade mascara exibição mas não altera centavos', () => qaFixture(() => {state.settings.hideValues=true; qaAssert(brl(10000)==='R$ ••••' && moneyValid(10000));})],
@@ -4062,7 +4062,7 @@ qaSpecs.push(
 /* RC3.6 — menu flutuante exclusivamente móvel; dados vazios e navegação. */
 qaSpecs.push(
   ['QA-111','Configurações está na última posição',()=>qaAssert(NAV.at(-1)[0]==='ajustes')],
-  ['QA-112','Todas as seis rotas são exclusivas e completas',()=>qaAssert(new Set(NAV.map(x=>x[0])).size===6 && NAV.every(x=>!!$('view-'+x[0])))],
+  ['QA-112','Todas as sete rotas são exclusivas e completas',()=>qaAssert(new Set(NAV.map(x=>x[0])).size===7 && NAV.every(x=>!!$('view-'+x[0])))],
   ['QA-113','HTML não incorpora transações ou metas de exemplo',()=>qaAssert(SOURCE_DATA.transactions.length===0 && SOURCE_DATA.goals.length===0)],
   ['QA-114','Primeiro acesso tem conta sem saldo e período atual',()=>{const f=fresh();qaAssert(f.accounts.length===1 && f.accounts[0].openingCents===0 && f.transactions.length===0 && f.settings.period===todayISO().slice(0,7));}],
   ['QA-115','Menu móvel não pode abrir em tablet ou desktop',()=>{const before=floatOpen;try{setFloatMenu(false);if(innerWidth>760){setFloatMenu(true);qaAssert(!floatOpen);}else{setFloatMenu(true);qaAssert(floatOpen);}}finally{setFloatMenu(false);} }],
