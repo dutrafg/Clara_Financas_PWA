@@ -1,7 +1,7 @@
-name: Homologar Clara Finanças Etapa 10
+name: Homologar Clara Finanças — Redesign Visual RC
 on:
   push:
-    branches: [homologacao/etapa-10]
+    branches: [homologacao/visual-optio-referencia]
     paths:
       - 'src/**'
       - 'public/**'
@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
-      - name: Testar motor financeiro e etapas 1–10
+      - name: Testar regras financeiras e regressão 1–10
         run: npm test
       - name: Verificar TypeScript e compilar Vite
         run: npm run build
@@ -35,13 +35,13 @@ jobs:
         run: |
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Validar PWA, criptografia, PDF, offline e backup
+      - name: Validar PWA, layout móvel, criptografia, PDF e offline
         run: python tests/e2e_production.py
       - name: Publicar evidências
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-etapa10-evidencias
+          name: clara-visual-rc-evidencias
           path: |
             tests/e2e-desktop.png
             tests/e2e-mobile.png
