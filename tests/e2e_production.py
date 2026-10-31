@@ -165,6 +165,25 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   assert page.get_by_text('Projeção de fluxo de caixa',exact=False).count()>0
   assert not errors,errors
   print('PASSOU: dívida cadastrada, pagamento vinculado, projeção e persistência após reload')
+  # Regressão 6.1: corrigir pagamento, reabrir e excluir pela interface.
+  page.get_by_role('button',name='Movimentações',exact=True).last.click()
+  page.get_by_label('Pesquisar movimentações').fill('Pagamento: Financiamento de notebook')
+  row=page.locator('.table-scroller tbody tr').filter(has_text='Pagamento: Financiamento de notebook')
+  row.wait_for(timeout=15000)
+  row.get_by_role('button',name='Editar').click()
+  page.locator('input[name="amount"]').fill('150,00')
+  page.get_by_role('button',name='Salvar',exact=True).click()
+  page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');const t=d.transactions.filter(x=>x.debtId===debt?.id);resolve(t.length===1&&t[0].amountCents===15000&&t[0].status==='Realizado'&&t[0].debtId===debt.id)}}})''')
+  row.get_by_role('button',name='Voltar a pendente').click()
+  page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');const t=d.transactions.filter(x=>x.debtId===debt?.id);resolve(t.length===1&&t[0].status==='Pendente'&&!t[0].paidAt&&t[0].debtId===debt.id)}}})''')
+  page.once('dialog',lambda dialog:dialog.accept())
+  row.get_by_role('button',name='Excluir').click()
+  page.wait_for_function('''async () => new Promise(resolve => {const r=indexedDB.open('clara-financas-local-v1');r.onsuccess=()=>{const q=r.result.transaction('app','readonly').objectStore('app').get('state');q.onsuccess=()=>{const d=q.result;const debt=(d.debts||[]).find(x=>x.name==='Financiamento de notebook');resolve(!!debt&&d.transactions.every(x=>x.debtId!==debt.id))}}})''')
+  page.reload()
+  page.get_by_role('button',name='Planejamento',exact=True).last.click()
+  page.locator('.debt-card').filter(has_text='Financiamento de notebook').wait_for(timeout=15000)
+  assert not errors,errors
+  print('PASSOU: edição mantém debtId, reabertura e exclusão restauram dívida e saldo')
   browser.close()
  srv.shutdown()
 print('ACEITE: execução end-to-end do build de produção concluída')
