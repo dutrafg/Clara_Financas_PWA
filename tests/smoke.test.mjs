@@ -72,7 +72,7 @@ test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
 test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
  assert.match(html,/id="checkClaraUpdate"/);
  assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/INSTALLED_VERSION='3\.6\.6-rc'/);
+ assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
  assert.match(sw,/type === 'SKIP_WAITING'/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
@@ -124,5 +124,15 @@ test('Registro de alterações com inclusão, edição e exclusão cifradas',()=
  assert.match(html,/renderAuditJournal\(\)/);
  assert.match(html,/function auditEntriesForMonth\(/);
  assert.match(html,/rows\.push\(\[\],\['Alterações registradas'\]/);
- assert.match(html,/INSTALLED_VERSION='3\.6\.6-rc'/);
+ assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+});
+
+test('Versão exibida acompanha a única constante do aplicativo',()=>{
+ const pkgVersion=JSON.parse(pkg).version;
+ const expected=html.match(/const CLARA_APP_VERSION='([^']+)'/);
+ assert.ok(expected,'Constante de versão ausente');
+ assert.equal(expected[1],pkgVersion);
+ assert.match(html,/Versão \$\{esc\(CLARA_APP_VERSION\)\}/);
+ assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+ assert.doesNotMatch(html,/Versão 3\.6\.3-rc/);
 });
