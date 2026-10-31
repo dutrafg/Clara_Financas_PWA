@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','utf8');const manifest=JSON.parse(await readFile('manifest.webmanifest','utf8'));
 test('Base financeira começa vazia',()=>{assert.match(html, /"transactions":\[\],"goals":\[\]/);assert.doesNotMatch(html,/EXEMPLO —|Restaurar demonstração/)});
 test('Configurações sempre por último',()=>{const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];assert.equal([...nav.matchAll(/\['([^']+)', SVG_ICONS/g)].at(-1)?.[1],'ajustes')});
-test('Menu flutuante apenas em smartphone',()=>{assert.match(html,/\.float-trigger, \.float-menu \{ display: none; \}/);assert.match(html,/max-width:760px/);assert.match(html,/function setFloatMenu/)});
+test('Menu flutuante apenas em smartphone',()=>{assert.match(html,/\.float-trigger, \.float-menu, \.mobile-dock-wrap \{ display: none; \}/);assert.match(html,/max-width:760px/);assert.match(html,/function setFloatMenu/)});
 test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'standalone');assert.match(sw,/cache\.put\(url, response\)/);assert.match(sw,/new Request\(url, \{cache:'no-store'\}\)/);for(const n of [192,512])assert((await stat('assets/icon-'+n+'.png')).size>500)});
 
 test('Ação Novo não é global nem duplicada no cabeçalho',()=>{assert.doesNotMatch(html,/id="quickAdd"|\$\('quickAdd'\)/);assert.match(html,/data-open="transaction">＋ Novo lançamento<\/button>/);assert.match(html,/data-open="goal">＋ Nova meta<\/button>/)});
@@ -72,7 +72,27 @@ test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
 test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
  assert.match(html,/id="checkClaraUpdate"/);
  assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/INSTALLED_VERSION='3\.6\.3-rc'/);
+ assert.match(html,/INSTALLED_VERSION='3\.6\.4-rc'/);
  assert.match(sw,/type === 'SKIP_WAITING'/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
+});
+
+test('Dock flutuante com atalhos funcionais e perfil separado',()=>{
+ assert.match(html,/class="mobile-dock-wrap"/);
+ assert.match(html,/class="mobile-dock"/);
+ assert.match(html,/id="floatTrigger"/);
+ assert.match(html,/id="profileFab"/);
+ assert.match(html,/data-view="painel"/);
+ assert.match(html,/data-view="mov"/);
+ assert.match(html,/data-view="plan"/);
+ assert.doesNotMatch(html,/>Módulos<\/span>/);
+});
+test('Perfil validado, fotográfico e persistido no cofre',()=>{
+ assert.match(html,/PROFILE_DEFAULTS=Object.freeze/);
+ assert.match(html,/function validProfile/);
+ assert.match(html,/function loadProfilePhoto/);
+ assert.match(html,/state\.profile=updated/);
+ assert.match(html,/kind==='profile'/);
+ assert.match(html,/id="lockFromProfile"/);
+ assert.match(html,/profile:\s*\{/);
 });
