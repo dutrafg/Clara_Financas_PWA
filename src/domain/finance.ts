@@ -2,7 +2,7 @@
    Mantém os algoritmos sem modificações para evitar regressão de cálculos. */
 import * as source from '../legacy/core.mjs';
 import type {FinanceData, Transaction, FinancialStats, Budget} from './types';
-export const VERSION = '0.7.0';
+export const VERSION = '0.8.0';
 export const blankData = source.blankData as () => FinanceData;
 export const uid = source.uid as (prefix?:string) => string;
 export const brl = source.brl as (cents:number) => string;
