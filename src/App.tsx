@@ -9,6 +9,7 @@ import type {Frequency,MovementFilters} from './domain/movements';
 import {installmentSchedule,createInstallmentMovements,summarizeInstallmentGroups} from './domain/installments';
 import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,updateCategory,archiveCategory,deleteCategory,setFinancialPreferences,savingsOverview} from './domain/catalogs';
 import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,removeDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
+import {reconcileAccount,deleteReconciliation,reconciliationHistory,financeAudit} from './domain/reconciliation';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -173,6 +174,10 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
 export default function App(){
  const {data,error,saving,folder,setFolder,notice,notify,commit,modify}=useFinance();
  const [view,setView]=useState<View>('dashboard');
+ const [reconAccount,setReconAccount]=useState('');
+ const [reconDate,setReconDate]=useState(today());
+ const [reconAmount,setReconAmount]=useState('');
+ const [reconNote,setReconNote]=useState('');
  const [modal,setModal]=useState<ModalState|null>(null);
  const [filters,setFilters]=useState<MovementFilters>(emptyFilter);
  const [showAllMonths,setShowAllMonths]=useState(false);
@@ -198,6 +203,16 @@ export default function App(){
  const mask=(c:number)=>data?.settings.hideValues?'••••••':brl(c);
  const month=data?.settings.selectedPeriod||today().slice(0,7);
  const summary=useMemo(()=>data?periodStats(data,month):null,[data,month]);
+ const audits=useMemo(()=>data?financeAudit(data,{today:today()}):null,[data]);
+ const reconciliations=useMemo(()=>data?reconciliationHistory(data):[],[data]);
+ const createReconciliation=async()=>{
+  try{await modify(d=>reconcileAccount(d,{accountId:reconAccount||d.accounts[0].id,asOfDate:reconDate,statementCents:(reconAmount.trim().startsWith('-')?-1:1)*parseMoney(reconAmount.trim().replace(/^-/,'')),note:reconNote}),'Conferência registrada.');setReconAmount('');setReconNote('');}
+  catch(e){notify((e as Error).message,true)}
+ };
+ const removeReconciliation=async(id:string)=>{
+  if(!window.confirm('Excluir este registro de conferência?'))return;
+  try{await modify(d=>deleteReconciliation(d,id),'Conferência excluída.');}catch(e){notify((e as Error).message,true)}
+ };
  const budgets=useMemo(()=>data?budgetStatus(data,month):[],[data,month]);
  const debtSummaries=useMemo(()=>data?allDebtSummaries(data):[],[data]);
  const forecast=useMemo(()=>data?cashflowForecast(data,month,6):[],[data,month]);
@@ -394,6 +409,24 @@ export default function App(){
   <div className="catalog-actions"><Button variant="ghost" onClick={()=>toggleArchive('account',a.id,!a.archived)}>{a.archived?'Reativar conta':'Arquivar conta'}</Button></div>
  </Pane>)}</div>
  <div className="tip"><Icon name="info" size={17}/>Arquivar oculta a conta de novos lançamentos, mas preserva saldos e históricos. Contas utilizadas não podem ser excluídas.</div>
+ <Pane title="Conciliação de extrato" detail="Compare o saldo de um extrato externo com o saldo calculado no Clara. Não ajusta o saldo automaticamente.">
+ <div className="recon-grid">
+ <label>Conta<select aria-label="Conta para conferência" value={reconAccount||data.accounts[0]?.id} onChange={e=>setReconAccount(e.target.value)}>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+ <label>Data do extrato<input aria-label="Data do extrato" type="date" value={reconDate} onChange={e=>setReconDate(e.target.value)}/></label>
+ <label>Saldo no extrato (R$)<input aria-label="Saldo no extrato" inputMode="decimal" placeholder="0,00" value={reconAmount} onChange={e=>setReconAmount(e.target.value)}/></label>
+ <label>Observação<input aria-label="Observação da conferência" maxLength={300} value={reconNote} onChange={e=>setReconNote(e.target.value)}/></label>
+ </div><Button icon="check" onClick={createReconciliation}>Conferir saldo</Button>
+ <div className="recon-list">{reconciliations.slice(0,25).map(r=><div key={r.id} className="recon-record">
+  <div><strong>{data.accounts.find(a=>a.id===r.accountId)?.name||'Conta'} · {fmtDate(r.asOfDate)}</strong><small>Extrato: {mask(r.statementCents)} · Clara: {mask(r.currentCents)}</small>
+  <small>{r.matched?'Conciliado':r.stale?'Alterado desde a conferência':'Divergência: '+mask(r.currentDifferenceCents)}</small></div>
+  <Button variant="ghost" onClick={()=>removeReconciliation(r.id)}>Excluir</Button></div>)}
+  {!reconciliations.length&&<p className="fine">Nenhuma conferência registrada.</p>}
+ </div></Pane>
+ <Pane title="Auditoria financeira" detail="Sinais de atenção, possíveis duplicidades e lançamentos vencidos, sem exclusões automáticas.">
+ <div className="savings-overview"><div><small>Possíveis duplicidades</small><strong>{audits?.duplicates||0}</strong></div><div><small>Vencidos</small><strong>{audits?.overdue||0}</strong></div><div><small>Diferenças de saldo</small><strong>{audits?.mismatches||0}</strong></div></div>
+ <div className="audit-list">{audits?.findings.slice(0,20).map((f,i)=><div className="audit-item" key={f.code+'-'+i}><strong>{f.code==='DUPLICATE'?'Possível duplicidade':f.code==='OVERDUE'?'Pendente vencido':f.code==='BALANCE_MISMATCH'?'Saldo divergente':'Verificação necessária'}</strong>{f.label}</div>)}
+ {!audits?.findings.length&&<p className="fine">Nenhum sinal de atenção identificado nas regras automatizadas.</p>}</div>
+ <p className="fine">Uma indicação de duplicidade exige conferência manual: lançamentos iguais podem ser legítimos.</p></Pane>
  <Pane title="Categorias financeiras" detail="Edite e organize suas categorias. Arquivar preserva os lançamentos antigos."
    actions={<Button icon="plus" onClick={()=>setModal({type:'category'})}>Nova categoria</Button>}>
   <div className="catalog-columns">{(['Despesa','Receita'] as const).map(group=><div key={group}>
@@ -436,7 +469,7 @@ export default function App(){
  <div className="metrics"><Kpi title="Entradas" value={mask(summary.income)} icon="arrowup" tone="success" description={monthText(month)}/><Kpi title="Saídas" value={mask(summary.expense)} icon="arrowdown" tone="danger" description={monthText(month)}/><Kpi title="Resultado" value={mask(summary.result)} icon="reports" tone="blue" description={monthText(month)}/><Kpi title="Pendências" value={mask(summary.pending)} icon="calendar" description="Despesas não realizadas"/></div>
  <Pane title="Resumo anual"><YearChart data={data} month={month} mask={mask}/></Pane><Pane title="Contas e saldos"><div className="summary-list">{summary.accounts.map(a=><div key={a.id} className="highlight-row"><span>{a.name}</span><strong>{mask(a.balanceCents)}</strong></div>)}</div></Pane>
  <div className="tip"><Icon name="info" size={17}/>O PDF usa a impressão do navegador. Relatórios avançados de conciliação e análise serão implementados nas Etapas 7 e 9.</div></div>;
- const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 6 / 10 · v{VERSION}</span></div>
+ const settings=<div className="vertical"><div className="section-top"><div><h2>Configurações</h2><p>Privacidade, aparência e armazenamento local.</p></div><span className="version-chip">Etapa 7 / 10 · v{VERSION}</span></div>
  <div className="settings-grid"><Pane title="Aparência" detail="Identidade visual do Clara, inspirada na navegação do EvoluFísico2"><div className="setting-row"><div><b>Tema</b><p>Claro ou escuro</p></div><select aria-label="Tema" value={data.settings.theme} onChange={e=>modify(d=>{d.settings.theme=e.target.value as 'light'|'dark'})}><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div className="setting-row"><div><b>Cor de destaque</b><p>Verde-petróleo ou azul</p></div><select aria-label="Cor de destaque" value={data.settings.accent} onChange={e=>modify(d=>{d.settings.accent=e.target.value as 'petrol'|'blue'})}><option value="petrol">Petróleo</option><option value="blue">Azul</option></select></div><div className="setting-row"><div><b>Ocultar valores</b><p>Proteção visual na tela</p></div><input aria-label="Ocultar valores" type="checkbox" checked={data.settings.hideValues} onChange={e=>modify(d=>{d.settings.hideValues=e.target.checked})}/></div></Pane>
  <Pane title="Preferências financeiras" detail="Acompanhamento da economia e metas da planilha original">
  <div className="settings-finance-form">
