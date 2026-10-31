@@ -1,4 +1,4 @@
-name: Clara RC3.5 - QA PWA Offline
+name: Clara PWA - QA, referências e cache offline
 on:
   push:
     branches: [main, 'release/**', 'feature/clara-dashboard-miniapps']
@@ -17,6 +17,8 @@ jobs:
       - name: Suíte estática e integridade financeira
         run: npm test
       - run: npm run build
+      - name: Auditoria de versões, links locais e cache offline
+        run: npm run verify:paths
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
