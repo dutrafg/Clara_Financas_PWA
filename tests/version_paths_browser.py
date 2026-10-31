@@ -12,6 +12,14 @@ site.parent.mkdir(parents=True, exist_ok=True)
 shutil.copytree('dist', site)
 BASE = 'http://127.0.0.1:8766/qa-scope/preview/clara/'
 
+async def unlock(page):
+    if await page.locator('#securityCover').is_visible():
+        await page.locator('#securityPassword').fill('Clara-QA-Senha-2026!')
+        if await page.locator('#securityConfirmWrap').is_visible():
+            await page.locator('#securityConfirm').fill('Clara-QA-Senha-2026!')
+        await page.locator('#securitySubmit').click()
+        await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+
 async def run():
   async with async_playwright() as p:
     browser=await p.chromium.launch(headless=True)
@@ -20,6 +28,7 @@ async def run():
     errors=[]
     page.on('pageerror',lambda exc:errors.append(str(exc)))
     await page.goto(BASE,wait_until='load')
+    await unlock(page)
     await page.wait_for_function('navigator.serviceWorker.controller !== null',timeout=20000)
     origin=await page.evaluate("""async () => {
       const r=await navigator.serviceWorker.ready;
@@ -52,6 +61,11 @@ async def run():
       const registration=await navigator.serviceWorker.ready;
       await registration.update();
     }""")
+    await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
+    await page.evaluate("""async () => {
+      const reg=await navigator.serviceWorker.ready;
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }""")
     await page.wait_for_function("""async () => {
       const names=await caches.keys();
       return names.includes('clara-financas-qa-upgrade-v2') &&
@@ -69,6 +83,7 @@ async def run():
     await context.set_offline(True)
     new_page=await context.new_page()
     await new_page.goto(BASE,wait_until='load')
+    await unlock(new_page)
     assert 'qa-version-two' in await new_page.content(),'Nova navegação offline usa HTML obsoleto'
     assert await new_page.locator('#dashboardMiniapps').count()==1
     assert not errors,errors
