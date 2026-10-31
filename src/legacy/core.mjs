@@ -1,7 +1,7 @@
 /* Clara Finanças — Etapa 1/10. Motor financeiro determinístico, valores em centavos.
    Regras de caixa compatíveis com colunas A/I/K/N de Movimentações da planilha.
    Não usa Date.parse para comparar datas no fuso local. */
-export const VERSION='0.2.0';
+export const VERSION='0.5.0';
 export const SCHEMA_VERSION=2;
 const DEFAULT_CATEGORIES=[
  ['Salário','Receita'],['Renda extra','Receita'],['Outros recebimentos','Receita'],
