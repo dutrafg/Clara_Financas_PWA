@@ -6,6 +6,11 @@ let vaultPassword=null;
 // Prevent saving a stale ciphertext after a vault transition (and vice versa).
 // Every state mutation runs in the same queue. Failure must not block future writes.
 let mutationQueue=Promise.resolve();
+/**
+ * @template T
+ * @param {() => Promise<T>} callback
+ * @returns {Promise<T>}
+ */
 function serializeMutation(callback){
  const operation=mutationQueue.then(callback);
  mutationQueue=operation.catch(()=>{});
