@@ -161,3 +161,16 @@ test('Configurações minimalistas conservam os controles e escondem opções av
  assert.match(html,/config-disclosure/);
  assert.doesNotMatch(html,/Um lugar para todos os ajustes/);
 });
+
+test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
+ assert.match(html,/id="claraInstallBtn"/);
+ assert.match(html,/id="claraInstallStatus"/);
+ assert.match(html,/id="clara-install-runtime"/);
+ assert.match(html,/addEventListener\('beforeinstallprompt'/);
+ assert.match(html,/event\.preventDefault\(\);candidate=event;paint\(\)/);
+ assert.match(html,/addEventListener\('appinstalled'/);
+ assert.match(html,/await prompt\.prompt\(\)/);
+ assert.match(html,/id="claraInstallHelp"/);
+ assert.match(html,/No Chrome, primeiro abra o site normalmente/);
+ assert.match(html,/const CLARA_APP_VERSION='3\.6\.9-rc'/);
+});
