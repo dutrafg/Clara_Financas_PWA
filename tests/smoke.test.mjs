@@ -7,11 +7,11 @@ test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'sta
 
 test('Ação Novo não é global nem duplicada no cabeçalho',()=>{assert.doesNotMatch(html,/id="quickAdd"|\$\('quickAdd'\)/);assert.match(html,/data-open="transaction">＋ Novo lançamento<\/button>/);assert.match(html,/data-open="goal">＋ Nova meta<\/button>/)});
 
-test('Clara: 13 miniaplicativos reais, sem ClaraStore',()=>{
+test('Clara: 15 miniaplicativos reais, sem ClaraStore',()=>{
  const catalog=html.match(/const CLARA_WIDGETS = Object.freeze\((\[[^\n]+\])\);/);
  assert.ok(catalog,'Catálogo de miniaplicativos não encontrado');
  const widgets=JSON.parse(catalog[1]);
- assert.equal(widgets.length,13);
+ assert.equal(widgets.length,15);
  assert.equal(new Set(widgets.map(w=>w.id)).size,13);
  assert.doesNotMatch(html,/ClaraStore|id="quickAdd"/);
  assert.match(html,/\$\{renderClaraMiniapps\(p\)\}/);
@@ -31,4 +31,22 @@ test('Clara: editor responsivo, dados reais e histórico mensal',()=>{
  assert.match(html,/state\.settings\.dashboardOrder=/);
  assert.match(html,/state\.transactions\.filter\(t=>t\.status==='Pendente'/);
  assert.match(html,/effective\(t\)\.slice\(0,7\)/);
+});
+
+test('Clara: simulador e recorrências presentes sem persistência automática',()=>{
+ for (const expected of ['recurring','simulator','recurring-export','budget-export','sim-draft','simulate','agenda-days','agenda-kind','recent-status','forecast-months','account-cards','budget-risk','compare']) {
+   assert.ok(html.includes(expected), 'Não localizado: '+expected);
+ }
+ assert.match(html,/function computeSimulation/);
+ assert.match(html,/function recurringItems/);
+ assert.match(html,/function widgetToolstrip/);
+ assert.match(html,/function exportRecurring/);
+ assert.match(html,/function exportBudget/);
+ assert.match(html,/renderRecurring\(action,line,empty\)/);
+ assert.match(html,/renderSimulator\(action\)/);
+});
+test('Clara: não há execução de bibliotecas de terceiros para miniaplicativos',()=>{
+ assert.doesNotMatch(html,/ClaraStore|fetch\(['"]https:\/\/.*miniaplicativo/);
+ assert.match(html,/localStorage/);
+ assert.match(html,/function validateData/);
 });
