@@ -3,7 +3,7 @@ const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','
 test('Base financeira começa vazia',()=>{assert.match(html, /"transactions":\[\],"goals":\[\]/);assert.doesNotMatch(html,/EXEMPLO —|Restaurar demonstração/)});
 test('Configurações sempre por último',()=>{const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];assert.equal([...nav.matchAll(/\['([^']+)', SVG_ICONS/g)].at(-1)?.[1],'ajustes')});
 test('Menu flutuante apenas em smartphone',()=>{assert.match(html,/\.float-trigger, \.float-menu \{ display: none; \}/);assert.match(html,/max-width:760px/);assert.match(html,/function setFloatMenu/)});
-test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'standalone');assert.match(sw,/cache.addAll\(APP_FILES\.map\(/);for(const n of [192,512])assert((await stat('assets/icon-'+n+'.png')).size>500)});
+test('PWA e cache para uso offline',async()=>{assert.equal(manifest.display,'standalone');assert.match(sw,/cache\.put\(url, response\)/);assert.match(sw,/new Request\(url, \{cache:'no-store'\}\)/);for(const n of [192,512])assert((await stat('assets/icon-'+n+'.png')).size>500)});
 
 test('Ação Novo não é global nem duplicada no cabeçalho',()=>{assert.doesNotMatch(html,/id="quickAdd"|\$\('quickAdd'\)/);assert.match(html,/data-open="transaction">＋ Novo lançamento<\/button>/);assert.match(html,/data-open="goal">＋ Nova meta<\/button>/)});
 
