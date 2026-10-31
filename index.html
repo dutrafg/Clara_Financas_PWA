@@ -3086,6 +3086,23 @@ function renderHistorico(){
   <div class="gap"></div>
   ${panel('Conciliações','Conferências realizadas no período','<div class="list">'+(reconciliation||'<div class="empty">Sem conciliações no mês.</div>')+'</div><div class="control-row"><button type="button" class="btn" data-view="conf">Abrir Conferências</button></div>')}
  `;
+ renderAuditJournal();
+}
+function auditEntriesForMonth(month=auditMonth){
+ return (state.auditLog||[]).filter(e=>e.month===month||e.relatedMonth===month);
+}
+function renderAuditJournal(){
+ const events=auditEntriesForMonth().slice().reverse();
+ const rows=events.slice(0,100).map(e=>'<div class="list-row"><div class="left"><strong>'+
+  esc(e.action)+' · '+esc(e.label)+'</strong><div class="secondary">'+
+  esc(new Date(e.at).toLocaleString('pt-BR'))+' · '+esc(e.actor)+' · '+esc(e.entity)+
+  (e.before?'<div>Antes: '+esc(e.before)+'</div>':'')+
+  (e.after?'<div>Depois: '+esc(e.after)+'</div>':'')+
+  (e.detail?'<div>'+esc(e.detail)+'</div>':'')+'</div></div></div>').join('');
+ $('view-historico').insertAdjacentHTML('beforeend','<div class="gap"></div>'+
+ panel('Alterações registradas','Criações, edições e exclusões feitas a partir desta versão. Os dados ficam no cofre local; não é um registro forense imutável.',
+ '<div class="list">'+(rows||'<div class="empty">Sem alterações registradas para este mês.</div>')+'</div>'+
+ (events.length>100?'<p class="helper">Mostrando 100 eventos recentes. O CSV reúne os eventos retidos.</p>':'')));
 }
 function exportHistoricalCSV(){
  const s=historicalSummary();
@@ -3094,6 +3111,8 @@ function exportHistoricalCSV(){
  for(const t of s.entries)rows.push([effective(t),t.date,t.paidAt||'',t.kind,t.status,t.description,t.category,name(t.accountId),name(t.toAccountId),csvAmount(t.amountCents)]);
  rows.push([],['Conciliações'],['Data','Conta','Saldo no extrato (R$)','Saldo calculado (R$)','Diferença (R$)']);
  for(const r of s.reconciliations){const calc=accountBalance(r.accountId,r.date);rows.push([r.date,name(r.accountId),csvAmount(r.statementCents),csvAmount(calc),csvAmount(r.statementCents-calc)]);}
+ rows.push([],['Alterações registradas'],['Quando','Usuário','Ação','Tipo','Descrição','Antes','Depois','Detalhes']);
+ for(const e of auditEntriesForMonth())rows.push([e.at,e.actor,e.action,e.entity,e.label,e.before,e.after,e.detail]);
  dl('Clara_Historico_'+auditMonth+(auditAccount==='Todas'?'':'_Conta')+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
 }
 
