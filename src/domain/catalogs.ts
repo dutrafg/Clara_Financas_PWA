@@ -1,0 +1,15 @@
+import * as source from '../legacy/catalogs.mjs';
+import type {Account,Category,FinanceData,FinanceSettings} from './types';
+type AccountInput={name:string;type:string;openingCents:number};
+type CategoryInput={name:string;group:'Receita'|'Despesa'};
+type Preferences={monthlySavingsCents:number;reviewDay:number};
+export const createAccount=source.createAccount as (d:FinanceData,form:AccountInput)=>Account;
+export const updateAccount=source.updateAccount as (d:FinanceData,id:string,form:AccountInput)=>Account;
+export const archiveAccount=source.archiveAccount as (d:FinanceData,id:string,archived:boolean)=>Account;
+export const deleteAccount=source.deleteAccount as (d:FinanceData,id:string)=>boolean;
+export const createCategory=source.createCategory as (d:FinanceData,form:CategoryInput)=>Category;
+export const updateCategory=source.updateCategory as (d:FinanceData,id:string,form:CategoryInput)=>Category;
+export const archiveCategory=source.archiveCategory as (d:FinanceData,id:string,archived:boolean)=>Category;
+export const deleteCategory=source.deleteCategory as (d:FinanceData,id:string)=>boolean;
+export const setFinancialPreferences=source.setFinancialPreferences as (d:FinanceData,form:Preferences)=>FinanceSettings;
+export const savingsOverview=source.savingsOverview as (d:FinanceData,month:string)=>{incomeCents:number;expenseCents:number;netCents:number;targetCents:number;achievedCents:number;remainingCents:number;ratio:number;reviewDay:number};
