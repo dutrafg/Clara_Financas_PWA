@@ -2906,13 +2906,23 @@ function renderAjustes() {
     body = `${panel('Segurança e privacidade', 'Controle de dados locais e de exposição de valores.', `<div class="list">
       ${prefSwitch('hideValues','Ocultar valores na interface','Impede visualização casual; não cifra o armazenamento do navegador.')}
       <div class="config-note"><strong>Proteção dos dados</strong><span>Após criar sua senha, os dados são criptografados neste navegador com AES-256-GCM. Os registros e backups antigos sem proteção devem ser eliminados com cuidado.</span></div>
-      <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão ${esc(CLARA_APP_VERSION)}. Busca versões novas e permite aplicar somente depois da sua autorização, preservando o cofre.</small></div><button class="btn" id="checkClaraUpdate" type="button">Verificar atualizações</button></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
+      <div class="clara-update-center" aria-label="Central de atualizações">
+ <div class="config-actions"><div><strong>Atualizações do Clara</strong><small>Versão instalada, última verificação e status — sem reiniciar sem autorização.</small></div></div>
+ <div class="clara-update-metrics">
+  <div><small>VERSÃO INSTALADA</small><strong id="claraUpdateInstalled">${esc(CLARA_APP_VERSION)}</strong><small>Canal de testes RC</small></div>
+  <div><small>ÚLTIMA VERIFICAÇÃO</small><strong id="claraUpdateLast">Ainda não verificado</strong><small>Consulta automática com internet</small></div>
+ </div>
+ <div class="clara-update-status"><span class="clara-update-indicator" id="claraUpdateState">Aguardando</span><span id="claraUpdateMessage">Verificação automática ao desbloquear.</span></div>
+ <div class="control-row"><button type="button" class="btn" id="checkClaraUpdate">Verificar agora</button><button type="button" class="btn primary" id="applyClaraUpdate" hidden>Atualizar agora</button></div>
+</div>
+<div class="config-note clara-whats-new"><strong>O que há de novidade</strong><span>Versão ${esc(CLARA_APP_VERSION)} · Melhorias disponíveis mesmo offline.</span><ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul></div><div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
     </div>`)}<div class="gap"></div>
     <div class="config-actions"><div><strong>Bloquear aplicativo</strong><small>Oculta os saldos e exige novamente a senha pessoal.</small></div><button class="btn" type="button" id="lockClaraNow">Bloquear</button></div><div class="gap"></div>
     ${panel('Cópias de segurança', 'O backup .clara é criptografado; arquivos JSON anteriores podem ser importados apenas para migração.', `<div class="config-actions"><div><strong>Exportar backup protegido (.clara)</strong><small>Protegido pela senha atual.</small></div><button class="btn" type="button" id="exportJson">Exportar .clara</button></div><div class="config-actions"><div><strong>Restaurar backup .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar .clara</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div><div class="config-actions"><div><strong>Importar JSON antigo</strong><small>Migração de backup legado não criptografado.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar JSON</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
     ${panel('Diagnóstico e manutenção', 'Ferramentas de diagnóstico. Não utilize a base de testes com dados reais.', `<div class="config-actions"><div><strong>Central ClaraQA</strong><small>Executa verificações internas, incluindo preferências.</small></div><button class="btn" type="button" data-open-qa="1">Executar testes</button></div><div class="config-actions"><div><strong>Começar do zero</strong><small>Exporta um backup e inicia uma base vazia.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>`)}`;
   }
   $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
+  window.ClaraUpdate?.paint?.();
 }
 
 function generateInstallments(totalCents, n, due, desc, category, account) {
