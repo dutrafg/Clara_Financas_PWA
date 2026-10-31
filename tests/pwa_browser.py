@@ -32,6 +32,41 @@ async def run():
     await page.locator('#mobileNav [data-view="ajustes"]').click()
     assert await page.locator('#pageTitle').inner_text()=='Configurações'
 
+    # A nova navegação usa pílula com quatro botões e bolha separada de Perfil.
+    assert await page.locator('.mobile-dock-wrap').is_visible()
+    assert await page.locator('.mobile-dock .dock-link').count()==3
+    assert await page.locator('#profileFab').is_visible()
+    assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='false'
+    await page.locator('.mobile-dock [data-view="mov"]').click()
+    assert await page.locator('#pageTitle').inner_text()=='Movimentações'
+    await page.locator('#profileFab').click()
+    assert await page.locator('#modalBg').get_attribute('data-kind')=='profile'
+    await page.locator('#m_name').fill('Usuário de Validação')
+    await page.locator('#m_email').fill('teste@exemplo.com')
+    await page.locator('#m_phone').fill('(11) 99999-8888')
+    # Foto JPEG gerada localmente e sem tráfego de rede.
+    await page.locator('#m_photo').set_input_files({
+      'name':'avatar.png','mimeType':'image/png',
+      'buffer':__import__('base64').b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/X4kAAAAASUVORK5CYII=')
+    })
+    await page.wait_for_function("!!document.querySelector('#profilePreview img')",timeout=10000)
+    await page.locator('#modalForm button[type="submit"]').click()
+    assert await page.locator('#profileFab').get_attribute('aria-label')=='Abrir perfil de Usuário de Validação'
+    profile=await page.evaluate("""() => ({
+      p:state.profile, raw:localStorage.getItem('clara-financas-vault-aesgcm-v1')
+    })""")
+    assert profile['p']['name']=='Usuário de Validação' and profile['p']['photo'].startswith('data:image/jpeg;base64,')
+    assert 'Usuário de Validação' not in profile['raw']
+    await page.evaluate("window.ClaraSecurity.flush()")
+    await page.reload(wait_until='load')
+    await unlock(page)
+    assert await page.evaluate("state.profile.name==='Usuário de Validação' && state.profile.photo.startsWith('data:image/jpeg;base64,')")
+    await page.locator('#profileFab').click()
+    await page.locator('#lockFromProfile').click()
+    assert await page.locator('#securityCover').is_visible()
+    await unlock(page)
+
+
    # Contratos dos miniaplicativos: catálogo, editor, persistência e ações reais.
    if width==390:
     await page.goto('http://127.0.0.1:8765/',wait_until='load')
