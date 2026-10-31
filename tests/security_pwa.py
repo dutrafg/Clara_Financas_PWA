@@ -58,6 +58,29 @@ async def main():
     await page.locator('#securitySubmit').click()
     await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
     assert await page.evaluate("state.accounts[0].openingCents===77777")
+    audit=await page.evaluate("""() => {
+      const period=todayISO(),item={id:'audit-qa',date:period,
+        description:'Registro auditável QA',kind:'Despesa',category:'Moradia',
+        amountCents:1200,accountId:'principal',toAccountId:'',
+        status:'Realizado',paidAt:period};
+      state.transactions.push(item);save();
+      state.transactions.find(t=>t.id==='audit-qa').amountCents=1500;save();
+      state.transactions=state.transactions.filter(t=>t.id!=='audit-qa');save();
+      const ev=state.auditLog.filter(e=>e.ref==='audit-qa');
+      return {actions:ev.map(e=>e.action),before:ev[1]?.before,after:ev[1]?.after,
+        year:ev[0]?.month,current:period.slice(0,7),total:state.auditLog.length};
+    }""")
+    assert audit['actions']==['Criado','Editado','Excluído'],audit
+    assert '12,00' in audit['before'] and '15,00' in audit['after'],audit
+    assert audit['year']==audit['current']
+    await page.evaluate('window.ClaraSecurity.flush()')
+    encrypted=await page.evaluate("localStorage.getItem('clara-financas-vault-aesgcm-v1')")
+    assert 'Registro auditável QA' not in encrypted
+    await page.reload(wait_until='load')
+    await page.locator('#securityPassword').fill(PWD)
+    await page.locator('#securitySubmit').click()
+    await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+    assert await page.evaluate("state.auditLog.filter(e=>e.ref==='audit-qa').length===3")
     assert not errors,errors
     print('COFRE APROVADO: senha, dados antigos migrados, criptografia e reabertura')
     await context.close()
