@@ -13,6 +13,14 @@
 
 **Etapa 10 — Segurança e QA:** backups exportados com PBKDF2-SHA256 (310.000 iterações) e AES-256-GCM com salt/IV aleatórios; proteção contra arquivos adulterados e senhas incorretas; bloqueio visual local com PBKDF2, com configuração voluntária; regressões e navegação móvel. Consultar o workflow da branch para situação atual.
 
+## Homologação automatizada da Etapa 10 — APROVADA
+- [Execução GitHub Actions #41168319885](https://github.com/dutrafg/Clara_Financas_PWA/actions/runs/41168319885): `success`, todas as tarefas aprovadas.
+- `npm test`: etapas 1 a 10 aprovadas, incluindo 29 testes da Etapa 7, 25 da Etapa 8, 28 da Etapa 9 e 22 da Etapa 10, além das anteriores.
+- `npm run build`: TypeScript e Vite aprovados.
+- Chromium: IndexedDB persistente com 63 registros, offline com Service Worker, criação e quitação, auditoria, projeção, PDF/CSV, backup AES-GCM, restauração protegida e desbloqueio aprovados.
+- O pipeline confirma o funcionamento automatizado, **não** o aceite em hardware Android ou Windows real.
+- Não considerar a versão pronta para distribuição comercial até concluir o checklist físico e decidir sobre criptografia do armazenamento local.
+
 ## Verificações automatizadas
 - `npm test`: módulos financeiros desde a etapa 1, conciliação, indicadores, relatórios, criptografia e desbloqueio.
 - `npm run build`: TypeScript e compilação de produção.
