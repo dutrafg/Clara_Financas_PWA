@@ -1,0 +1,1 @@
+REVISOR DE QA - ATENÇÃO: Runtime React 16 de compatibilidade. Banco REAL IndexedDB e Service Worker real. Não é o build de produção React 19/Vite. Para testar: python -m http.server 8765 --directory qa-pwa; abra http://localhost:8765. Não use com dados financeiros reais.

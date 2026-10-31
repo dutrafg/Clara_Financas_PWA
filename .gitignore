@@ -1,0 +1,20 @@
+# Dependências e compilações
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+*.log
+npm-debug.log*
+# Arquivos locais privados
+.env
+.env.*
+!.env.example
+clara-financas-dados.json
+clara-backup-*.json
+# Arquivos temporários
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

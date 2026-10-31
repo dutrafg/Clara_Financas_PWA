@@ -1,0 +1,12 @@
+import * as source from '../legacy/db.mjs';
+import type {FinanceData,FolderInfo} from './types';
+import {VERSION} from './finance';
+export const initData = async ():Promise<FinanceData> => {const data = await (source.initData as () => Promise<FinanceData>)();return {...data,appVersion:VERSION};};
+export const saveData = source.saveData as (data:FinanceData)=>Promise<FinanceData>;
+export const chooseFolder = source.chooseFolder as ()=>Promise<FileSystemDirectoryHandle>;
+export const writeFolderCopy = source.writeFolderCopy as (data:FinanceData)=>Promise<boolean>;
+export const readFolderCopy = source.readFolderCopy as ()=>Promise<FinanceData>;
+export const clearDirectoryHandle = source.clearDirectoryHandle as ()=>Promise<void>;
+export const folderPermission = source.folderPermission as ()=>Promise<FolderInfo>;
+export const askFolderPermission = source.askFolderPermission as ()=>Promise<boolean>;
+export const persistentStorage = source.persistentStorage as ()=>Promise<boolean>;

@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","compilerOptions":{"jsx":"react","strict":false,"allowImportingTsExtensions":true},"include":["src","vite.config.ts","tools/react-typecheck-stub.d.ts"]}
