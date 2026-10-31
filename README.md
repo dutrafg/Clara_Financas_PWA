@@ -1,6 +1,6 @@
-> **Etapa 5/10 — Contas, categorias e ajustes:** homologada. Veja [RESULTADO_ETAPA_05.md](docs/RESULTADO_ETAPA_05.md).
+> **Etapa 6/10 — Planejamento, metas, dívidas e projeções:** homologada. Veja [RESULTADO_ETAPA_06.md](docs/RESULTADO_ETAPA_06.md).
 
-# Clara Finanças — Etapa 5/10 | v0.6.0 RC
+# Clara Finanças — Etapa 6/10 | v0.7.0 RC
 
 Migração da interface para **React + TypeScript + Vite**. Projeto independente com identidade visual inspirada no EvoluFísico2. É uma **PWA local**: o banco principal é IndexedDB e o usuário pode criar uma cópia JSON em uma pasta escolhida, quando houver suporte no navegador. Não há login, servidor, API bancária ou coleta remota de dados.
 
