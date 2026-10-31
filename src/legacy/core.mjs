@@ -45,6 +45,21 @@ export function budgetStatus(data,month){const s=periodStats(data,month);return 
 export function validateTransaction(t,data){if(!t||typeof t!=='object')throw Error('Lançamento inválido.');if(!isISODate(t.date))throw Error('Informe uma data de vencimento válida.');if(t.paidAt&&!isISODate(t.paidAt))throw Error('Informe uma data de pagamento válida.');if(!String(t.description||'').trim())throw Error('Informe a descrição.');if(!Number.isSafeInteger(t.amountCents)||t.amountCents<=0)throw Error('O valor deve ser maior que zero.');if(!['Receita','Despesa','Transferência'].includes(t.kind))throw Error('Tipo de movimento inválido.');if(!['Realizado','Pendente','Cancelado'].includes(t.status))throw Error('Situação inválida.');if(!data.accounts.some(a=>a.id===t.accountId))throw Error('Selecione uma conta válida.');if(t.kind==='Transferência'&&(!data.accounts.some(a=>a.id===t.toAccountId)||t.toAccountId===t.accountId))throw Error('Selecione outra conta para receber a transferência.');if(t.kind!=='Transferência'&&!data.categories.some(c=>c.name===t.category&&c.group===t.kind))throw Error('Selecione uma categoria válida para o tipo.');if(t.status!=='Realizado'&&t.paidAt)throw Error('Apenas lançamentos realizados podem ter data de pagamento.');
  if(t.recurrenceGroupId||t.recurrenceIndex||t.recurrenceCount||t.recurrenceFrequency){
   if(typeof t.recurrenceGroupId!=='string'||!t.recurrenceGroupId.trim()||!Number.isInteger(t.recurrenceIndex)||!Number.isInteger(t.recurrenceCount)||t.recurrenceCount<2||t.recurrenceCount>24||t.recurrenceIndex<1||t.recurrenceIndex>t.recurrenceCount||!['weekly','monthly','yearly'].includes(t.recurrenceFrequency))throw Error('Dados de recorrência inválidos.');
+ }
+ // Metadados opcionais de parcelamento, compatíveis com backups v1/v2.
+ // Índice 0 identifica exclusivamente a entrada; 1..N são prestações.
+ if(t.installmentGroupId!==undefined||t.installmentIndex!==undefined||
+    t.installmentCount!==undefined||t.installmentPrincipalCents!==undefined||
+    t.installmentInterestCents!==undefined){
+  if(t.kind!=='Despesa'||typeof t.installmentGroupId!=='string'||!t.installmentGroupId.trim()||
+     !Number.isInteger(t.installmentIndex)||!Number.isInteger(t.installmentCount)||
+     t.installmentCount<2||t.installmentCount>60||
+     t.installmentIndex<0||t.installmentIndex>t.installmentCount||
+     !Number.isSafeInteger(t.installmentPrincipalCents)||t.installmentPrincipalCents<=0||
+     !Number.isSafeInteger(t.installmentInterestCents)||t.installmentInterestCents<0||
+     t.installmentPrincipalCents+t.installmentInterestCents!==t.amountCents||
+     (t.installmentIndex===0&&t.installmentInterestCents!==0)||
+     t.recurrenceGroupId)throw Error('Metadados de parcelamento inválidos.');
  }return true;}
 /* Migração explícita, sem alterar o backup original. O v1 não tinha contrato formal para paidAt:
    quando ausente, a data de vencimento é a data efetiva, como no Excel. */
