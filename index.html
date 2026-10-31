@@ -1,0 +1,3503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
+<meta name="application-name" content="Clara Finanças"><meta name="description" content="Controle de contas, movimentações, metas e orçamentos offline no seu dispositivo.">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon-192.png">
+<title>Clara Finanças RC3.5 • Paletas & Configurações</title>
+<style>
+:root {
+  font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1;
+  font-variant-numeric: tabular-nums;
+  /* Escala tipográfica com piso mínimo de 12px (WCAG / Design System) */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 32px;
+  --fs-hero: clamp(32px, 3.6vw, 46px);
+  --lh-tight: 1.18;
+  --lh-body: 1.5;
+  /* Escala de raios (3 níveis) */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --radius: 12px;
+  /* Escala de espaçamento em múltiplos de 4px */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  /* Paleta Tema Escuro (Grafite) - elevação por luminosidade e separação marca vs positivo */
+  --bg: #0a1118;
+  --panel: #131e29;
+  --panel2: #172532;
+  --panel3: #1d2e3d;
+  --stroke: #293b49;
+  --stroke-strong: #3a5163;
+  --text: #e8f3f6;
+  --muted: #9fb3c0;
+  --faint: #6f8696;
+  --teal: #4cdbcd;
+  --teal-ink: #05262b;
+  --blue: #8ba7ff;
+  --orange: #f2ad73;
+  --red: #fa8993;
+  --green: #6fdc8c;
+  --e1: inset 0 1px 0 #ffffff0d, 0 1px 2px #0004;
+  --e2: inset 0 1px 0 #ffffff14, 0 6px 18px #0006;
+  --e3: 0 24px 60px #0009;
+}
+
+:root[data-theme=light] {
+  /* Paleta Tema Claro auditada para contraste WCAG AA >= 4.5:1 */
+  --bg: #f1f6f9;
+  --panel: #ffffff;
+  --panel2: #f4f8fa;
+  --panel3: #e8f0f5;
+  --stroke: #d5e1e8;
+  --stroke-strong: #b8cad6;
+  --text: #142833;
+  --muted: #546b7a;   /* 5.13:1 sobre #f1f6f9 */
+  --faint: #647c8c;
+  --teal: #066d6e;    /* 6.14:1 sobre #ffffff e texto branco */
+  --teal-ink: #ffffff;
+  --blue: #3b5bdb;
+  --orange: #a85a16;  /* 5.07:1 sobre #ffffff */
+  --red: #b83a4e;     /* 5.60:1 sobre #ffffff */
+  --green: #1a7f4b;   /* 5.18:1 sobre #ffffff, distinto do teal */
+  --e1: 0 1px 2px #0f405014, 0 1px 1px #0f40500a;
+  --e2: 0 6px 16px #0f405014;
+  --e3: 0 24px 60px #0f405026;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  min-width: 300px;
+  overflow-x: hidden;
+}
+button, input, select, textarea { font: inherit; font-variant-numeric: tabular-nums; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+button, select, input { transition: border-color .15s, background .15s, color .15s; }
+a { color: inherit; }
+.svg-ico {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
+/* Layout Principal */
+.shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  border-right: 1px solid var(--stroke);
+  background: #0b1620;
+  color: #e8f3f6;
+  padding: 22px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+}
+.logo {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: var(--r-md);
+  background: linear-gradient(145deg, #4cdbcd, #216b8a);
+  color: #05262b;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 6px 18px #29c5c328;
+}
+/* Corrige P1: Wordmark "Clara" sempre legível sobre a sidebar escura, inclusive no tema claro */
+.brand h1, :root[data-theme=light] .brand h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: #e8f3f6;
+}
+.brand small {
+  display: block;
+  font-size: var(--fs-xs);
+  margin-top: 3px;
+  color: #9fb3c0;
+  font-weight: 500;
+}
+.navlinks { display: grid; gap: 4px; }
+.navlink {
+  width: 100%;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: #b4c6d4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 11px 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.navlink:hover, .navlink.active {
+  background: #162e3d;
+  color: #5eead4;
+}
+.navlink.active {
+  box-shadow: inset 3px 0 0 #4cdbcd;
+}
+.navlink .ico {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidefoot {
+  margin-top: auto;
+  border-top: 1px solid #223544;
+  padding: 14px 10px 0;
+  color: #9fb3c0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  display: grid;
+  gap: 10px;
+}
+.sidefoot strong {
+  display: block;
+  color: #e8f3f6;
+  margin-bottom: 2px;
+}
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #6fdc8c;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+/* Botão de QA integrado na sidebar sem flutuar sobre o conteúdo (Corrige P1) */
+.qa-launch {
+  width: 100%;
+  border: 1px solid #3c9d96;
+  background: #12333b;
+  color: #e8f3f6;
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.qa-launch:hover { background: #194752; }
+
+.main {
+  min-width: 0;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 2.5vw, 36px) 48px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.topbar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.eyebrow {
+  color: var(--teal);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.title {
+  font-size: clamp(22px, 2.4vw, 30px);
+  margin: 4px 0;
+  letter-spacing: -0.7px;
+  line-height: var(--lh-tight);
+  font-weight: 700;
+}
+.sub {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  margin: 0;
+  max-width: 65ch;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.period-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-compact {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-sm);
+  padding: 8px 11px;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  color-scheme: dark;
+  min-width: 0;
+  max-width: 175px;
+}
+:root[data-theme=light] .form-compact { color-scheme: light; }
+
+.btn {
+  background: var(--panel2);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  padding: 9px 14px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--panel3);
+  border-color: var(--stroke-strong);
+}
+.btn.primary {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--teal-ink);
+}
+:root[data-theme=light] .btn.primary {
+  color: #ffffff;
+}
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small {
+  font-size: var(--fs-xs);
+  padding: 6px 10px;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn.ghost:hover {
+  background: var(--panel2);
+  border-color: var(--stroke);
+}
+.btn.danger {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 35%, var(--stroke));
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* Agrupadores por Pergunta do Usuário (Seção 3 Design) */
+.question-section {
+  margin-bottom: 24px;
+}
+.question-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.question-title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+.question-sub {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  padding: 20px;
+  min-width: 0;
+  box-shadow: var(--e1);
+}
+.panel h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.panel-head p {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin: 4px 0 0;
+  max-width: 65ch;
+}
+.panel-head .btn { flex-shrink: 0; }
+
+/* Nível 1: Hero com Sparkline informativo (Seções 3 e 5 Design) */
+.hero {
+  border: 1px solid #286668;
+  border-radius: var(--r-lg);
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
+  gap: 20px;
+  align-items: center;
+  background: linear-gradient(130deg, #0b2230 0%, #0d3b44 100%);
+  color: #eafefd;
+  box-shadow: var(--e2);
+  margin-bottom: 20px;
+}
+.hero .over {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: #9ee8db;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero strong.hero-amount {
+  display: block;
+  font-size: var(--fs-hero);
+  letter-spacing: -1.4px;
+  font-weight: 700;
+  line-height: 1.12;
+  margin: 8px 0 6px;
+  overflow-wrap: anywhere;
+}
+.hero .hint {
+  font-size: var(--fs-xs);
+  color: #c2e2e6;
+}
+.hero-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #ffffff24;
+}
+.hero-foot .btn.hero-secondary {
+  background: #ffffff14;
+  color: #eafefd;
+  border: 1px solid #9ee8db55;
+}
+.hero-foot .btn.hero-secondary:hover {
+  background: #ffffff24;
+}
+.sparkline-box {
+  background: #07172266;
+  border: 1px solid #9ee8db29;
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+.sparkline-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-xs);
+  color: #bce4e0;
+  margin-bottom: 6px;
+}
+.sparkline-svg {
+  width: 100%;
+  height: 54px;
+  display: block;
+}
+
+/* Nível 2: 3 KPIs de Destaque (Seção 3 Design) */
+.highlight-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.metric {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 108px;
+  min-width: 0;
+  box-shadow: var(--e1);
+}
+.metric.featured {
+  background: var(--panel2);
+  border-color: var(--stroke-strong);
+}
+.metric .label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.metric strong {
+  display: block;
+  font-size: clamp(20px, 2.1vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  margin: 8px 0 6px;
+  overflow-wrap: anywhere;
+}
+.metric .foot {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.metric .badge-ico {
+  color: var(--teal);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Nível 3: Faixa Secundária Compacta (Receitas, Despesas, Reservas, Cartão) */
+.compact-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+}
+.compact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 10px;
+  border-right: 1px solid var(--stroke);
+  min-width: 0;
+}
+.compact-item:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+.compact-item span {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 500;
+}
+.compact-item strong {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.positive { color: var(--green) !important; }
+.negative { color: var(--red) !important; }
+.teal { color: var(--teal) !important; }
+.orange { color: var(--orange) !important; }
+
+.gap { height: 16px; }
+.layout-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  gap: 16px;
+}
+.layout-equal {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.three-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Donut Chart com Cores Fixas por Categoria */
+.donut-layout {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 16px;
+}
+.donut-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 210px;
+  aspect-ratio: 1;
+  margin: auto;
+}
+.donut-wrap svg { width: 100%; height: 100%; }
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  pointer-events: none;
+  padding: 18px;
+}
+.donut-center span {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.donut-center strong {
+  font-size: clamp(14px, 1.5vw, 18px);
+  margin-top: 4px;
+  max-width: 95%;
+  text-align: center;
+  letter-spacing: -0.4px;
+}
+.legend { display: grid; gap: 9px; }
+.legend-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--fs-xs);
+}
+.color { width: 10px; height: 10px; border-radius: 3px; }
+.legend-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Barras de Orçamento Semânticas (<=75% teal, 75-100% warn/laranja, >100% over/vermelho) */
+.barlist { display: grid; gap: 14px; }
+.baritem .barhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.barhead strong {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 600;
+}
+.bar {
+  height: 8px;
+  background: var(--panel3);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.bar .fill {
+  height: 100%;
+  border-radius: var(--r-sm);
+  background: var(--teal);
+}
+.bar .fill.warn {
+  background: var(--orange);
+}
+.bar .fill.over {
+  background: var(--red);
+}
+
+.muted { color: var(--muted); }
+.small { font-size: var(--fs-xs); }
+
+/* Tabelas com Números Tabulares Alinhados à Direita */
+.tablewrap {
+  overflow: auto;
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+  font-size: var(--fs-sm);
+}
+.table th, .table td {
+  text-align: left;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--stroke);
+  white-space: nowrap;
+}
+.table th.num, .table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.table th {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 700;
+  background: var(--panel2);
+  position: sticky;
+  top: 0;
+}
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover td { background: color-mix(in srgb, var(--teal) 6%, transparent); }
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.list { display: grid; gap: 10px; }
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stroke);
+  min-width: 0;
+}
+.list-row:last-child { border: 0; padding-bottom: 0; }
+.list-row .secondary {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: 3px;
+}
+.list-row .left { min-width: 0; }
+.list-row .left strong {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Pills com ícone + texto e contraste AA */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--teal) 14%, transparent);
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 35%, transparent);
+}
+.pill.warn {
+  background: color-mix(in srgb, var(--orange) 15%, transparent);
+  color: var(--orange);
+  border-color: color-mix(in srgb, var(--orange) 38%, transparent);
+}
+.pill.bad {
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 38%, transparent);
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  margin: 0;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.field-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.field > span {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+.field input, .field select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--stroke);
+  background: var(--panel2);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+  color-scheme: dark;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--teal);
+  outline: none;
+}
+.field input.invalid, .field select.invalid {
+  border-color: var(--red);
+}
+.field-error {
+  color: var(--red);
+  font-size: var(--fs-xs);
+  min-height: 16px;
+}
+:root[data-theme=light] .field input, :root[data-theme=light] .field select {
+  color-scheme: light;
+}
+.field.full { grid-column: 1 / -1; }
+.control-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.empty {
+  border: 1px dashed var(--stroke-strong);
+  border-radius: var(--r-md);
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.summary-box {
+  background: var(--panel2);
+  border-radius: var(--r-md);
+  padding: 16px;
+}
+.goal-card {
+  border: 1px solid var(--stroke);
+  padding: 16px;
+  border-radius: var(--r-md);
+  min-width: 0;
+  background: var(--panel2);
+}
+.goal-card h4 { font-size: var(--fs-md); margin: 0 0 6px; }
+.goal-card .money { font-size: 22px; letter-spacing: -0.4px; font-weight: 700; }
+.goal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.editable {
+  background: var(--panel2);
+  padding: 9px 11px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-sm);
+  color: var(--text);
+}
+.budget-line {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.35fr) repeat(3, minmax(85px, 1fr)) minmax(135px, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stroke);
+  font-size: var(--fs-sm);
+}
+.budget-line small {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  margin: 2px 0;
+}
+.budget-line:last-child { border: 0; }
+.pbar {
+  background: var(--panel3);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  height: 7px;
+  margin-top: 6px;
+}
+.pbar span {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  border-radius: var(--r-sm);
+}
+.pbar span.warn { background: var(--orange); }
+.pbar span.over { background: var(--red); }
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.account-card {
+  border-radius: var(--r-md);
+  padding: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--panel2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+.account-card .type {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: 3px;
+}
+.account-card strong.acc-bal {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+.divider {
+  border: 0;
+  border-top: 1px solid var(--stroke);
+  margin: 20px 0;
+}
+.forecast-rows {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.forecast-cell {
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--panel2);
+  border: 1px solid var(--stroke);
+  min-width: 0;
+}
+.forecast-cell .date {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 600;
+}
+.forecast-cell strong {
+  display: block;
+  font-size: clamp(14px, 1.3vw, 18px);
+  margin: 6px 0;
+  white-space: nowrap;
+  letter-spacing: -0.3px;
+}
+.forecast-cell .small { display: block; }
+
+/* Corrige P1: Toast posicionado no topo central para não sobrepor botões de ação nem barra mobile */
+.toast {
+  position: fixed;
+  z-index: 220;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--teal);
+  border-radius: var(--r-md);
+  padding: 11px 16px;
+  box-shadow: var(--e3);
+  max-width: min(460px, 92vw);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  display: none;
+}
+.toast.show { display: block; }
+
+.mobile-nav { display: none; }
+.mobile-fab, .mobile-menu, .mobile-menu-backdrop { display: none; }
+/* Atalhos móveis não interferem em dashboards desktop e tablet. */
+.modal-backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  background: #000a;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  width: min(560px, 100%);
+  max-height: min(92dvh, 780px);
+  overflow: auto;
+  box-shadow: var(--e3);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.modal h3 { font-size: var(--fs-lg); margin: 0; }
+.modal .x {
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font-size: 22px;
+}
+.helper {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: var(--lh-body);
+  margin: 10px 0 0;
+  max-width: 65ch;
+}
+.validation-list { display: grid; gap: 8px; }
+.validation-list .list-row { align-items: flex-start; }
+.mobile-card { display: none; }
+
+/* Central de Testes QA */
+.qa-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #030b13ce;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+.qa-cover.open { display: flex; }
+.qa-dialog {
+  width: min(900px, 100%);
+  max-height: 91dvh;
+  overflow: auto;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  box-shadow: var(--e3);
+}
+.qa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+.qa-header h2 { font-size: 20px; margin: 0; }
+.qa-warning {
+  border: 1px solid color-mix(in srgb, var(--orange) 45%, transparent);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  margin: 12px 0 18px;
+}
+.qa-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qa-result {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--stroke);
+  font-size: var(--fs-xs);
+}
+.qa-result span:first-child { line-height: 1.5; overflow-wrap: anywhere; }
+.qa-pass { color: var(--green); font-weight: 700; }
+.qa-fail { color: var(--red); font-weight: 700; }
+.qa-summary { font-size: var(--fs-md); font-weight: 700; margin: 14px 0; }
+.qa-meta {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin-bottom: 10px;
+}
+
+#modalBg[aria-hidden="true"] { visibility: hidden; pointer-events: none; }
+#integrityNotice, #storageNotice {
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+  font-size: var(--fs-xs);
+}
+#integrityNotice {
+  background: #431f27;
+  color: #ffdddf;
+  border: 1px solid #ec8794;
+}
+#storageNotice {
+  background: color-mix(in srgb, var(--orange) 15%, var(--panel));
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--orange) 45%, var(--stroke));
+}
+#integrityNotice[hidden], #storageNotice[hidden] { display: none; }
+
+/* Relatórios integrados às Conferências */
+.report-table-title { font-size: var(--fs-md); font-weight: 700; margin-bottom: 12px; }
+.report-table { min-width: 610px; }
+.report-total td { background: var(--panel2); border-top: 2px solid var(--stroke-strong); }
+.report-actions { justify-content: flex-end; margin-top: 12px; }
+.sparkline-foot { display: flex; justify-content: space-between; gap: 8px; color: #bce4e0; font-size: var(--fs-xs); margin-top: 7px; }
+@media (max-width: 760px) {
+  .report-actions { display: grid; grid-template-columns: 1fr; }
+  .mobile-nav button span:last-child { font-size: 12px; text-align: center; }
+}
+
+/* Responsividade Desktop Intermediário / Tablet */
+@media (max-width: 1200px) {
+  .account-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .compact-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .compact-item:nth-child(2) { border-right: 0; }
+}
+@media (max-width: 1060px) {
+  .shell { grid-template-columns: 76px minmax(0, 1fr); }
+  .sidebar { padding: 18px 8px; }
+  .brand { padding: 0; justify-content: center; }
+  .brand > div, .navlink span:not(.ico), .sidefoot-text { display: none; }
+  .navlink { justify-content: center; padding: 11px 8px; }
+  .qa-launch { font-size: 0; padding: 10px 6px; }
+  .qa-launch::before { content: "✓"; font-size: 14px; }
+  .layout-two, .layout-equal, .hero { grid-template-columns: 1fr; }
+}
+
+/* Responsividade Mobile (375px / 760px) — Topbar em 2 linhas, Navegação com Rótulos 12px */
+@media (max-width: 760px) {
+  .shell { display: block; }
+  .sidebar { display: none; }
+  .main {
+    padding: 14px 12px calc(98px + env(safe-area-inset-bottom));
+  }
+  /* Corrige P1: Barra de topo no mobile em grade de 2 linhas, sem botão órfão */
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .topbar-head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .toolbar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .period-group {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .form-compact {
+    flex: 1;
+    max-width: none;
+  }
+  .hero { padding: 18px; gap: 14px; }
+  .highlight-metrics, .three-metrics { grid-template-columns: 1fr; }
+  .compact-strip { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .compact-item { border-right: 0; padding-right: 0; }
+  .donut-layout { grid-template-columns: 1fr; }
+  .donut-wrap { max-width: 180px; }
+  .field-grid, .field-grid.two { grid-template-columns: 1fr; }
+  .forecast-rows, .account-grid, .goal-grid { grid-template-columns: 1fr; }
+  .budget-line { grid-template-columns: 1fr 1fr; }
+  .budget-line > div:first-child, .budget-line .budget-status { grid-column: 1 / -1; }
+  .mobile-card { display: grid; }
+  .desktop-table { display: none; }
+  .btn, .navlink, .mobile-nav button { min-height: 44px; }
+  /* Navegação Mobile com Ícone SVG + Rótulo de 12px visível */
+  .mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    position: fixed;
+    z-index: 95;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--stroke-strong);
+    padding: 4px 4px max(6px, env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 24px #0004;
+    gap: 2px;
+  }
+  .mobile-nav button {
+    min-width: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 2px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+  }
+  .mobile-nav button span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-nav button.active {
+    background: color-mix(in srgb, var(--teal) 15%, transparent);
+    color: var(--teal);
+  }
+}
+
+
+/* Menu flutuante do Clara — apenas smartphones (até 600 px) */
+@media (max-width: 600px) {
+  .mobile-nav { display: none !important; }
+  .main { padding-bottom: calc(94px + env(safe-area-inset-bottom)); }
+  .mobile-fab {
+    display: flex; position: fixed; z-index: 142;
+    right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+    align-items: center; gap: 9px; min-height: 54px;
+    border: 1px solid color-mix(in srgb, var(--teal) 65%, transparent);
+    border-radius: 18px; padding: 0 18px; background: var(--teal);
+    color: var(--teal-ink); box-shadow: 0 12px 30px #0006;
+    font-size: 14px; font-weight: 750;
+  }
+  .mobile-fab .svg-ico { width: 20px; height: 20px; }
+  .mobile-fab:focus-visible, .mobile-menu button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+  .mobile-menu-backdrop { position: fixed; z-index: 139; inset: 0; background: #0009; }
+  .mobile-menu-backdrop.open { display: block; }
+  .mobile-menu {
+    position: fixed; z-index: 141; display: none; overflow: auto;
+    max-height: min(70dvh, 520px); left: 12px; right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    padding: 14px; border: 1px solid var(--stroke-strong); border-radius: 21px;
+    background: var(--panel); box-shadow: var(--e3);
+  }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 2px 4px; }
+  .mobile-menu-head strong { font-size: 16px; }
+  .mobile-menu .navlink { display: flex; min-height: 51px; padding: 12px; font-size: 14px; }
+  .mobile-menu .navlink .ico { margin-right: 1px; }
+  .mobile-menu .navlink span:not(.ico) { display: inline; }
+  .mobile-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .mobile-menu-grid .navlink:last-child { grid-column: 1 / -1; }
+  .mobile-menu .close-menu { border: 1px solid var(--stroke); background: var(--panel2); color: var(--text); border-radius: 10px; min-width: 40px; min-height: 40px; }
+}
+@media print { .mobile-fab, .mobile-menu, .mobile-menu-backdrop { display: none !important; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after { scroll-behavior: auto !important; transition: none !important; }
+  .qa-cover { backdrop-filter: none; }
+}
+@media print {
+  .sidebar, .mobile-nav, .toolbar, .btn, .toast, .modal-backdrop, .qa-launch, .qa-cover { display: none !important; }
+  .shell { display: block; }
+  .main { padding: 0; max-width: none; }
+  .panel, .metric { box-shadow: none; break-inside: avoid; }
+  .view:not(.active) { display: none; }
+  .hero { background: #fff; color: #111; border: 1px solid #777; }
+  body.report-printing .topbar, body.report-printing .eyebrow, body.report-printing #integrityNotice,
+  body.report-printing #storageNotice, body.report-printing #view-conf > :not(#claraReportArea) { display: none !important; }
+  body.report-printing #claraReportArea { border: 0; padding: 0; color: #111; background: white; }
+  body.report-printing #claraReportArea .metric,
+  body.report-printing #claraReportArea .panel { border: 1px solid #bbb; color: #111; background: white; }
+  body.report-printing #claraReportArea .tablewrap { overflow: visible; }
+  body.report-printing #claraReportArea .report-table { min-width: 0; font-size: 10px; }
+  body.report-printing #claraReportArea .table th,
+  body.report-printing #claraReportArea .table td { padding: 5px 6px; white-space: normal; color: #111; }
+}
+/* RC3.5 — Paletas inspiradas no Mobills (tons aproximados, sem uso de marca) */
+:root[data-palette="violet"][data-theme="light"] {
+  --bg: #f6f5fb; --panel: #fff; --panel2: #f4f1fd; --panel3: #e9e2fa;
+  --stroke: #e3def0; --stroke-strong: #c9bfe1; --text: #25213e;
+  --muted: #625b7a; --faint: #79718d; --teal: #6547ce; --teal-ink: #fff;
+  --blue: #8065dc; --green: #178255; --red: #ba3352; --orange: #a45d1b;
+  --side-bg: #201638; --side-selected: #3a295d;
+  --hero-start: #3b217d; --hero-end: #6c4bce;
+  --e1: 0 1px 3px #3120520e; --e2: 0 8px 24px #38215b1d;
+}
+:root[data-palette="violet"][data-theme="dark"] {
+  --bg: #100f1a; --panel: #1b192a; --panel2: #242039; --panel3: #2d2745;
+  --stroke: #3a334e; --stroke-strong: #574a73; --text: #f2edff;
+  --muted: #b6aacd; --faint: #9789b4; --teal: #b19aff; --teal-ink: #1c123a;
+  --blue: #a98bee; --green: #65d7a5; --red: #ff8da9; --orange: #f5bd85;
+  --side-bg: #151222; --side-selected: #302349;
+  --hero-start: #36206e; --hero-end: #6744b2;
+}
+:root[data-palette="blue"][data-theme="light"] {
+  --bg: #f2f7fc; --panel: #fff; --panel2: #eef5fe; --panel3: #dceafc;
+  --stroke: #d8e4f1; --stroke-strong: #b9cfe5; --text: #203248;
+  --muted: #546a80; --faint: #6c8498; --teal: #1974c9; --teal-ink: #fff;
+  --blue: #247fd6; --green: #167c4a; --red: #b9364e; --orange: #9e601a;
+  --side-bg: #102b4c; --side-selected: #1b4574;
+  --hero-start: #1359a4; --hero-end: #2597dc;
+}
+:root[data-palette="blue"][data-theme="dark"] {
+  --bg: #0c1423; --panel: #162439; --panel2: #1c2d48; --panel3: #243958;
+  --stroke: #2c4564; --stroke-strong: #44698a; --text: #ecf5ff;
+  --muted: #aec1d7; --faint: #91abc9; --teal: #80beff; --teal-ink: #112642;
+  --blue: #71b6fa; --green: #7adcac; --red: #fc90a1; --orange: #f2ba7d;
+  --side-bg: #0c203b; --side-selected: #17395e;
+  --hero-start: #124173; --hero-end: #196fb6;
+}
+:root[data-palette="petrol"][data-theme="light"] {
+  --side-bg: #0b1620; --side-selected: #162e3d; --hero-start: #0b4d67; --hero-end: #0d7c82;
+}
+:root[data-palette="petrol"][data-theme="dark"] {
+  --side-bg: #0b1620; --side-selected: #162e3d; --hero-start: #0b2230; --hero-end: #0d3b44;
+}
+.sidebar { background: var(--side-bg, #0b1620); }
+.navlink:hover, .navlink.active { background: var(--side-selected, #162e3d); color: #f3f0ff; }
+.logo { background: linear-gradient(145deg, var(--teal), var(--blue)); color: var(--teal-ink); }
+.hero { background: linear-gradient(130deg, var(--hero-start, #0b2230), var(--hero-end, #0d3b44)); border-color: color-mix(in srgb,var(--teal) 37%, transparent); }
+.hero .over { color: #f4ebff; }
+.hero .hint, .sparkline-head { color: #edebf7; }
+.sparkline-box { background: #00000020; border-color: #ffffff35; }
+.hero .dot { background: #a7f0c7; }
+:root[data-density="compact"] .panel { padding: 14px; }
+:root[data-density="compact"] .metric { min-height: 84px; padding: 11px 13px; }
+:root[data-density="compact"] .question-section { margin-bottom: 14px; }
+:root[data-density="compact"] .table th, :root[data-density="compact"] .table td { padding: 7px 9px; }
+:root[data-text="large"] { --fs-xs: 13px; --fs-sm: 15px; --fs-md: 17px; --fs-lg: 20px; }
+:root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; scroll-behavior: auto !important; }
+@media(min-width: 1061px) {
+  :root[data-sidebar="compact"] .shell { grid-template-columns: 76px minmax(0,1fr); }
+  :root[data-sidebar="compact"] .sidebar { padding: 18px 8px; }
+  :root[data-sidebar="compact"] .brand { padding: 0; justify-content: center; }
+  :root[data-sidebar="compact"] .brand > div, :root[data-sidebar="compact"] .navlink span:not(.ico), :root[data-sidebar="compact"] .sidefoot-text { display: none; }
+  :root[data-sidebar="compact"] .navlink { justify-content: center; padding: 11px 8px; }
+}
+[hidden] { display: none !important; }
+.config-intro { display:flex; justify-content:space-between; align-items:center; gap:24px; background:var(--panel2); border:1px solid var(--stroke); border-radius:var(--r-lg); padding:22px 24px; margin-bottom:14px; }
+.config-intro h3 { font-size:24px; line-height:1.2; letter-spacing:-.5px; margin:6px 0; }
+.config-intro p { margin:0; color:var(--muted); max-width:64ch; }
+.config-intro-icon { font-size:46px; color:var(--teal); background:color-mix(in srgb,var(--teal) 12%,transparent); width:75px; height:75px; flex:0 0 auto; border-radius:20px; display:grid; place-items:center; }
+.config-tabs { display:flex; gap:7px; overflow-x:auto; scrollbar-width:thin; padding:5px 0 14px; margin-bottom:4px; }
+.config-tab { border:1px solid var(--stroke); color:var(--muted); background:var(--panel); border-radius:100px; padding:10px 14px; font-weight:700; white-space:nowrap; }
+.config-tab.active { border-color:var(--teal); background:color-mix(in srgb,var(--teal) 14%,var(--panel)); color:var(--teal); }
+.config-content { animation:configAppear .18s ease-out; }
+@keyframes configAppear { from{opacity:.6; transform:translateY(3px)}to{opacity:1;transform:none} }
+.palette-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.palette-choice { border:2px solid var(--stroke); background:var(--panel2); color:var(--text); border-radius:16px; padding:13px; text-align:left; display:flex; flex-direction:column; gap:5px; min-width:0; }
+.palette-choice.selected { border-color:var(--teal); box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 14%,transparent); }
+.palette-choice strong { font-size:15px; }
+.palette-choice small { color:var(--muted); font-size:12px; }
+.palette-swatches { display:flex; gap:4px; width:100%; margin-bottom:8px; }
+.palette-swatches i { height:36px; border-radius:8px; flex:1; border:1px solid #00000010; }
+.palette-mark { color:var(--teal); font-size:12px; font-weight:700; margin-top:7px; }
+.pref-toggle { display:flex; justify-content:space-between; align-items:center; gap:14px; border-bottom:1px solid var(--stroke); padding:12px 0; cursor:pointer; }
+.pref-toggle:last-child { border-bottom:0; }
+.pref-toggle span { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.pref-toggle strong { font-size:var(--fs-sm); }
+.pref-toggle small { color:var(--muted); font-size:var(--fs-xs); font-weight:400; }
+.pref-toggle input { appearance:none; width:43px; height:25px; flex:0 0 43px; background:var(--stroke-strong); border-radius:99px; position:relative; border:0; cursor:pointer; }
+.pref-toggle input:after { content:''; position:absolute; width:19px; height:19px; border-radius:50%; top:3px; left:3px; background:white; transition:transform .15s; box-shadow:0 1px 3px #0003; }
+.pref-toggle input:checked { background:var(--teal); }
+.pref-toggle input:checked:after { transform:translateX(18px); }
+.pref-toggle input:focus-visible { outline:2px solid var(--teal);outline-offset:3px; }
+.config-actions { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; border-bottom:1px solid var(--stroke); padding:13px 0; }
+.config-actions:last-child { border-bottom:0; }
+.config-actions div { display:grid; gap:3px; }
+.config-actions small { font-size:var(--fs-xs); color:var(--muted); }
+.config-note { display:flex; justify-content:space-between; gap:15px; border-bottom:1px solid var(--stroke); padding:12px 0; align-items:baseline; }
+.config-note span { color:var(--muted); text-align:right; }
+.category-config-list { max-height:420px; overflow-y:auto; }
+.limit-field { width:128px; flex:0 0 auto; }
+.limit-field input { text-align:right; }
+.account-top { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.account-top strong { font-size:15px; margin:0; }
+@media(max-width:760px) {
+  .palette-grid { grid-template-columns:1fr; }
+  .palette-choice { flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+  .palette-swatches { flex: 1 0 100%; }
+  .palette-mark { margin-left:auto; margin-top:0; }
+  .config-intro { padding:17px; }
+  .config-intro h3 { font-size:20px; }
+  .config-intro-icon { display:none; }
+  .config-note { flex-direction:column; gap:4px; }
+  .config-note span { text-align:left; }
+  .mobile-nav button { font-size:11px; }
+  .mobile-nav button span:last-child { font-size:11px; }
+  .forecast-rows { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:360px) {
+  .topbar-head > div { min-width: 0; flex: 1 1 140px; }
+  .topbar-head .eyebrow { font-size: 10px; letter-spacing: .3px; }
+  .period-group label { display: none; }
+  .period-group .form-compact { min-width: 0; }
+  .topbar-head .btn { padding-left: 9px; padding-right: 9px; }
+}
+@media(min-width:761px) { .forecast-rows { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); } }
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">C</div>
+      <div>
+        <h1>Clara</h1>
+        <small>Finanças pessoais</small>
+      </div>
+    </div>
+    <nav class="navlinks" id="sideNav" aria-label="Menu principal"></nav>
+    <div class="sidefoot">
+      <div class="sidefoot-text">
+        <span class="dot"></span><strong>Dados neste dispositivo</strong>
+        Seus lançamentos são armazenados no navegador. Faça backups nas Configurações.
+      </div>
+      <button id="qaOpen" class="qa-launch" type="button" aria-label="Abrir validação automatizada">✓ Testar Clara</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="integrityNotice" role="alert" hidden></div>
+    <div id="storageNotice" role="status" hidden></div>
+    <header class="topbar">
+      <div style="flex:1;min-width:0">
+        <div class="topbar-head">
+          <div>
+            <span class="eyebrow">Clara • Visão Financeira</span>
+            <h2 class="title" id="pageTitle">Painel financeiro</h2>
+          </div>
+          <button class="btn primary" id="quickAdd" type="button">＋ Novo</button>
+        </div>
+        <p class="sub" id="pageSubtitle">Seu dinheiro em perspectiva, com indicadores conectados.</p>
+      </div>
+      <div class="toolbar">
+        <div class="period-group">
+          <label class="muted small" for="period">Período</label>
+          <input id="period" class="form-compact" type="month" aria-label="Período selecionado">
+        </div>
+        <button class="btn" id="settingsBtn" type="button" title="Abrir configurações" aria-label="Abrir configurações">⚙ Ajustar</button>
+      </div>
+    </header>
+
+    <section id="view-painel" class="view active"></section>
+    <section id="view-mov" class="view"></section>
+    <section id="view-plan" class="view"></section>
+    <section id="view-ajustes" class="view"></section>
+    <section id="view-assist" class="view"></section>
+    <section id="view-conf" class="view"></section>
+  </main>
+</div>
+
+<nav class="mobile-nav" id="mobileNav" aria-label="Navegação por módulos no tablet"></nav>
+<div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true"></div>
+<nav class="mobile-menu" id="mobileMenu" aria-label="Módulos do Clara" aria-hidden="true"><div class="mobile-menu-head"><strong>Todos os módulos</strong><button type="button" id="closeMobileMenu" class="close-menu" aria-label="Fechar menu de módulos">✕</button></div><div class="mobile-menu-grid" id="mobileMenuGrid"></div></nav>
+<button class="mobile-fab" type="button" id="mobileFab" aria-label="Abrir módulos" aria-controls="mobileMenu" aria-expanded="false"><span aria-hidden="true">☷</span><span>Módulos</span></button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-backdrop" id="modalBg" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Adicionar lançamento</h3>
+      <button class="x" id="closeModal" type="button" aria-label="Fechar">×</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div id="qaCover" class="qa-cover" role="dialog" aria-modal="true" aria-labelledby="qaTitle" aria-hidden="true">
+  <section class="qa-dialog" tabindex="-1">
+    <div class="qa-header">
+      <div>
+        <span class="eyebrow">Validação Externa • RC3.5</span>
+        <h2 id="qaTitle">Central de testes do Clara</h2>
+      </div>
+      <button id="qaClose" type="button" class="btn ghost" aria-label="Fechar testes">✕ Fechar</button>
+    </div>
+    <p class="qa-warning"><strong>Escopo:</strong> esta versão é um <strong>HTML standalone de homologação</strong>, com seis módulos funcionais, incluindo Configurações e edição/exclusão completas. Os testes automáticos usam dados temporários e não alteram seus lançamentos.</p>
+    <div class="qa-actions">
+      <button id="qaRun" type="button" class="btn primary">▶ Executar testes automáticos</button>
+      <button id="qaDownloadMd" type="button" class="btn">↓ Relatório .MD</button>
+      <button id="qaDownloadJson" type="button" class="btn">↓ Evidências .JSON</button>
+      <button id="qaCopy" type="button" class="btn">⧉ Copiar resultado</button>
+    </div>
+    <p class="qa-meta" id="qaMeta">Clique em "Executar" para conferir os módulos.</p>
+    <div id="qaSummary" class="qa-summary" aria-live="polite">Aguardando execução</div>
+    <div id="qaResults" class="qa-results" role="list"></div>
+  </section>
+</div>
+
+<script>
+'use strict';
+const SOURCE_DATA={"accounts":[],"categories":[{"name":"Salário","group":"Receita","limitCents":0},{"name":"Renda extra","group":"Receita","limitCents":0},{"name":"Alimentação","group":"Despesa","limitCents":0},{"name":"Moradia","group":"Despesa","limitCents":0},{"name":"Contas fixas","group":"Despesa","limitCents":0},{"name":"Transporte","group":"Despesa","limitCents":0},{"name":"Saúde","group":"Despesa","limitCents":0},{"name":"Educação","group":"Despesa","limitCents":0},{"name":"Lazer","group":"Despesa","limitCents":0},{"name":"Compras","group":"Despesa","limitCents":0},{"name":"Assinaturas","group":"Despesa","limitCents":0},{"name":"Outros","group":"Despesa","limitCents":0}],"transactions":[],"goals":[]};
+
+const SVG_ICONS = {
+  painel: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  mov: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5-5 5 5"/><path d="M17 14l-5 5-5-5"/></svg>',
+  plan: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>',
+  ajustes: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  assist: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 4v16"/></svg>',
+  conf: '<svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
+};
+
+const MOBILE_NAV_LABELS = { painel: 'Painel', mov: 'Registros', plan: 'Planejar', ajustes: 'Config.', assist: 'Parcelar', conf: 'Conferir' };
+
+const NAV = [
+  ['painel', SVG_ICONS.painel, 'Painel'],
+  ['mov', SVG_ICONS.mov, 'Movimentações'],
+  ['plan', SVG_ICONS.plan, 'Planejamento'],
+  ['assist', SVG_ICONS.assist, 'Assistentes'],
+  ['conf', SVG_ICONS.conf, 'Conferências'],
+  ['ajustes', SVG_ICONS.ajustes, 'Configurações']
+];
+
+/* Cores fixas determinísticas por categoria (Seção 4 Design) */
+const CATEGORY_COLORS = {
+  'Moradia': '#4cdbcd',
+  'Alimentação': '#858ff4',
+  'Transporte': '#f5aa72',
+  'Lazer': '#f17f91',
+  'Contas fixas': '#58b8e8',
+  'Saúde': '#6fdc8c',
+  'Educação': '#d6a3ff',
+  'Compras': '#f7c86c',
+  'Assinaturas': '#79d2a6',
+  'Outros': '#9fb3c0',
+  'Outras': '#6f8696'
+};
+const FALLBACK_COLORS = ['#4cdbcd', '#858ff4', '#f5aa72', '#f17f91', '#d6a3ff', '#58b8e8'];
+const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+
+const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
+const PREF_DEFAULTS = Object.freeze({
+  palette: 'violet', density: 'comfortable', largeText: false,
+  reduceMotion: false, sidebarCompact: false, hideValues: false,
+  showSummary: true, showCategories: true, showOutlook: true,
+  forecastMonths: 4, budgetWarningPct: 75
+});
+const PREF_ENUMS = Object.freeze({
+  palette: ['violet', 'blue', 'petrol'], density: ['comfortable', 'compact'],
+  forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
+});
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook'];
+const pref = key => state?.settings?.[key] ?? PREF_DEFAULTS[key];
+function withDefaultPreferences(data) {
+  data.settings = { ...PREF_DEFAULTS, ...data.settings };
+  return data;
+}
+
+const ptMoney = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl = n => {
+  if (!Number.isSafeInteger(n)) throw Error('Valor financeiro corrompido: esperado inteiro em centavos.');
+  return pref('hideValues') ? 'R$ ••••' : ptMoney.format(n / 100);
+};
+const integer = n => {
+  if (!Number.isSafeInteger(Number(n))) throw Error('Inteiro inválido.');
+  return Number(n);
+};
+const pct = n => new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 }).format(Number.isFinite(n) ? n : 0);
+const fmtDay = s => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return '—';
+  return s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4);
+};
+const uid = () => ('id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const $ = id => document.getElementById(id);
+const normalized = x => String(x ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+const dateValid = x => {
+  if (!/^20\d\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/.test(x || '')) return false;
+  const dt = new Date(x + 'T12:00:00Z');
+  return !Number.isNaN(dt.valueOf()) && dt.toISOString().slice(0, 10) === x;
+};
+const moneyValid = x => Number.isSafeInteger(x) && Math.abs(x) <= 1_000_000_000_000;
+const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const parseBRL = x => {
+  const t = String(x ?? '').trim().replace(/^R\$\s*/i, '').replace(/\s/g, '');
+  if (!t) throw Error('Informe um valor.');
+  if (!/^-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,2})?$/.test(t))
+    throw Error('Valor inválido. Use 1.234,56 (não use ponto para centavos).');
+  const negative = t.startsWith('-');
+  const unsigned = t.replace(/^-/, '');
+  const [whole, dec = ''] = unsigned.split(',');
+  const digits = whole.replace(/\./g, '');
+  const cents = Number(digits) * 100 + Number(dec.padEnd(2, '0'));
+  if (!Number.isSafeInteger(cents) || cents > 1_000_000_000_000) throw Error('Valor fora do limite permitido.');
+  return negative ? -cents : cents;
+};
+const numField = n => (n / 100).toFixed(2).replace('.', ',');
+function todayISO() {
+  const now = new Date();
+  let y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+const plusMonth = (iso, n) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1 + n, 1));
+  const last = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
+};
+const addDays = (iso, n) => {
+  const dt = new Date(iso + 'T12:00:00Z');
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+};
+const monthLabel = s => {
+  const [y, m] = s.split('-');
+  return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][Number(m) - 1] + '/' + y;
+};
+
+function fresh() {
+  // Primeira instalação: nenhum exemplo financeiro; preservar apenas categorias editáveis.
+  return cleanData();
+}
+
+function cleanData() {
+  const date = todayISO();
+  return {
+    version: 2,
+    accounts: [{ id: 'principal', name: 'Conta principal', type: 'Conta', openingCents: 0 }],
+    categories: structuredClone(SOURCE_DATA.categories),
+    goals: [], transactions: [], reconciliations: [],
+    settings: { ...PREF_DEFAULTS, ...(state?.settings || {}), period: date.slice(0, 7), cutoff: date, theme: state?.settings?.theme === 'light' ? 'light' : 'dark' }
+  };
+}
+
+function validateData(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Backup inválido: esperado objeto JSON.');
+  const keys = ['accounts', 'categories', 'goals', 'transactions', 'reconciliations'];
+  for (const key of keys) if (!Array.isArray(data[key])) throw Error('Backup inválido: campo ' + key + ' deve ser uma lista.');
+  if (!data.accounts.length || data.accounts.length > 1000 || data.categories.length > 500 || data.goals.length > 1000 || data.transactions.length > 100000 || data.reconciliations.length > 10000)
+    throw Error('Backup inválido: quantidade de registros fora do limite.');
+  const unique = (items, label) => {
+    const seen = new Set();
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || !(/^[a-zA-Z0-9_-]{1,80}$/).test(item.id || '') || seen.has(item.id))
+        throw Error('Backup inválido: identificador duplicado ou incorreto em ' + label + '.');
+      seen.add(item.id);
+    }
+    return seen;
+  };
+  const accounts = unique(data.accounts, 'contas');
+  const allowedTypes = ['Conta', 'Dinheiro', 'Reserva', 'Cartão'];
+  for (const a of data.accounts)
+    if (typeof a.name !== 'string' || !a.name.trim() || a.name.length > 120 || !allowedTypes.includes(a.type) || !moneyValid(a.openingCents))
+      throw Error('Backup inválido: conta ou saldo inicial.');
+  const categories = new Map();
+  for (const c of data.categories) {
+    if (!c || typeof c.name !== 'string' || !c.name.trim() || c.name.length > 100 || !['Despesa', 'Receita'].includes(c.group) || !moneyValid(c.limitCents) || c.limitCents < 0 || categories.has(c.group + '|' + c.name))
+      throw Error('Backup inválido: categoria ou limite.');
+    categories.set(c.group + '|' + c.name, true);
+  }
+  unique(data.goals, 'metas');
+  for (const g of data.goals)
+    if (typeof g.name !== 'string' || !g.name.trim() || g.name.length > 120 || !moneyValid(g.targetCents) || g.targetCents <= 0 || !moneyValid(g.savedCents) || g.savedCents < 0 || (g.dueDate && !dateValid(g.dueDate)))
+      throw Error('Backup inválido: meta.');
+  unique(data.transactions, 'lançamentos');
+  for (const t of data.transactions) {
+    if (typeof t.description !== 'string' || !t.description.trim() || t.description.length > 160 || !['Receita', 'Despesa', 'Transferência'].includes(t.kind) || !['Pendente', 'Realizado', 'Cancelado'].includes(t.status) || !moneyValid(t.amountCents) || t.amountCents <= 0 || !dateValid(t.date) || !accounts.has(t.accountId))
+      throw Error('Backup inválido: lançamento financeiro.');
+    if (t.status === 'Realizado' ? !dateValid(t.paidAt || t.date) : !!t.paidAt)
+      throw Error('Backup inválido: data de pagamento.');
+    if (t.kind === 'Transferência') {
+      if (!accounts.has(t.toAccountId) || t.accountId === t.toAccountId)
+        throw Error('Backup inválido: transferência sem destino válido.');
+    } else if (!categories.has(t.kind + '|' + t.category) || t.toAccountId)
+      throw Error('Backup inválido: categoria incompatível com tipo ou destino indevido.');
+  }
+  unique(data.reconciliations, 'conciliações');
+  const reconciled = new Set();
+  for (const r of data.reconciliations) {
+    if (!accounts.has(r.accountId) || !dateValid(r.date) || !moneyValid(r.statementCents))
+      throw Error('Backup inválido: conciliação.');
+    const k = r.accountId + '|' + r.date;
+    if (reconciled.has(k)) throw Error('Backup inválido: conciliação duplicada.');
+    reconciled.add(k);
+  }
+  if (!data.settings || typeof data.settings !== 'object' || !/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(data.settings.period || '') || !dateValid(data.settings.cutoff) || !['dark', 'light'].includes(data.settings.theme))
+    throw Error('Backup inválido: preferências ou data de corte.');
+  for (const [name, allowed] of Object.entries(PREF_ENUMS)) {
+    if (data.settings[name] !== undefined && !allowed.includes(data.settings[name]))
+      throw Error('Backup inválido: preferência ' + name + '.');
+  }
+  for (const name of PREF_BOOL_KEYS) {
+    if (data.settings[name] !== undefined && typeof data.settings[name] !== 'boolean')
+      throw Error('Backup inválido: preferência ' + name + ' precisa ser sim/não.');
+  }
+  return true;
+}
+
+function parseImportedJSON(raw) {
+  let obj;
+  try { obj = JSON.parse(raw); } catch { throw Error('O arquivo não contém JSON válido.'); }
+  if (obj && obj.reconciliations === undefined) obj.reconciliations = [];
+  validateData(obj);
+  return withDefaultPreferences(obj);
+}
+
+/* Corrige Ponto 4: Distinguir claramente armazenamento indisponível (localStorage bloqueado) de dados corrompidos */
+let state, initializationError = '', storageUnavailableNotice = '', storageAvailable = true;
+let lastSavedJSON = null, storageConflict = false, startupRaw = null, corruptedSavedRaw = null;
+
+function safeStorageGet(k) {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    storageAvailable = false;
+    storageUnavailableNotice = 'Armazenamento local indisponível neste navegador (modo restrito). Suas alterações funcionam normalmente nesta sessão; use Exportar JSON para salvar uma cópia.';
+    return null;
+  }
+}
+function safeStorageSet(k, v) {
+  if (!storageAvailable) return false;
+  try {
+    localStorage.setItem(k, v);
+    return true;
+  } catch {
+    storageAvailable = false;
+    storageUnavailableNotice = 'Não foi possível gravar no armazenamento local. As alterações foram mantidas na memória desta sessão.';
+    return false;
+  }
+}
+
+startupRaw = safeStorageGet(KEY);
+if (startupRaw) {
+  try {
+    state = parseImportedJSON(startupRaw);
+    lastSavedJSON = startupRaw;
+  } catch (e) {
+    state = fresh();
+    corruptedSavedRaw = startupRaw;
+    initializationError = 'Dados locais corrompidos ou inválidos. Exporte uma cópia do armazenamento antes de restaurar: ' + e.message;
+  }
+} else {
+  state = fresh();
+}
+
+if (!state.settings) state.settings = {};
+state.settings.period ??= todayISO().slice(0,7);
+state.settings.cutoff ??= todayISO();
+state.settings.theme ??= 'light';
+for (const [setting, def] of Object.entries(PREF_DEFAULTS)) state.settings[setting] ??= def;
+state.reconciliations ??= [];
+
+let configTab = 'aparencia';
+let active = 'painel', search = '', statusFilter = 'Todos', accountFilter = 'Todas', assistantRows = [], toastTimer;
+let pendingConfirmAction = null;
+
+function save() {
+  try {
+    if (initializationError) throw Error(initializationError);
+    if (storageConflict) throw Error('Outra aba modificou os dados. Atualize a página antes de salvar.');
+    validateData(state);
+    if (storageAvailable) {
+      const existing = safeStorageGet(KEY);
+      if (storageAvailable && lastSavedJSON !== existing) {
+        storageConflict = true;
+        throw Error('Alterações de outra aba foram detectadas. Atualize antes de salvar para não perder dados.');
+      }
+      const updated = JSON.stringify(state);
+      if (safeStorageSet(KEY, updated)) {
+        lastSavedJSON = updated;
+      }
+    }
+    render();
+    return true;
+  } catch (e) {
+    if (lastSavedJSON) {
+      try { state = parseImportedJSON(lastSavedJSON); } catch { state = fresh(); }
+    } else {
+      state = fresh();
+    }
+    render();
+    throw e;
+  }
+}
+
+function persistSuccess(message) {
+  save();
+  showToast(message);
+}
+
+window.addEventListener('afterprint', () => document.body.classList.remove('report-printing'));
+
+window.addEventListener('storage', e => {
+  if (e.key !== KEY) return;
+  if (!e.newValue) {
+    storageConflict = true;
+    showToast('Dados apagados por outra aba. Recarregue antes de editar.', true);
+    return;
+  }
+  try {
+    const remote = parseImportedJSON(e.newValue);
+    state = remote;
+    lastSavedJSON = e.newValue;
+    storageConflict = false;
+    render();
+    showToast('Dados atualizados por outra aba.');
+  } catch {
+    storageConflict = true;
+    showToast('Arquivo local alterado ou corrompido por outra aba. Exporte e revise antes de salvar.', true);
+  }
+});
+
+function showToast(msg, err = false) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.style.borderColor = err ? 'var(--red)' : 'var(--teal)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3800);
+}
+
+function effective(t) { return t.status === 'Realizado' ? (t.paidAt || t.date) : t.date; }
+function inMonth(t, p) { return effective(t).slice(0, 7) === p; }
+function signed(t, accountId) {
+  if (t.status !== 'Realizado') return 0;
+  if (t.kind === 'Receita') return t.accountId === accountId ? t.amountCents : 0;
+  if (t.kind === 'Despesa') return t.accountId === accountId ? -t.amountCents : 0;
+  if (t.kind === 'Transferência') return (t.accountId === accountId ? -t.amountCents : 0) + (t.toAccountId === accountId ? t.amountCents : 0);
+  return 0;
+}
+function accountBalance(id, asOf) {
+  const a = state.accounts.find(x => x.id === id);
+  if (!a) return 0;
+  return a.openingCents + state.transactions.reduce((sum, t) => sum + (asOf && effective(t) > asOf ? 0 : signed(t, id)), 0);
+}
+function accountPendingCard(id) {
+  return state.transactions
+    .filter(t => t.accountId === id && t.kind === 'Despesa' && t.status === 'Pendente')
+    .reduce((s, t) => s + t.amountCents, 0);
+}
+function totalCardOpenInvoice() {
+  const cardIds = new Set(state.accounts.filter(a => a.type === 'Cartão').map(a => a.id));
+  return state.transactions
+    .filter(t => cardIds.has(t.accountId) && t.kind === 'Despesa' && t.status === 'Pendente')
+    .reduce((s, t) => s + t.amountCents, 0);
+}
+function totalBalance(asOf) { return state.accounts.reduce((s, a) => s + accountBalance(a.id, asOf), 0); }
+function filteredTransactions(p = state.settings.period) { return state.transactions.filter(t => inMonth(t, p)); }
+function stat(p = state.settings.period) {
+  const tx = filteredTransactions(p);
+  let income = 0, expense = 0, toPay = 0, toReceive = 0;
+  for (const t of tx) {
+    if (t.kind === 'Receita') {
+      if (t.status === 'Realizado') income += t.amountCents;
+      if (t.status === 'Pendente') toReceive += t.amountCents;
+    }
+    if (t.kind === 'Despesa') {
+      if (t.status === 'Realizado') expense += t.amountCents;
+      if (t.status === 'Pendente') toPay += t.amountCents;
+    }
+  }
+  return { income, expense, net: income - expense, toPay, toReceive };
+}
+function future30() {
+  const cut = state.settings.cutoff || todayISO(), end = addDays(cut, 30);
+  return state.transactions
+    .filter(t => t.kind === 'Despesa' && t.status === 'Pendente' && t.date <= end)
+    .reduce((sum, t) => sum + t.amountCents, 0);
+}
+function reserve() {
+  return state.accounts
+    .filter(a => a.type === 'Reserva')
+    .reduce((s, a) => s + accountBalance(a.id, state.settings.cutoff), 0);
+}
+function budgetRows(p = state.settings.period) {
+  return state.categories.filter(c => c.group === 'Despesa').map(c => {
+    const tx = state.transactions.filter(t => t.kind === 'Despesa' && t.category === c.name && inMonth(t, p));
+    const done = tx.filter(t => t.status === 'Realizado').reduce((s, t) => s + t.amountCents, 0);
+    const pending = tx.filter(t => t.status === 'Pendente').reduce((s, t) => s + t.amountCents, 0);
+    return { ...c, done, pending, planned: done + pending, ratio: c.limitCents > 0 ? (done + pending) / c.limitCents : 0 };
+  });
+}
+function forecast(count = 4) {
+  const cut = state.settings.cutoff;
+  let balance = totalBalance(cut), p = cut.slice(0, 7), rows = [];
+  for (let i = 0; i < count; i++) {
+    const [y, m] = p.split('-').map(Number);
+    let incomes = 0, outcomes = 0;
+    for (const t of state.transactions) {
+      if (t.status === 'Cancelado') continue;
+      let when = effective(t);
+      if (t.status === 'Pendente' && when <= cut) when = p + '-01';
+      else if (when <= cut) continue;
+      if (when.slice(0, 7) !== p) continue;
+      if (t.kind === 'Receita') incomes += t.amountCents;
+      if (t.kind === 'Despesa') outcomes += t.amountCents;
+    }
+    balance += incomes - outcomes;
+    rows.push({ p, incomes, outcomes, balance });
+    const next = new Date(Date.UTC(y, m, 1));
+    p = next.toISOString().slice(0, 7);
+  }
+  return rows;
+}
+
+/* Sparkline SVG da evolução de saldo para o Hero (Seção 5 Design) */
+function sparklineData() {
+  const endMonth = state.settings.cutoff.slice(0, 7);
+  const dates = Array.from({ length: 12 }, (_, i) => {
+    const first = plusMonth(endMonth + '-01', i - 11);
+    const [year, month] = first.split('-').map(Number);
+    const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+    return date > state.settings.cutoff ? state.settings.cutoff : date;
+  });
+  const balances = dates.map(date => totalBalance(date));
+  const delta = balances.at(-1) - balances[0];
+  const trend = delta > 0 ? 'Saldo em alta' : delta < 0 ? 'Saldo em queda' : 'Saldo estável';
+  return { dates, balances, delta, trend };
+}
+
+function buildSparkline() {
+  const { dates, balances, delta, trend } = sparklineData();
+  const min = Math.min(...balances), max = Math.max(...balances);
+  const span = Math.max(1, max - min);
+  const coords = balances.map((v, i) => {
+    const x = Math.round((i / Math.max(1, balances.length - 1)) * 210) + 5;
+    const y = Math.round(46 - ((v - min) / span) * 38);
+    return `${x},${y}`;
+  }).join(' ');
+  return `<div class="sparkline-box">
+    <div class="sparkline-head"><span>Últimos 12 meses até ${monthLabel(state.settings.cutoff.slice(0, 7))}</span><strong>${esc(trend)}</strong></div>
+    <svg class="sparkline-svg" viewBox="0 0 220 52" role="img" aria-label="${esc(trend)}: variação de ${brl(delta)} nos últimos 12 meses">
+      <polyline fill="none" stroke="${delta < 0 ? 'var(--red)' : 'var(--teal)'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" points="${coords}"/>
+    </svg>
+    <div class="sparkline-foot"><span>${monthLabel(dates[0].slice(0, 7))}</span><span>${delta > 0 ? '+' : ''}${brl(delta)}</span></div>
+  </div>`;
+}
+
+const metric = (label, value, sub = '', icon = '', extra = '', featured = false) =>
+  `<div class="metric ${featured ? 'featured' : ''}"><div class="label"><span>${esc(label)}</span><span class="badge-ico">${icon}</span></div><strong class="${extra}">${value}</strong><div class="foot">${esc(sub)}</div></div>`;
+
+const panel = (title, subtitle, body, action = '') =>
+  `<section class="panel"><div class="panel-head"><div><h3>${title}</h3><p>${subtitle}</p></div>${action}</div>${body}</section>`;
+
+/* Donut com cores fixas por categoria e estado vazio acionável */
+function donut(rows, total) {
+  if (!total) {
+    return `<div class="empty"><span>Sem despesas realizadas neste período.</span><button class="btn small primary" type="button" data-open="transaction">＋ Adicionar lançamento</button></div>`;
+  }
+  let top = rows.filter(r => r.done > 0).sort((a, b) => b.done - a.done).slice(0, 5);
+  let extra = Math.max(0, total - top.reduce((s, r) => s + r.done, 0));
+  let slices = top.map(r => ({ name: r.name, value: r.done }));
+  if (extra) slices.push({ name: 'Outras', value: extra });
+  const C = 2 * Math.PI * 63;
+  let off = 0;
+  const arcs = slices.map((r, i) => {
+    const len = C * r.value / total;
+    const col = categoryColor(r.name, i);
+    const part = `<circle cx="100" cy="100" r="63" stroke="${col}" stroke-width="22" fill="none" stroke-dasharray="${Math.max(0, len - .8)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 100 100)"/>`;
+    off += len;
+    return part;
+  }).join('');
+  return `<div class="donut-layout"><div class="donut-wrap"><svg viewBox="0 0 200 200" role="img" aria-label="Distribuição de despesas por categoria"><circle cx="100" cy="100" r="63" stroke="var(--stroke)" stroke-width="22" fill="none"/>${arcs}</svg><div class="donut-center"><span>Despesas</span><strong>${brl(total)}</strong></div></div><div class="legend">${slices.map((r, i) => `<div class="legend-row"><i class="color" style="background:${categoryColor(r.name, i)}"></i><span title="${esc(r.name)}">${esc(r.name)}</span><b>${pct(r.value / total)}</b></div>`).join('')}</div></div>`;
+}
+
+/* Barras de orçamento semânticas: <=75% teal, 75-100% warn (laranja), >100% over (vermelho) */
+function budgetSemanticClass(ratio) {
+  if (ratio > 1) return 'over';
+  if (ratio >= pref('budgetWarningPct') / 100) return 'warn';
+  return '';
+}
+function budgetSemanticLabel(r) {
+  if (!r.limitCents) return 'Definir limite';
+  if (r.planned > r.limitCents) return '▲ Acima do limite';
+  if (r.planned >= (pref('budgetWarningPct') / 100) * r.limitCents) return '● Perto do limite';
+  return '✓ Dentro do limite';
+}
+
+function barRows(rows, limit = 5) {
+  if (!rows.length) {
+    return `<div class="empty"><span>Nenhum gasto com limite neste período.</span><button class="btn small" type="button" data-config-jump="contas">Configurar limites</button></div>`;
+  }
+  return `<div class="barlist">${rows.slice(0, limit).map(r => {
+    const stateCls = budgetSemanticClass(r.ratio);
+    const stateText = budgetSemanticLabel(r);
+    return `<div class="baritem"><div class="barhead"><span>${esc(r.name)}</span><strong>${brl(r.done)} / ${brl(r.limitCents)}</strong></div><div class="bar"><div class="fill ${stateCls}" style="width:${Math.min(100, Math.max(0, r.ratio * 100))}%"></div></div><div class="muted small" style="margin-top:5px">${pct(r.ratio)} do limite (${stateText})${r.pending ? ` • ${brl(r.pending)} pendente` : ''}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function statusPill(status) {
+  if (status === 'Realizado') return `<span class="pill">✓ Realizado</span>`;
+  if (status === 'Pendente') return `<span class="pill warn">● Pendente</span>`;
+  return `<span class="pill bad">✕ Cancelado</span>`;
+}
+
+/* Painel estruturado em 3 níveis hierárquicos e agrupado por perguntas do usuário */
+function renderPainel() {
+  const p = state.settings.period, st = stat(p), bud = budgetRows(p);
+  const future = future30(), balance = totalBalance(state.settings.cutoff), res = reserve();
+  const cardInvoice = totalCardOpenInvoice();
+  const top = bud.filter(r => (r.done > 0 || r.pending > 0) && r.limitCents > 0).sort((a, b) => b.planned - a.planned).slice(0, 5);
+  const f = forecast(pref('forecastMonths'));
+  const n = state.transactions.filter(t => t.status === 'Pendente' && t.kind === 'Despesa' && inMonth(t, p)).length;
+  const availAfter30 = balance - future;
+
+  const display = `
+  <section class="hero">
+    <div>
+      <div class="over"><span class="dot"></span>Saldo consolidado</div>
+      <strong class="hero-amount">${brl(balance)}</strong>
+      <div class="hint">Posição realizada até ${fmtDay(state.settings.cutoff)} · ${state.accounts.length} contas e cartões monitorados</div>
+      <div class="hero-foot">
+        <span class="small">Fatura pendente no cartão: <strong>${brl(cardInvoice)}</strong></span>
+        <button class="btn small hero-secondary" type="button" data-view="mov">Ver movimentações →</button>
+      </div>
+    </div>
+    ${buildSparkline()}
+  </section>
+
+  <div class="question-section" id="dashboardSummary">
+    <div class="question-header">
+      <h3 class="question-title">Como estou este mês?</h3>
+      <p class="question-sub">Indicadores principais de ${monthLabel(p)} e compromissos próximos</p>
+    </div>
+    <div class="highlight-metrics">
+      ${metric('Resultado do mês', (st.net >= 0 ? '▲ ' : '▼ ') + brl(st.net), 'Receitas menos despesas realizadas', '◫', st.net >= 0 ? 'positive' : 'negative', true)}
+      ${metric('Disponível após pendências · 30 dias', (availAfter30 >= 0 ? '▲ ' : '▼ ') + brl(availAfter30), 'Saldo atual menos despesas pendentes (inclui vencidas)', '✓', availAfter30 >= 0 ? 'teal' : 'negative', true)}
+      ${metric('A pagar no mês', brl(st.toPay), n + ' despesa(s) pendente(s) neste mês', '◷', 'orange', true)}
+    </div>
+    <div class="compact-strip">
+      <div class="compact-item"><span>Receitas realizadas (mês)</span><strong class="positive">▲ ${brl(st.income)}</strong></div>
+      <div class="compact-item"><span>Despesas realizadas (mês)</span><strong class="negative">▼ ${brl(st.expense)}</strong></div>
+      <div class="compact-item"><span>Despesas pendentes · 30 dias</span><strong class="orange">${brl(future)}</strong></div>
+      <div class="compact-item"><span>Saldo em reservas</span><strong class="teal">${brl(res)}</strong></div>
+    </div>
+  </div>
+
+  <div class="question-section" id="dashboardCategories">
+    <div class="question-header">
+      <h3 class="question-title">Onde estou gastando?</h3>
+      <p class="question-sub">Categorias de despesas e alertas conforme suas preferências</p>
+    </div>
+    <div class="layout-two">
+      ${panel('Distribuição das despesas', 'Valores efetivamente realizados no período selecionado', donut(bud, st.expense))}
+      ${panel('Orçamento por categoria · Top 5', 'Alertas conforme o percentual configurado · acima de 100% excedido', barRows(top))}
+    </div>
+  </div>
+
+  <div class="question-section" id="dashboardOutlook">
+    <div class="question-header">
+      <h3 class="question-title">O que vem por aí?</h3>
+      <p class="question-sub">Projeção de caixa com base nos lançamentos cadastrados e evolução das metas</p>
+    </div>
+    <div class="layout-two">
+      ${panel('Fluxo projetado · próximos ' + pref('forecastMonths') + ' meses', 'Considera receitas e despesas pendentes a partir da data de corte', `<div class="forecast-rows">${f.map(r => `<div class="forecast-cell"><span class="date">${monthLabel(r.p)}</span><strong>${brl(r.balance)}</strong><span class="small positive">▲ ${brl(r.incomes)}</span><span class="small negative">▼ ${brl(r.outcomes)}</span></div>`).join('')}</div><p class="helper">Saldo projetado acumulado a partir de ${fmtDay(state.settings.cutoff)}.</p>`)}
+      ${panel('Evolução das metas financeiras', 'Reservado, objetivo e percentual acumulado', `<div class="barlist">${state.goals.length ? state.goals.slice(0, 5).map(g => {
+        let rat = g.targetCents > 0 ? g.savedCents / g.targetCents : 0;
+        return `<div class="baritem"><div class="barhead"><span>${esc(g.name)}</span><strong>${brl(g.savedCents)} / ${brl(g.targetCents)}</strong></div><div class="bar"><div class="fill" style="width:${Math.min(100, rat * 100)}%"></div></div><span class="muted small">${pct(rat)} alcançado • falta ${brl(Math.max(0, g.targetCents - g.savedCents))}</span></div>`;
+      }).join('') : `<div class="empty"><span>Nenhuma meta cadastrada.</span><button class="btn small primary" type="button" data-open="goal">＋ Criar meta</button></div>`}</div>`, '<button class="btn small" type="button" data-view="plan">Ver metas</button>')}
+    </div>
+  </div>`;
+  $('view-painel').innerHTML = display;
+  for (const [id, property] of [['dashboardSummary','showSummary'],['dashboardCategories','showCategories'],['dashboardOutlook','showOutlook']]) {
+    const el = $(id); if (el) el.hidden = !pref(property);
+  }
+}
+
+function rowTx(t) {
+  let acc = state.accounts.find(a => a.id === t.accountId)?.name || '—';
+  let dest = t.kind === 'Transferência' ? (state.accounts.find(a => a.id === t.toAccountId)?.name || '') : '';
+  let accLabel = dest ? `${acc} → ${dest}` : acc;
+  let valPrefix = t.kind === 'Despesa' ? '− ' : t.kind === 'Receita' ? '+ ' : '⇄ ';
+  return `<tr>
+    <td>${fmtDay(t.date)}${t.status === 'Realizado' && t.paidAt && t.paidAt !== t.date ? `<div class="muted small">Pago: ${fmtDay(t.paidAt)}</div>` : ''}</td>
+    <td><strong>${esc(t.description)}</strong></td>
+    <td>${esc(t.category || 'Transferência')}</td>
+    <td>${esc(t.kind)}</td>
+    <td class="num ${t.kind === 'Despesa' ? 'negative' : t.kind === 'Receita' ? 'positive' : ''}"><strong>${valPrefix}${brl(t.amountCents)}</strong></td>
+    <td>${esc(accLabel)}</td>
+    <td>${statusPill(t.status)}</td>
+    <td class="num">
+      <div class="row-actions">
+        <button class="btn small ghost" type="button" data-toggle="${esc(t.id)}" title="${t.status === 'Pendente' ? 'Confirmar pagamento na data de vencimento' : 'Reabrir como pendente'}">${t.status === 'Pendente' ? 'Quitar' : t.status === 'Realizado' ? 'Reabrir' : '—'}</button>
+        <button class="btn small ghost" type="button" data-edit-tx="${esc(t.id)}" aria-label="Editar ${esc(t.description)}">Editar</button>
+        <button class="btn small ghost danger" type="button" data-del-tx="${esc(t.id)}" aria-label="Excluir ${esc(t.description)}">Excluir</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderMov() {
+  let tx = state.transactions
+    .filter(t => inMonth(t, state.settings.period)
+      && normalized(t.description + ' ' + t.category).includes(normalized(search))
+      && (statusFilter === 'Todos' || statusFilter === t.status)
+      && (accountFilter === 'Todas' || accountFilter === t.accountId || (t.kind === 'Transferência' && accountFilter === t.toAccountId)))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const s = stat();
+  $('view-mov').innerHTML = `
+  <div class="toolbar-row">
+    <div>
+      <h3 class="section-title">Movimentações</h3>
+      <p class="sub">Receitas, despesas, transferências, edição e quitação com preservação de competência</p>
+    </div>
+    <button class="btn primary" type="button" data-open="transaction">＋ Novo lançamento</button>
+  </div>
+  <div class="three-metrics">
+    ${metric('Receitas do período', '▲ ' + brl(s.income), 'Realizadas no mês selecionado', '↗', 'positive')}
+    ${metric('Despesas do período', '▼ ' + brl(s.expense), 'Realizadas no mês selecionado', '↘', 'negative')}
+    ${metric('Pendências do período', brl(s.toPay), 'Despesas pendentes no mês', '◷', 'orange')}
+  </div>
+  <div class="gap"></div>
+  ${panel('Consultar e gerenciar lançamentos', 'Filtre, quite na data do lançamento, edite qualquer campo ou exclua registros', `
+    <div class="field-grid">
+      <label class="field"><span>Buscar descrição ou categoria</span><input id="searchTx" value="${esc(search)}" placeholder="Ex.: moradia, mercado..."></label>
+      <label class="field"><span>Situação</span><select id="statusFilter">${['Todos', 'Realizado', 'Pendente', 'Cancelado'].map(x => `<option ${x === statusFilter ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="field"><span>Conta ou cartão</span><select id="accountFilter"><option value="Todas">Todas</option>${state.accounts.map(a => `<option value="${esc(a.id)}" ${a.id === accountFilter ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+    </div>
+    <div class="gap"></div>
+    <div class="tablewrap desktop-table">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Vencimento</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Tipo</th>
+            <th class="num">Valor</th>
+            <th>Conta</th>
+            <th>Situação</th>
+            <th class="num">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tx.map(rowTx).join('') || '<tr><td colspan="8"><div class="empty"><span>Nenhum lançamento encontrado para os filtros aplicados.</span><button class="btn small primary" type="button" data-open="transaction">＋ Novo lançamento</button></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="mobile-card list">
+      ${tx.map(t => `<div class="list-row">
+        <div class="left">
+          <strong>${esc(t.description)}</strong>
+          <div class="secondary">${fmtDay(t.date)} · ${esc(t.category || t.kind)} · ${esc(t.status)}</div>
+        </div>
+        <div style="text-align:right">
+          <strong class="${t.kind === 'Despesa' ? 'negative' : 'positive'}">${brl(t.amountCents)}</strong>
+          <div class="row-actions" style="margin-top:6px">
+            <button class="btn small ghost" type="button" data-toggle="${esc(t.id)}">${t.status === 'Pendente' ? 'Quitar' : t.status === 'Realizado' ? 'Reabrir' : '—'}</button>
+            <button class="btn small ghost" type="button" data-edit-tx="${esc(t.id)}">Editar</button>
+            <button class="btn small ghost danger" type="button" data-del-tx="${esc(t.id)}">Excluir</button>
+          </div>
+        </div>
+      </div>`).join('') || '<div class="empty"><span>Nenhum lançamento encontrado.</span><button class="btn small primary" type="button" data-open="transaction">＋ Novo lançamento</button></div>'}
+    </div>
+    <p class="helper">${tx.length} lançamento(s) exibido(s). Ao quitar rapidamente, a data de pagamento assume a data de vencimento do lançamento para manter o mês de competência.</p>
+  `)}`;
+}
+
+function renderPlan() {
+  const rows = budgetRows(), st = stat();
+  const totalLimit = rows.reduce((s, r) => s + r.limitCents, 0);
+  const exceed = rows.filter(r => r.limitCents > 0 && r.planned > r.limitCents).length;
+  const near = rows.filter(r => r.limitCents > 0 && r.planned >= 0.75 * r.limitCents && r.planned <= r.limitCents).length;
+  let top = `<div class="three-metrics">
+    ${metric('Orçamento global', brl(totalLimit), 'Soma dos limites mensais de despesa', '▥')}
+    ${metric('Despesas realizadas', '▼ ' + brl(st.expense), 'Acumulado neste período', '↘', 'negative')}
+    ${metric('Atenção no orçamento', `${exceed} acima · ${near} perto`, 'Categorias que passaram de 75% do limite', '!', exceed ? 'negative' : 'orange')}
+  </div><div class="gap"></div>`;
+
+  let budgets = panel('Orçamentos por categoria', 'Edite limites na aba Ajustes. Previsto = realizado + pendente.', `<div>${rows.map(r => {
+    const stateCls = budgetSemanticClass(r.ratio);
+    const pillCls = !r.limitCents ? '' : r.planned > r.limitCents ? 'bad' : r.planned >= 0.75 * r.limitCents ? 'warn' : '';
+    return `<div class="budget-line">
+      <div><b><i class="color" style="display:inline-block;margin-right:7px;background:${categoryColor(r.name)}"></i>${esc(r.name)}</b><small>${r.limitCents ? `${pct(r.ratio)} do limite` : 'Sem limite definido'}</small></div>
+      <div><small>Limite</small>${brl(r.limitCents)}</div>
+      <div><small>Realizado</small>${brl(r.done)}</div>
+      <div><small>Previsto</small>${brl(r.planned)}</div>
+      <div class="budget-status">
+        <span class="pill ${pillCls}">${budgetSemanticLabel(r)}</span>
+        <div class="pbar"><span class="${stateCls}" style="width:${Math.min(100, r.ratio * 100)}%"></span></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`, '<button class="btn small" type="button" data-view="ajustes">Editar limites</button>');
+
+  let goals = panel('Metas financeiras', 'Acompanhe objetivos, atualize o valor reservado, edite ou exclua metas.', `<div class="goal-grid">${state.goals.map(g => {
+    let r = g.targetCents ? g.savedCents / g.targetCents : 0, miss = Math.max(0, g.targetCents - g.savedCents);
+    return `<div class="goal-card">
+      <h4>${esc(g.name)}</h4>
+      <div class="money">${brl(g.savedCents)}</div>
+      <div class="small muted">Meta: ${brl(g.targetCents)} · Prazo: ${fmtDay(g.dueDate)}</div>
+      <div class="pbar"><span style="width:${Math.min(100, r * 100)}%"></span></div>
+      <div class="secondary small" style="margin-top:10px">${pct(r)} acumulado · faltam ${brl(miss)}</div>
+      <div class="control-row">
+        <button class="btn small" type="button" data-goal-edit="${esc(g.id)}">Atualizar reservado</button>
+        <button class="btn small ghost" type="button" data-edit-goal-full="${esc(g.id)}">Editar</button>
+        <button class="btn small ghost danger" type="button" data-del-goal="${esc(g.id)}">Excluir</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty"><span>Nenhuma meta cadastrada.</span><button class="btn small primary" type="button" data-open="goal">＋ Nova meta</button></div>'}</div>`, '<button class="btn small primary" type="button" data-open="goal">＋ Nova meta</button>');
+
+  $('view-plan').innerHTML = top + budgets + '<div class="gap"></div>' + goals;
+}
+
+const CONFIG_TABS = [
+  ['aparencia', 'Aparência'], ['painel', 'Painel'], ['financeiro', 'Preferências'],
+  ['contas', 'Contas e categorias'], ['dados', 'Dados e manutenção']
+];
+const prefChecked = id => pref(id) ? 'checked' : '';
+const prefSwitch = (key, title, desc) => `<label class="pref-toggle"><span><strong>${title}</strong><small>${desc}</small></span><input type="checkbox" data-pref="${key}" ${prefChecked(key)} aria-label="${title}"></label>`;
+const configOpt = (value, label, selected) => `<option value="${esc(value)}" ${String(selected) === String(value) ? 'selected' : ''}>${esc(label)}</option>`;
+const confSelect = (id, title, subtitle, options) => `<label class="field"><span>${title}</span><select id="${id}">${options.map(([v,l])=>configOpt(v,l,pref(id.replace('cfg','').replace(/^./, c=>c.toLowerCase())))).join('')}</select><small class="muted">${subtitle}</small></label>`;
+
+function renderAjustes() {
+  const t = configTab;
+  const tabs = `<nav class="config-tabs" aria-label="Seções das configurações">${CONFIG_TABS.map(([id, label]) => `<button type="button" class="config-tab ${id===t?'active':''}" data-config-tab="${id}" aria-current="${id===t?'page':'false'}">${label}</button>`).join('')}</nav>`;
+  const introductory = `<div class="config-intro"><div><span class="eyebrow">Personalize o seu Clara</span><h3>Um lugar para todos os ajustes</h3><p>As alterações são aplicadas imediatamente e armazenadas junto aos seus dados locais. Mantenha somente o que é útil na interface.</p></div><div class="config-intro-icon" aria-hidden="true">⚙</div></div>`;
+
+  let body = '';
+  if (t === 'aparencia') {
+    const choices = [
+      ['violet', 'Violeta', 'Mobills contemporâneo', ['#6e4ddd','#9876ed','#e8ddff']],
+      ['blue', 'Azul', 'Mobills clássico', ['#2779da','#4ca5eb','#e0f0ff']],
+      ['petrol', 'Petróleo', 'Identidade Clara', ['#0c7287','#4cdbcd','#d8f6f1']]
+    ];
+    body = `${panel('Paleta do aplicativo', 'Cores inspiradas nas duas fases visuais do Mobills, com alternativa exclusiva Clara. Cores aproximadas — não é uma reprodução da marca.', `
+      <div class="palette-grid">${choices.map(([key,title,sub,colors])=>`<button type="button" class="palette-choice ${pref('palette')===key?'selected':''}" data-palette="${key}" aria-pressed="${pref('palette')===key}"><span class="palette-swatches">${colors.map(col=>`<i style="background:${col}"></i>`).join('')}</span><strong>${title}</strong><small>${sub}</small><span class="palette-mark">${pref('palette')===key?'✓ Em uso':'Aplicar paleta'}</span></button>`).join('')}</div>
+    `)}<div class="gap"></div>
+    <div class="layout-equal">
+      ${panel('Tema e densidade', 'Configure o contraste e o espaço entre os elementos.', `<div class="field-grid two">
+        <label class="field"><span>Tema</span><select id="themeSelect">${configOpt('light','Claro',state.settings.theme)}${configOpt('dark','Escuro',state.settings.theme)}</select></label>
+        <label class="field"><span>Densidade</span><select data-pref-select="density">${configOpt('comfortable','Confortável',pref('density'))}${configOpt('compact','Compacta',pref('density'))}</select></label>
+      </div>`)}
+      ${panel('Legibilidade e navegação', 'Preferências úteis para celular, tablet e desktop.', `<div class="list">
+        ${prefSwitch('largeText','Texto maior','Aumenta textos, botões e campos.')} 
+        ${prefSwitch('reduceMotion','Reduzir animações','Evita transições desnecessárias.')} 
+        ${prefSwitch('sidebarCompact','Barra lateral compacta','Recolhe os nomes no desktop, sem afetar a navegação do celular.')}
+      </div>`)}
+    </div>`;
+  } else if (t === 'painel') {
+    body = `${panel('Privacidade e visualização', 'O painel é seu: escolha o que aparece. Nenhum indicador é excluído do banco.', `<div class="list">
+      ${prefSwitch('hideValues','Ocultar valores financeiros','Disfarça valores exibidos nas telas; CSV e JSON mantêm os valores reais.')} 
+      ${prefSwitch('showSummary','Resumo do mês','Receitas, despesas, pendências e situação financeira.')} 
+      ${prefSwitch('showCategories','Categorias e orçamento','Gráfico de rosca e barras de limite por categoria.')} 
+      ${prefSwitch('showOutlook','Projeções e metas','Fluxo previsto e acompanhamento de objetivos.')} 
+    </div>`)}<div class="gap"></div>
+    ${panel('Alcance das projeções', 'Escolha quantos meses serão apresentados no Painel. O saldo é calculado pelas movimentações cadastradas.', `<div class="field-grid two"><label class="field"><span>Horizonte</span><select data-pref-select="forecastMonths">${[[3,'3 meses'],[4,'4 meses'],[6,'6 meses'],[12,'12 meses']].map(([v,l])=>configOpt(v,l,pref('forecastMonths'))).join('')}</select></label></div><div class="control-row"><button class="btn primary" type="button" data-view="painel">Ver painel atualizado</button></div>`)}`;
+  } else if (t === 'financeiro') {
+    body = `${panel('Período de acompanhamento', 'Essas escolhas atualizam os filtros globais e os cálculos dos módulos. Valores sempre em real brasileiro (R$).', `<div class="field-grid two"><label class="field"><span>Período selecionado</span><input type="month" id="periodConfig" value="${esc(state.settings.period)}"></label><label class="field"><span>Data de corte</span><input type="date" id="cutoffInput" value="${esc(state.settings.cutoff)}"></label></div>`)}
+      <div class="gap"></div>
+      ${panel('Alertas de orçamento', 'A faixa vermelha permanece acima de 100% do limite da categoria.', `<div class="field-grid two"><label class="field"><span>Alertar ao utilizar</span><select data-pref-select="budgetWarningPct">${[[65,'65% do limite'],[75,'75% do limite'],[85,'85% do limite'],[90,'90% do limite']].map(([v,l])=>configOpt(v,l,pref('budgetWarningPct'))).join('')}</select></label></div>`)}
+      <div class="gap"></div>
+      ${panel('Idioma, moeda e informações locais', 'O motor contábil desta versão utiliza centavos em reais e datas brasileiras. Não há conversão cambial automática.', `<div class="config-note"><strong>Idioma</strong><span>Português (Brasil)</span></div><div class="config-note"><strong>Moeda</strong><span>Real brasileiro · BRL</span></div><div class="config-note"><strong>Armazenamento</strong><span>Somente neste navegador, sem sincronização entre dispositivos</span></div>`)}`;
+  } else if (t === 'contas') {
+    const accounts = state.accounts.map(ac => {
+      const bal = accountBalance(ac.id, state.settings.cutoff);
+      const pendingCard = ac.type === 'Cartão' ? accountPendingCard(ac.id) : 0;
+      return `<div class="account-card"><div><div class="account-top"><strong>${esc(ac.name)}</strong><span class="pill ${ac.type==='Cartão'?'warn':''}">${esc(ac.type)}</span></div><div class="type">${ac.type === 'Cartão'?'Cartão e fatura pendente':'Saldo até a data de corte'}</div><strong class="acc-bal ${bal<0?'negative':''}">${brl(bal)}</strong><div class="small muted">Inicial: ${brl(ac.openingCents)}${ac.type==='Cartão'?` · Fatura: ${brl(pendingCard)}`:''}</div></div><div class="control-row"><button class="btn small ghost" type="button" data-edit-account="${esc(ac.id)}">Editar</button><button class="btn small ghost danger" type="button" data-del-account="${esc(ac.id)}">Excluir</button></div></div>`;
+    }).join('');
+    const cats = state.categories.map((c,i)=>`<div class="list-row"><div class="left"><strong><i class="color" style="display:inline-block;margin-right:7px;background:${categoryColor(c.name,i)}"></i>${esc(c.name)}</strong><div class="secondary">${esc(c.group)}</div></div>${c.group==='Despesa'?`<label class="field limit-field"><span>Limite (R$)</span><input class="editable limit-input" data-category="${esc(c.name)}" inputmode="decimal" value="${numField(c.limitCents || 0)}" aria-label="Limite ${esc(c.name)}"></label>`:'<span class="pill">Receita</span>'}</div>`).join('');
+    body = `${panel('Contas, reservas e cartões', 'Adicione, edite ou exclua contas. Contas vinculadas a movimentações têm proteção de integridade.', `<div class="account-grid">${accounts}</div>`, '<button class="btn small primary" type="button" data-open="account">＋ Nova conta</button>')}<div class="gap"></div>${panel('Categorias e limites mensais', 'Os limites alimentam o planejamento e o painel em todas as telas.', `<div class="list category-config-list">${cats}</div><div class="control-row"><button class="btn primary" type="button" id="saveLimits">Salvar limites</button></div>`)}`;
+  } else if (t === 'dados') {
+    body = `${panel('Segurança e privacidade', 'Controle de dados locais e de exposição de valores.', `<div class="list">
+      ${prefSwitch('hideValues','Ocultar valores na interface','Impede visualização casual; não cifra o armazenamento do navegador.')}
+      <div class="config-note"><strong>Proteção dos dados</strong><span>Os registros ficam no armazenamento local sem criptografia. Use um dispositivo protegido e exporte backups para armazenamento seguro.</span></div>
+      <div class="config-note"><strong>Compatibilidade</strong><span>Os backups JSON anteriores continuam importáveis, com validação e confirmação.</span></div>
+    </div>`)}<div class="gap"></div>
+    ${panel('Cópias de segurança', 'Baixe e restaure registros e preferências. O JSON é legível e não deve ser compartilhado.', `<div class="config-actions"><div><strong>Exportar backup JSON</strong><small>Guarde sua cópia em local privado.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div><div class="config-actions"><div><strong>Restaurar backup JSON</strong><small>Verifica integridade e pede confirmação antes de substituir.</small></div><label class="btn" for="importJson" style="cursor:pointer">Importar</label><input hidden type="file" id="importJson" accept=".json,application/json"></div>`)}<div class="gap"></div>
+    ${panel('Diagnóstico e manutenção', 'Ferramentas de revisão, limpeza e recuperação. Faça backup antes de limpar.', `<div class="config-actions"><div><strong>Central ClaraQA</strong><small>Executa 120 verificações internas, incluindo preferências.</small></div><button class="btn" type="button" data-open-qa="1">Executar testes</button></div><div class="config-actions"><div><strong>Começar do zero</strong><small>Exporta um backup e inicia uma base vazia.</small></div><button class="btn" type="button" id="startEmpty">Iniciar</button></div>`)}`;
+  }
+  $('view-ajustes').innerHTML = introductory + tabs + `<div class="config-content">${body}</div>`;
+}
+
+function generateInstallments(totalCents, n, due, desc, category, account) {
+  if (!Number.isSafeInteger(totalCents) || totalCents <= 0 || totalCents > 1_000_000_000_000) throw Error('Total de parcelamento inválido.');
+  if (!Number.isInteger(n) || n < 2 || n > 60) throw Error('Selecione de 2 a 60 parcelas.');
+  if (totalCents < n) throw Error('O valor em centavos não permite parcelas de pelo menos R$ 0,01.');
+  if (!dateValid(due) || typeof desc !== 'string' || !desc.trim() || !state.categories.some(c => c.group === 'Despesa' && c.name === category) || !state.accounts.some(a => a.id === account))
+    throw Error('Dados do parcelamento inválidos.');
+  const base = Math.floor(totalCents / n), remainder = totalCents % n;
+  return Array.from({ length: n }, (_, i) => ({
+    id: uid(),
+    date: plusMonth(due, i),
+    description: `${desc} (${i + 1}/${n})`,
+    category,
+    kind: 'Despesa',
+    amountCents: base + (i < remainder ? 1 : 0),
+    accountId: account,
+    toAccountId: '',
+    status: 'Pendente',
+    paidAt: ''
+  }));
+}
+
+function renderAssist() {
+  const items = state.categories.filter(c => c.group === 'Despesa').map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  const acs = state.accounts.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+  $('view-assist').innerHTML = `
+  ${panel('Assistente de parcelamento', 'Simule compras parceladas e confira o cronograma exato em centavos antes de gerar os lançamentos.', `
+    <form id="installForm">
+      <div class="field-grid">
+        <label class="field"><span>Primeiro vencimento</span><input id="insDate" type="date" required value="${esc(plusMonth(state.settings.cutoff, 1))}"></label>
+        <label class="field"><span>Descrição da compra</span><input id="insDesc" placeholder="Ex.: Notebook, Seguro anual" required></label>
+        <label class="field"><span>Categoria</span><select id="insCategory">${items}</select></label>
+        <label class="field"><span>Conta ou cartão</span><select id="insAccount">${acs}</select></label>
+        <label class="field"><span>Valor total da compra (R$)</span><input id="insTotal" inputmode="decimal" placeholder="1.200,00" required></label>
+        <label class="field"><span>Número de parcelas</span><select id="insCount">${[2, 3, 4, 5, 6, 8, 10, 12, 18, 24, 36, 48, 60].map(n => `<option value="${n}" ${n === 6 ? 'selected' : ''}>${n} vezes</option>`).join('')}</select></label>
+      </div>
+      <div class="control-row">
+        <button class="btn" type="button" id="previewInstall">Visualizar</button>
+        <button class="btn primary" type="submit" id="addInstall" disabled>Adicionar parcelas</button>
+      </div>
+    </form>
+    <div class="gap"></div>
+    <div id="installPreview" class="empty"><span>Preencha os campos acima e clique em "Visualizar".</span></div>
+    <p class="helper">Parcelamento sem juros. A diferença de centavos é distribuída nas primeiras parcelas para que a soma bata exatamente com o total.</p>
+  `)}
+  <div class="gap"></div>
+  ${panel('Fluxos inteligentes ativos', 'Regras automáticas que protegem a consistência dos seus dados', `
+    <div class="list">
+      <div class="list-row"><div class="left"><b>Competência preservada na quitação</b><div class="secondary">Quitar um lançamento pendente usa a data de vencimento por padrão, evitando mudança acidental de mês</div></div><span class="pill">✓ Ativo</span></div>
+      <div class="list-row"><div class="left"><b>Distribuição exata em centavos</b><div class="secondary">Validação de 2 a 60 parcelas sem sobras de arredondamento</div></div><span class="pill">✓ Ativo</span></div>
+      <div class="list-row"><div class="left"><b>Integridade referencial de contas</b><div class="secondary">Impede exclusão de contas que possuem lançamentos ou conciliações vinculados</div></div><span class="pill">✓ Ativo</span></div>
+    </div>
+  `)}`;
+}
+
+function audits() {
+  const seen = new Map(), flags = [];
+  for (const t of state.transactions) {
+    if (t.status === 'Pendente' && t.date < state.settings.cutoff)
+      flags.push({ type: 'Vencido', text: t.description + ' · ' + fmtDay(t.date), txId: t.id });
+    let k = [t.date, t.kind, t.amountCents, t.description.trim().toLowerCase(), t.accountId].join('|');
+    if (t.status !== 'Cancelado') {
+      if (seen.has(k)) flags.push({ type: 'Coincidência', text: t.description + ' · conferir duplicidade', txId: t.id });
+      else seen.set(k, t.id);
+    }
+    if (t.status === 'Realizado' && t.paidAt && t.paidAt > state.settings.cutoff)
+      flags.push({ type: 'Data futura', text: t.description + ' · pagamento futuro confirmado (' + fmtDay(t.paidAt) + ')', txId: t.id });
+  }
+  return flags;
+}
+
+
+function yearReport(year = state.settings.period.slice(0, 4)) {
+  if (!/^20\d{2}$/.test(year)) throw Error('Ano de relatório inválido.');
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const period = year + '-' + String(i + 1).padStart(2, '0');
+    return { period, ...stat(period) };
+  });
+  const total = months.reduce((o, r) => ({
+    income: o.income + r.income, expense: o.expense + r.expense,
+    net: o.net + r.net, toPay: o.toPay + r.toPay, toReceive: o.toReceive + r.toReceive
+  }), { income: 0, expense: 0, net: 0, toPay: 0, toReceive: 0 });
+  return { year, months, total };
+}
+
+function monthlyCategories(period = state.settings.period) {
+  return budgetRows(period).filter(r => r.done || r.pending).sort((a, b) => b.done - a.done);
+}
+
+function csvCell(value) {
+  let text = String(value ?? '');
+  // Excel, LibreOffice e outros leitores: não interpretar conteúdos externos como fórmulas.
+  if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+const csvAmount = cents => (cents / 100).toFixed(2).replace('.', ',');
+function makeCSV(rows) { return '\ufeff' + rows.map(row => row.map(csvCell).join(';')).join('\r\n') + '\r\n'; }
+
+function exportAnnualReport() {
+  const r = yearReport();
+  const rows = [['Mês', 'Receitas realizadas (R$)', 'Despesas realizadas (R$)', 'Resultado (R$)', 'A pagar (R$)', 'A receber (R$)'],
+    ...r.months.map(m => [m.period, csvAmount(m.income), csvAmount(m.expense), csvAmount(m.net), csvAmount(m.toPay), csvAmount(m.toReceive)]),
+    ['TOTAL', csvAmount(r.total.income), csvAmount(r.total.expense), csvAmount(r.total.net), csvAmount(r.total.toPay), csvAmount(r.total.toReceive)]];
+  dl('Clara_Relatorio_' + r.year + '.csv', makeCSV(rows), 'text/csv;charset=utf-8');
+}
+
+function exportTransactionReport() {
+  const p = state.settings.period;
+  const accountName = id => state.accounts.find(a => a.id === id)?.name || '';
+  const rows = [['Vencimento', 'Pagamento', 'Tipo', 'Situação', 'Descrição', 'Categoria', 'Origem', 'Destino', 'Valor (R$)'],
+    ...filteredTransactions(p).slice().sort((a, b) => effective(a).localeCompare(effective(b))).map(t =>
+      [t.date, t.paidAt || '', t.kind, t.status, t.description, t.category || '', accountName(t.accountId), accountName(t.toAccountId), csvAmount(t.amountCents)])];
+  dl('Clara_Movimentacoes_' + p + '.csv', makeCSV(rows), 'text/csv;charset=utf-8');
+}
+
+function reportHTML() {
+  const p = state.settings.period, monthly = stat(p), annual = yearReport(), categories = monthlyCategories(p);
+  return `<section id="claraReportArea" class="panel report-panel" aria-labelledby="reportTitle">
+    <div class="panel-head"><div><h3 id="reportTitle">Relatório financeiro · ${esc(monthLabel(p))}</h3><p>Receitas e despesas realizadas por data efetiva; pendências apresentadas separadamente. Relatório local, sem envio a servidores.</p></div></div>
+    <div class="three-metrics report-metrics">
+      ${metric('Receitas no mês', brl(monthly.income), 'Realizadas', '', 'positive')}
+      ${metric('Despesas no mês', brl(monthly.expense), 'Realizadas', '', 'negative')}
+      ${metric('Resultado no mês', brl(monthly.net), 'Não inclui pendências', '', monthly.net >= 0 ? 'positive' : 'negative')}
+    </div>
+    <div class="gap"></div>
+    <div class="report-table-title">Resumo anual · ${annual.year}</div>
+    <div class="tablewrap"><table class="table report-table"><thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Resultado</th><th class="num">A pagar</th></tr></thead>
+      <tbody>${annual.months.map(m => `<tr><td>${monthLabel(m.period)}</td><td class="num">${brl(m.income)}</td><td class="num">${brl(m.expense)}</td><td class="num">${brl(m.net)}</td><td class="num">${brl(m.toPay)}</td></tr>`).join('')}
+        <tr class="report-total"><td><strong>Total</strong></td><td class="num"><strong>${brl(annual.total.income)}</strong></td><td class="num"><strong>${brl(annual.total.expense)}</strong></td><td class="num"><strong>${brl(annual.total.net)}</strong></td><td class="num"><strong>${brl(annual.total.toPay)}</strong></td></tr>
+      </tbody></table></div>
+    <div class="gap"></div>
+    <div class="report-table-title">Despesas por categoria · ${monthLabel(p)}</div>
+    <div class="tablewrap"><table class="table report-table"><thead><tr><th>Categoria</th><th class="num">Realizado</th><th class="num">Pendente</th><th class="num">Limite</th></tr></thead><tbody>
+      ${categories.map(r => `<tr><td>${esc(r.name)}</td><td class="num">${brl(r.done)}</td><td class="num">${brl(r.pending)}</td><td class="num">${brl(r.limitCents)}</td></tr>`).join('') || '<tr><td colspan="4">Não há despesas cadastradas para este mês.</td></tr>'}
+    </tbody></table></div>
+    <p class="helper">Transferências internas não aumentam receitas nem despesas. Valores a pagar e receber são lançamentos pendentes; não representam caixa realizado.</p>
+  </section>
+  <div class="report-actions control-row">
+    <button class="btn primary" type="button" id="printFinancialReport">Imprimir / Salvar PDF</button>
+    <button class="btn" type="button" id="exportAnnualCSV">CSV anual</button>
+    <button class="btn" type="button" id="exportTxCSV">CSV dos lançamentos do mês</button>
+  </div>`;
+}
+
+function renderConf() {
+  let flags = audits();
+  const sums = state.reconciliations.map(r => ({ ...r, calculated: accountBalance(r.accountId, r.date) }));
+  const diff = sums.reduce((s, r) => s + r.statementCents - r.calculated, 0);
+  const matches = sums.filter(r => Math.abs(r.statementCents - r.calculated) < .5).length;
+  const c = sums.length - matches;
+  const accounts = state.accounts.map(a => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+
+  $('view-conf').innerHTML = `
+  <div class="three-metrics">
+    ${metric('Diferença líquida', brl(diff), 'Extratos informados menos saldos calculados', '⇄', c === 0 ? 'positive' : 'negative')}
+    ${metric('A conferir', String(c), 'Conciliações com divergência de saldo', '!', 'orange')}
+    ${metric('Conciliadas', String(matches), 'Extratos que batem exatamente', '✓', 'positive')}
+  </div>
+  <div class="gap"></div>
+  <div class="layout-equal">
+    ${panel('Conferir extrato bancário', 'Informe o saldo do extrato em uma data para comparar com o saldo calculado pelo Clara.', `
+      <form id="reconForm" class="field-grid two">
+        <label class="field"><span>Conta</span><select id="recAccount">${accounts}</select></label>
+        <label class="field"><span>Data do extrato</span><input type="date" id="recDate" value="${esc(state.settings.cutoff)}" required></label>
+        <label class="field"><span>Saldo no extrato (R$)</span><input id="recAmount" inputmode="decimal" placeholder="0,00" required></label>
+        <div class="control-row" style="align-items:end"><button class="btn primary" type="submit">Conferir saldo</button></div>
+      </form>
+      <p class="helper">A conferência é comparativa e não altera seus lançamentos automaticamente. Você pode editar ou excluir conferências no histórico abaixo.</p>
+    `)}
+    ${panel('Sinais de atenção na auditoria', 'Pendências vencidas, possíveis duplicidades e pagamentos após a data de corte', `
+      <div class="validation-list">
+        ${flags.slice(0, 14).map(f => `<div class="list-row">
+          <div class="left"><strong>${esc(f.text)}</strong><div class="secondary">${esc(f.type)}</div></div>
+          <div class="row-actions">
+            <span class="pill warn">● ${esc(f.type)}</span>
+            ${f.txId ? `<button class="btn small ghost" type="button" data-edit-tx="${esc(f.txId)}">Revisar</button>` : ''}
+          </div>
+        </div>`).join('') || '<div class="empty"><span>✓ Nenhum sinal de atenção encontrado pelas regras atuais.</span></div>'}
+      </div>
+    `)}
+  </div>
+  <div class="gap"></div>
+  ${panel('Histórico de conciliações', 'Recalcula diferenças automaticamente quando os lançamentos mudam.', `
+    <div class="list">
+      ${sums.slice().reverse().map(r => {
+        const acc = state.accounts.find(a => a.id === r.accountId)?.name || 'Conta';
+        let difference = r.statementCents - r.calculated;
+        return `<div class="list-row">
+          <div class="left">
+            <strong>${esc(acc)} · ${fmtDay(r.date)}</strong>
+            <div class="secondary">Extrato: ${brl(r.statementCents)} · Calculado: ${brl(r.calculated)}</div>
+          </div>
+          <div style="text-align:right">
+            <b class="${difference ? 'negative' : 'positive'}">${brl(difference)}</b>
+            <div class="small muted">${difference ? 'Divergente' : '✓ Confere'}</div>
+            <div class="row-actions" style="margin-top:6px">
+              <button class="btn small ghost" type="button" data-edit-recon="${esc(r.id)}">Editar</button>
+              <button class="btn small ghost danger" type="button" data-del-recon="${esc(r.id)}">Excluir</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') || '<div class="empty"><span>Sem conciliações registradas até o momento.</span></div>'}
+    </div>
+  `, '<button class="btn small" type="button" data-open-qa="1">✓ Rodar autotestes (QA)</button>')}`;
+  $('view-conf').insertAdjacentHTML('beforeend', '<div class="gap"></div>' + reportHTML());
+}
+
+const titleMap = {
+  painel: ['Painel financeiro', 'Seu dinheiro em perspectiva, com indicadores conectados.'],
+  mov: ['Movimentações', 'Registros, vencimentos, quitação e edição completa.'],
+  plan: ['Planejamento', 'Orçamentos mensais semânticos e metas de economia.'],
+  ajustes: ['Configurações', 'Personalize o Clara, gerencie contas e categorias, privacidade e dados.'],
+  assist: ['Assistentes', 'Automatize parcelamentos com precisão em centavos.'],
+  conf: ['Conferências', 'Conciliação de extratos e auditoria de movimentações.']
+};
+
+function renderNav() {
+  for (const id of ['sideNav', 'mobileNav', 'mobileMenuGrid']) {
+    $(id).innerHTML = NAV.map(([key, icon, label]) =>
+      `<button type="button" class="navlink ${active === key ? 'active' : ''}" data-view="${key}" title="${label}" aria-label="${label}"><span class="ico">${icon}</span><span>${id === 'mobileNav' ? MOBILE_NAV_LABELS[key] : label}</span></button>`
+    ).join('');
+  }
+}
+
+function toggleMobileMenu(open) {
+  const fab = $('mobileFab');
+  const menu = $('mobileMenu');
+  const shade = $('mobileMenuBackdrop');
+  fab.setAttribute('aria-expanded', String(open));
+  fab.setAttribute('aria-label', open ? 'Fechar módulos' : 'Abrir módulos');
+  menu.classList.toggle('open', open);
+  shade.classList.toggle('open', open);
+  menu.setAttribute('aria-hidden', String(!open));
+  if (open) menu.querySelector('.navlink')?.focus();
+  else fab.focus({ preventScroll: true });
+}
+$('mobileFab').addEventListener('click', () => toggleMobileMenu($('mobileFab').getAttribute('aria-expanded') !== 'true'));
+$('mobileMenuBackdrop').addEventListener('click', () => toggleMobileMenu(false));
+$('closeMobileMenu').addEventListener('click', () => toggleMobileMenu(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('mobileFab').getAttribute('aria-expanded') === 'true') toggleMobileMenu(false);
+});
+window.matchMedia('(min-width: 601px)').addEventListener('change', e => {
+  if (e.matches && $('mobileFab').getAttribute('aria-expanded') === 'true') toggleMobileMenu(false);
+});
+
+function render() {
+  document.documentElement.dataset.theme = state.settings.theme;
+  document.documentElement.dataset.palette = pref('palette');
+  document.documentElement.dataset.density = pref('density');
+  document.documentElement.dataset.text = pref('largeText') ? 'large' : 'normal';
+  document.documentElement.dataset.motion = pref('reduceMotion') ? 'reduced' : 'normal';
+  document.documentElement.dataset.sidebar = pref('sidebarCompact') ? 'compact' : 'wide';
+  $('period').value = state.settings.period;
+
+  const notice = $('integrityNotice');
+  if (notice) {
+    notice.hidden = !initializationError;
+    notice.textContent = initializationError || '';
+    if (initializationError && corruptedSavedRaw) {
+      const backup = document.createElement('button');
+      backup.type = 'button';
+      backup.className = 'btn small';
+      backup.textContent = 'Baixar arquivo original para recuperação';
+      backup.onclick = () => dl('clara-armazenamento-original-para-recuperacao.txt', corruptedSavedRaw, 'text/plain');
+      notice.append(' ', backup);
+    }
+  }
+
+  const stNotice = $('storageNotice');
+  if (stNotice) {
+    stNotice.hidden = !storageUnavailableNotice || !!initializationError;
+    stNotice.textContent = storageUnavailableNotice || '';
+  }
+
+  renderNav();
+  $('pageTitle').textContent = titleMap[active][0];
+  $('pageSubtitle').textContent = titleMap[active][1];
+  for (const [key] of NAV) $('view-' + key).classList.toggle('active', key === active);
+  ({ painel: renderPainel, mov: renderMov, plan: renderPlan, ajustes: renderAjustes, assist: renderAssist, conf: renderConf }[active])();
+}
+
+function go(to) {
+  if ($('mobileFab').getAttribute('aria-expanded') === 'true') toggleMobileMenu(false);
+  active = to;
+  render();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function field(name, label, type = 'text', value = '', extra = '') {
+  return `<label class="field"><span>${label}</span><input id="m_${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}><small class="field-error" id="err_${name}" aria-live="polite"></small></label>`;
+}
+function select(name, label, options, value = '') {
+  return `<label class="field"><span>${label}</span><select id="m_${name}" name="${name}">${options.map(([v, l]) => `<option value="${esc(v)}" ${value === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select><small class="field-error" id="err_${name}" aria-live="polite"></small></label>`;
+}
+
+let focusedBeforeModal = null;
+
+function openConfirmModal(title, message, onConfirm) {
+  focusedBeforeModal = document.activeElement;
+  pendingConfirmAction = onConfirm;
+  $('modalBg').classList.add('show');
+  $('modalBg').dataset.kind = 'confirm';
+  $('modalTitle').textContent = title;
+  $('modalContent').innerHTML = `
+    <p style="margin:0 0 16px;color:var(--text);font-size:var(--fs-sm);line-height:1.5">${esc(message)}</p>
+    <div class="control-row">
+      <button type="button" class="btn" data-close="1">Cancelar</button>
+      <button type="button" class="btn primary" id="confirmModalBtn">Confirmar</button>
+    </div>`;
+  $('modalBg').setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => $('confirmModalBtn')?.focus());
+}
+
+function modal(kind, itemId = '') {
+  focusedBeforeModal = focusedBeforeModal || document.activeElement;
+  $('modalBg').classList.add('show');
+  $('modalBg').dataset.kind = kind;
+  if (itemId) $('modalBg').dataset.id = itemId;
+
+  const titles = {
+    transaction: 'Novo lançamento',
+    editTransaction: 'Editar lançamento',
+    goal: 'Nova meta de economia',
+    editGoal: 'Editar meta financeira',
+    account: 'Nova conta ou cartão',
+    editAccount: 'Editar conta ou cartão',
+    goalSaved: 'Atualizar valor reservado',
+    editRecon: 'Editar conciliação'
+  };
+  $('modalTitle').textContent = titles[kind] || 'Formulário';
+
+  let body = '';
+  if (kind === 'transaction' || kind === 'editTransaction') {
+    const tx = kind === 'editTransaction' ? state.transactions.find(x => x.id === itemId) : null;
+    const defDate = tx ? tx.date : state.settings.cutoff;
+    const defDesc = tx ? tx.description : '';
+    const defKind = tx ? tx.kind : 'Despesa';
+    const defCat = tx ? tx.category : 'Alimentação';
+    const defAmt = tx ? numField(tx.amountCents) : '';
+    const defAcc = tx ? tx.accountId : (state.accounts[0]?.id || '');
+    const defDest = tx ? (tx.toAccountId || '') : '';
+    const defStatus = tx ? tx.status : 'Pendente';
+    const defPaidAt = tx ? (tx.paidAt || tx.date) : defDate;
+
+    body = `<form id="modalForm" novalidate>
+      <div class="field-grid two">
+        ${field('date', 'Data de vencimento / competência', 'date', defDate, 'required')}
+        ${field('description', 'Descrição', 'text', defDesc, 'required maxlength="110" placeholder="Ex.: Supermercado"')}
+        ${select('kind', 'Tipo', [['Despesa', 'Despesa'], ['Receita', 'Receita'], ['Transferência', 'Transferência']], defKind)}
+        ${select('category', 'Categoria', state.categories.filter(c => c.group === (defKind === 'Receita' ? 'Receita' : 'Despesa')).map(c => [c.name, c.name]), defCat)}
+        ${field('amount', 'Valor (R$)', 'text', defAmt, 'required inputmode="decimal" placeholder="0,00"')}
+        ${select('account', 'Conta de origem', state.accounts.map(a => [a.id, a.name]), defAcc)}
+        ${select('destination', 'Conta de destino (transferência)', [['', 'Não aplicável'], ...state.accounts.map(a => [a.id, a.name])], defDest)}
+        ${select('status', 'Situação', [['Pendente', 'Pendente'], ['Realizado', 'Realizado'], ['Cancelado', 'Cancelado']], defStatus)}
+        ${field('paidAt', 'Data de pagamento (se Realizado)', 'date', defPaidAt)}
+      </div>
+      <p class="helper">Por padrão, a data de pagamento acompanha a data do lançamento para preservar o mês de competência.</p>
+      <div class="control-row">
+        <button type="button" class="btn" data-close="1">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar lançamento</button>
+      </div>
+    </form>`;
+  } else if (kind === 'goal' || kind === 'editGoal') {
+    const g = kind === 'editGoal' ? state.goals.find(x => x.id === itemId) : null;
+    body = `<form id="modalForm" novalidate>
+      <div class="field-grid two">
+        ${field('name', 'Objetivo', 'text', g ? g.name : '', 'required placeholder="Ex.: Reserva de emergência"')}
+        ${field('target', 'Valor da meta (R$)', 'text', g ? numField(g.targetCents) : '', 'required inputmode="decimal" placeholder="10.000,00"')}
+        ${field('saved', 'Já reservado (R$)', 'text', g ? numField(g.savedCents) : '0,00', 'required inputmode="decimal"')}
+        ${field('due', 'Prazo', 'date', g ? g.dueDate : plusMonth(state.settings.cutoff, 12))}
+      </div>
+      <div class="control-row">
+        <button type="button" class="btn" data-close="1">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar meta</button>
+      </div>
+    </form>`;
+  } else if (kind === 'account' || kind === 'editAccount') {
+    const acc = kind === 'editAccount' ? state.accounts.find(x => x.id === itemId) : null;
+    body = `<form id="modalForm" novalidate>
+      <div class="field-grid two">
+        ${field('name', 'Nome da conta ou cartão', 'text', acc ? acc.name : '', 'required placeholder="Ex.: Conta Corrente"')}
+        ${select('type', 'Tipo', [['Conta', 'Conta'], ['Dinheiro', 'Dinheiro'], ['Reserva', 'Reserva'], ['Cartão', 'Cartão']], acc ? acc.type : 'Conta')}
+        ${field('opening', 'Saldo inicial (R$)', 'text', acc ? numField(acc.openingCents) : '0,00', 'required inputmode="decimal"')}
+      </div>
+      <div class="control-row">
+        <button type="button" class="btn" data-close="1">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar conta</button>
+      </div>
+    </form>`;
+  } else if (kind === 'goalSaved') {
+    let g = state.goals.find(x => x.id === $('modalBg').dataset.id);
+    body = `<form id="modalForm" novalidate>
+      <p style="margin:0 0 12px;font-weight:600">${esc(g?.name)}</p>
+      ${field('saved', 'Novo valor reservado (R$)', 'text', numField(g?.savedCents || 0), 'required inputmode="decimal"')}
+      <div class="control-row">
+        <button type="button" class="btn" data-close="1">Cancelar</button>
+        <button type="submit" class="btn primary">Atualizar</button>
+      </div>
+    </form>`;
+  } else if (kind === 'editRecon') {
+    let r = state.reconciliations.find(x => x.id === itemId);
+    body = `<form id="modalForm" novalidate>
+      <div class="field-grid two">
+        ${select('account', 'Conta', state.accounts.map(a => [a.id, a.name]), r ? r.accountId : '')}
+        ${field('date', 'Data do extrato', 'date', r ? r.date : state.settings.cutoff, 'required')}
+        ${field('amount', 'Saldo no extrato (R$)', 'text', r ? numField(r.statementCents) : '0,00', 'required inputmode="decimal"')}
+      </div>
+      <div class="control-row">
+        <button type="button" class="btn" data-close="1">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar conferência</button>
+      </div>
+    </form>`;
+  }
+
+  $('modalContent').innerHTML = body;
+  updateCategoryForKind();
+  $('modalBg').setAttribute('role', 'dialog');
+  $('modalBg').setAttribute('aria-modal', 'true');
+  $('modalBg').setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => $('modalContent').querySelector('input:not(:disabled),select:not(:disabled),button:not(:disabled)')?.focus());
+}
+
+function closeModal() {
+  pendingConfirmAction = null;
+  $('modalBg').classList.remove('show');
+  $('modalBg').setAttribute('aria-hidden', 'true');
+  if (focusedBeforeModal?.isConnected) focusedBeforeModal.focus();
+  focusedBeforeModal = null;
+}
+
+function updateCategoryForKind() {
+  const kind = $('m_kind')?.value, category = $('m_category');
+  if (category) {
+    const previous = category.value;
+    const matches = state.categories.filter(c => c.group === kind);
+    category.innerHTML = kind === 'Transferência'
+      ? '<option value="">Não aplicável</option>'
+      : matches.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+    if (matches.some(c => c.name === previous)) category.value = previous;
+  }
+  const destination = $('m_destination');
+  if (destination) destination.disabled = kind !== 'Transferência';
+  const statusEl = $('m_status'), paidAtEl = $('m_paidAt');
+  if (statusEl && paidAtEl) {
+    paidAtEl.disabled = statusEl.value !== 'Realizado';
+    if (statusEl.value === 'Realizado' && !paidAtEl.value) {
+      paidAtEl.value = $('m_date')?.value || state.settings.cutoff;
+    }
+  }
+}
+
+function modalKeyboard(e) {
+  const bg = $('modalBg');
+  if (!bg.classList.contains('show')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+  if (e.key !== 'Tab') return;
+  const focusable = [...bg.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(el => el.getClientRects().length);
+  if (!focusable.length) { e.preventDefault(); return; }
+  const first = focusable[0], last = focusable.at(-1);
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+function clearFieldErrors(form) {
+  form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+  form.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+}
+function setFieldError(name, msg) {
+  const input = $('m_' + name), err = $('err_' + name);
+  if (input) { input.classList.add('invalid'); input.focus(); }
+  if (err) err.textContent = msg;
+  throw Error(msg);
+}
+
+function submitModal(form) {
+  clearFieldErrors(form);
+  const val = name => form.querySelector(`[name="${name}"]`)?.value || '';
+  const kind = $('modalBg').dataset.kind;
+  const itemId = $('modalBg').dataset.id;
+
+  try {
+    if (kind === 'transaction' || kind === 'editTransaction') {
+      const desc = val('description').trim();
+      if (!desc) setFieldError('description', 'Informe a descrição do lançamento.');
+      const dt = val('date');
+      if (!dateValid(dt)) setFieldError('date', 'Informe uma data válida.');
+      let amount;
+      try { amount = parseBRL(val('amount')); } catch (e) { setFieldError('amount', e.message); }
+      if (amount <= 0) setFieldError('amount', 'O valor deve ser maior que zero.');
+      const type = val('kind'), status = val('status');
+      if (!state.accounts.some(a => a.id === val('account'))) setFieldError('account', 'Conta de origem inválida.');
+      if (type === 'Transferência') {
+        if (!val('destination') || val('destination') === val('account') || !state.accounts.some(a => a.id === val('destination')))
+          setFieldError('destination', 'Selecione uma conta de destino diferente da origem.');
+      } else if (!state.categories.some(c => c.name === val('category') && c.group === type)) {
+        setFieldError('category', 'Selecione uma categoria compatível com o tipo.');
+      }
+      /* Corrige Ponto 1: paidAt usa a data informada ou a própria data do lançamento (dt), não todayISO() cego */
+      const paidDate = status === 'Realizado' ? (dateValid(val('paidAt')) ? val('paidAt') : dt) : '';
+      const payload = {
+        id: kind === 'editTransaction' ? itemId : uid(),
+        date: dt,
+        description: desc,
+        kind: type,
+        category: type === 'Transferência' ? '' : val('category'),
+        amountCents: amount,
+        accountId: val('account'),
+        toAccountId: type === 'Transferência' ? val('destination') : '',
+        status,
+        paidAt: paidDate
+      };
+      if (kind === 'editTransaction') {
+        const idx = state.transactions.findIndex(x => x.id === itemId);
+        if (idx === -1) throw Error('Lançamento não encontrado.');
+        state.transactions[idx] = payload;
+      } else {
+        state.transactions.push(payload);
+      }
+    } else if (kind === 'goal' || kind === 'editGoal') {
+      const name = val('name').trim();
+      if (!name) setFieldError('name', 'Informe o nome da meta.');
+      let target, saved;
+      try { target = parseBRL(val('target')); } catch (e) { setFieldError('target', e.message); }
+      if (target <= 0) setFieldError('target', 'Valor da meta deve ser maior que zero.');
+      try { saved = parseBRL(val('saved')); } catch (e) { setFieldError('saved', e.message); }
+      if (saved < 0) setFieldError('saved', 'Valor reservado não pode ser negativo.');
+      if (!dateValid(val('due'))) setFieldError('due', 'Informe um prazo válido.');
+      if (kind === 'editGoal') {
+        const idx = state.goals.findIndex(x => x.id === itemId);
+        if (idx === -1) throw Error('Meta não encontrada.');
+        state.goals[idx] = { id: itemId, name, targetCents: target, savedCents: saved, dueDate: val('due') };
+      } else {
+        state.goals.push({ id: uid(), name, targetCents: target, savedCents: saved, dueDate: val('due') });
+      }
+    } else if (kind === 'account' || kind === 'editAccount') {
+      const name = val('name').trim();
+      if (!name) setFieldError('name', 'Informe o nome da conta.');
+      if (state.accounts.some(a => normalized(a.name) === normalized(name) && a.id !== itemId))
+        setFieldError('name', 'Já existe uma conta com este nome.');
+      let opening;
+      try { opening = parseBRL(val('opening')); } catch (e) { setFieldError('opening', e.message); }
+      if (kind === 'editAccount') {
+        const idx = state.accounts.findIndex(x => x.id === itemId);
+        if (idx === -1) throw Error('Conta não encontrada.');
+        state.accounts[idx] = { id: itemId, name, type: val('type'), openingCents: opening };
+      } else {
+        state.accounts.push({ id: uid(), name, type: val('type'), openingCents: opening });
+      }
+    } else if (kind === 'goalSaved') {
+      const g = state.goals.find(x => x.id === itemId);
+      if (!g) throw Error('Meta não encontrada.');
+      let sum;
+      try { sum = parseBRL(val('saved')); } catch (e) { setFieldError('saved', e.message); }
+      if (sum < 0) setFieldError('saved', 'Valor reservado negativo não permitido.');
+      g.savedCents = sum;
+    } else if (kind === 'editRecon') {
+      const rIdx = state.reconciliations.findIndex(x => x.id === itemId);
+      if (rIdx === -1) throw Error('Conciliação não encontrada.');
+      const account = val('account'), date = val('date');
+      if (!dateValid(date)) setFieldError('date', 'Data inválida.');
+      let amount;
+      try { amount = parseBRL(val('amount')); } catch (e) { setFieldError('amount', e.message); }
+      if (state.reconciliations.some(r => r.id !== itemId && r.accountId === account && r.date === date))
+        setFieldError('date', 'Já existe uma conciliação para esta conta nesta data.');
+      state.reconciliations[rIdx] = { id: itemId, accountId: account, date, statementCents: amount };
+    }
+    persistSuccess('Alterações salvas com sucesso.');
+    closeModal();
+  } catch (e) {
+    showToast(e.message, true);
+  }
+}
+
+/* Funções de exclusão com integridade referencial (Corrige Ponto 2) */
+function deleteTransaction(id) {
+  const idx = state.transactions.findIndex(x => x.id === id);
+  if (idx === -1) return false;
+  state.transactions.splice(idx, 1);
+  persistSuccess('Lançamento excluído.');
+  return true;
+}
+function deleteGoal(id) {
+  const idx = state.goals.findIndex(x => x.id === id);
+  if (idx === -1) return false;
+  state.goals.splice(idx, 1);
+  persistSuccess('Meta financeira excluída.');
+  return true;
+}
+function deleteReconciliation(id) {
+  const idx = state.reconciliations.findIndex(x => x.id === id);
+  if (idx === -1) return false;
+  state.reconciliations.splice(idx, 1);
+  persistSuccess('Conciliação excluída.');
+  return true;
+}
+function deleteAccount(id) {
+  if (state.accounts.length <= 1) {
+    showToast('Não é possível excluir a única conta cadastrada.', true);
+    return false;
+  }
+  const linkedTx = state.transactions.filter(t => t.accountId === id || t.toAccountId === id).length;
+  const linkedRec = state.reconciliations.filter(r => r.accountId === id).length;
+  if (linkedTx > 0 || linkedRec > 0) {
+    showToast(`Esta conta possui ${linkedTx} lançamento(s) e ${linkedRec} conciliação(ões) vinculados. Remova ou transfira-os antes de excluir.`, true);
+    return false;
+  }
+  const idx = state.accounts.findIndex(a => a.id === id);
+  if (idx === -1) return false;
+  state.accounts.splice(idx, 1);
+  persistSuccess('Conta excluída com sucesso.');
+  return true;
+}
+
+let assistantRowsSignature = '';
+const currentInstallSignature = () => JSON.stringify(['insTotal', 'insCount', 'insDate', 'insDesc', 'insCategory', 'insAccount'].map(id => $(id)?.value));
+
+function handleInstall() {
+  try {
+    if (!assistantRows.length || assistantRowsSignature !== currentInstallSignature())
+      throw Error('O formulário mudou. Visualize novamente antes de adicionar.');
+    state.transactions.push(...assistantRows);
+    const number = assistantRows.length;
+    persistSuccess(number + ' parcelas pendentes cadastradas.');
+    assistantRows = [];
+    assistantRowsSignature = '';
+  } catch (e) {
+    showToast(e.message, true);
+  }
+}
+
+function makePreview() {
+  try {
+    const total = parseBRL($('insTotal').value), n = Number($('insCount').value);
+    const due = $('insDate').value, desc = $('insDesc').value.trim();
+    const category = $('insCategory').value, account = $('insAccount').value;
+    assistantRows = generateInstallments(total, n, due, desc, category, account);
+    assistantRowsSignature = currentInstallSignature();
+    $('addInstall').disabled = false;
+    $('installPreview').className = 'summary-box';
+    $('installPreview').innerHTML = `
+      <div class="three-metrics">
+        ${metric('Total da compra', brl(total), 'Sem juros', '✓')}
+        ${metric('Parcelas', String(n), 'Vencimentos mensais', '▦')}
+        ${metric('Parcela média', brl(Math.round(total / n)), 'Ajuste exato de centavos', '≈')}
+      </div>
+      <div class="gap"></div>
+      <div class="tablewrap">
+        <table class="table">
+          <thead><tr><th>Parcela</th><th>Vencimento</th><th>Descrição</th><th class="num">Valor</th></tr></thead>
+          <tbody>${assistantRows.map((r, i) => `<tr><td>${i + 1} / ${n}</td><td>${fmtDay(r.date)}</td><td>${esc(r.description)}</td><td class="num">${brl(r.amountCents)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    assistantRows = [];
+    assistantRowsSignature = '';
+    $('addInstall').disabled = true;
+    showToast(e.message, true);
+  }
+}
+
+function dl(name, content, mime) {
+  let blob = new Blob([content], { type: mime }), url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* Delegação global de eventos */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button,[data-open],[data-view]');
+  if (!b) return;
+  if (b.id === 'confirmModalBtn' && typeof pendingConfirmAction === 'function') {
+    const fn = pendingConfirmAction;
+    closeModal();
+    fn();
+    return;
+  }
+  if (b.dataset.view) { go(b.dataset.view); return; }
+  if (b.dataset.open) { modal(b.dataset.open); return; }
+  if (b.dataset.openQa) { $('qaOpen').click(); return; }
+  if (b.dataset.close) { closeModal(); return; }
+  if (b.dataset.goalEdit) { modal('goalSaved', b.dataset.goalEdit); return; }
+  if (b.dataset.editGoalFull) { modal('editGoal', b.dataset.editGoalFull); return; }
+  if (b.dataset.delGoal) {
+    const g = state.goals.find(x => x.id === b.dataset.delGoal);
+    if (g) openConfirmModal('Excluir meta', `Deseja realmente excluir a meta "${g.name}"?`, () => deleteGoal(g.id));
+    return;
+  }
+  if (b.dataset.editTx) { modal('editTransaction', b.dataset.editTx); return; }
+  if (b.dataset.delTx) {
+    const t = state.transactions.find(x => x.id === b.dataset.delTx);
+    if (t) openConfirmModal('Excluir lançamento', `Deseja excluir o lançamento "${t.description}" (${brl(t.amountCents)})?`, () => deleteTransaction(t.id));
+    return;
+  }
+  if (b.dataset.editAccount) { modal('editAccount', b.dataset.editAccount); return; }
+  if (b.dataset.delAccount) {
+    const a = state.accounts.find(x => x.id === b.dataset.delAccount);
+    if (a) openConfirmModal('Excluir conta', `Deseja excluir a conta "${a.name}"?`, () => deleteAccount(a.id));
+    return;
+  }
+  if (b.dataset.editRecon) { modal('editRecon', b.dataset.editRecon); return; }
+  if (b.dataset.delRecon) {
+    const r = state.reconciliations.find(x => x.id === b.dataset.delRecon);
+    if (r) openConfirmModal('Excluir conferência', `Deseja excluir a conferência de ${fmtDay(r.date)}?`, () => deleteReconciliation(r.id));
+    return;
+  }
+  if (b.dataset.toggle) {
+    const t = state.transactions.find(x => x.id === b.dataset.toggle);
+    if (!t || t.status === 'Cancelado') return;
+    try {
+      /* Corrige Ponto 1: Ao quitar rapidamente, usa t.date (data do lançamento) em vez de todayISO() para não alterar o mês de competência */
+      t.status = t.status === 'Pendente' ? 'Realizado' : 'Pendente';
+      t.paidAt = t.status === 'Realizado' ? t.date : '';
+      persistSuccess(t.status === 'Realizado' ? `Pagamento confirmado em ${fmtDay(t.paidAt)}.` : 'Lançamento reaberto como pendente.');
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+});
+
+$('closeModal').addEventListener('click', closeModal);
+$('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) closeModal(); });
+document.addEventListener('keydown', modalKeyboard);
+
+document.addEventListener('submit', e => {
+  if (e.target.id === 'modalForm') {
+    e.preventDefault();
+    submitModal(e.target);
+  } else if (e.target.id === 'installForm') {
+    e.preventDefault();
+    handleInstall();
+  } else if (e.target.id === 'reconForm') {
+    e.preventDefault();
+    try {
+      const amount = parseBRL($('recAmount').value), account = $('recAccount').value, date = $('recDate').value;
+      if (!dateValid(date) || !state.accounts.some(a => a.id === account)) throw Error('Conta ou data inválida.');
+      if (state.reconciliations.some(r => r.accountId === account && r.date === date))
+        throw Error('Esta conta já possui uma conferência nessa data.');
+      state.reconciliations.push({ id: uid(), accountId: account, date, statementCents: amount });
+      persistSuccess('Conferência registrada.');
+    } catch (x) {
+      showToast(x.message, true);
+    }
+  }
+});
+
+document.addEventListener('click', e => {
+  const tab = e.target.closest?.('[data-config-tab]');
+  if (tab) { configTab = tab.dataset.configTab; renderAjustes(); return; }
+  const palette = e.target.closest?.('.palette-choice[data-palette]');
+  if (palette) {
+    const v = palette.dataset.palette;
+    if (!PREF_ENUMS.palette.includes(v)) return;
+    try { state.settings.palette = v; persistSuccess('Paleta de cores atualizada.'); }
+    catch(x) { showToast(x.message, true); }
+    return;
+  }
+  if (e.target.closest?.('[data-config-jump]')) { configTab = e.target.closest('[data-config-jump]').dataset.configJump; go('ajustes'); return; }
+  const id = e.target.id;
+  if (id === 'previewInstall') makePreview();
+  if (id === 'saveLimits') {
+    try {
+      const candidates = [...document.querySelectorAll('.limit-input')].map(el => {
+        const cents = parseBRL(el.value);
+        if (cents < 0) throw Error('Limite não pode ser negativo: ' + el.dataset.category);
+        return { name: el.dataset.category, cents };
+      });
+      for (const item of candidates) {
+        const c = state.categories.find(c => c.name === item.name && c.group === 'Despesa');
+        if (!c) throw Error('Categoria inválida: ' + item.name);
+      }
+      for (const item of candidates)
+        state.categories.find(c => c.name === item.name && c.group === 'Despesa').limitCents = item.cents;
+      persistSuccess('Limites atualizados em todas as abas.');
+    } catch (x) {
+      showToast(x.message, true);
+    }
+  }
+  if (id === 'exportAnnualCSV') exportAnnualReport();
+  if (id === 'exportTxCSV') exportTransactionReport();
+  if (id === 'printFinancialReport') {
+    document.body.classList.add('report-printing');
+    window.print();
+  }
+  if (id === 'exportJson') dl('clara-preview-dados.json', JSON.stringify(state, null, 2), 'application/json');
+  if (id === 'startEmpty') {
+    openConfirmModal('Criar base financeira vazia', 'A base atual será substituída por uma conta sem saldo e categorias padrão. Um backup JSON da base atual será baixado antes da mudança. Confirma?', () => {
+      const previous = state;
+      try {
+        dl('clara-backup-antes-de-iniciar-' + todayISO() + '.json', JSON.stringify(state, null, 2), 'application/json');
+        state = cleanData();
+        persistSuccess('Base vazia criada. Cadastre seus dados financeiros.');
+        go('painel');
+      } catch (err) { state = previous; showToast(err.message, true); }
+    });
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'searchTx') {
+    search = e.target.value;
+    renderMov();
+    const el = $('searchTx');
+    el.focus();
+    el.setSelectionRange(search.length, search.length);
+  }
+  if (e.target.closest?.('#installForm')) {
+    assistantRows = [];
+    assistantRowsSignature = '';
+    const button = $('addInstall');
+    if (button) button.disabled = true;
+    const preview = $('installPreview');
+    if (preview) {
+      preview.className = 'empty';
+      preview.innerHTML = '<span>Dados alterados. Clique novamente em "Visualizar".</span>';
+    }
+  }
+});
+
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'statusFilter') { statusFilter = e.target.value; renderMov(); }
+  if (id === 'accountFilter') { accountFilter = e.target.value; renderMov(); }
+  if (id === 'm_kind' || id === 'm_status') updateCategoryForKind();
+  if (id === 'm_date' && $('m_paidAt') && !$('m_paidAt').disabled) {
+    $('m_paidAt').value = e.target.value;
+  }
+  if (e.target.closest?.('#installForm')) {
+    assistantRows = [];
+    assistantRowsSignature = '';
+    const button = $('addInstall');
+    if (button) button.disabled = true;
+  }
+  if (id === 'cutoffInput') {
+    if (!dateValid(e.target.value)) {
+      e.target.value = state.settings.cutoff;
+      showToast('Data de corte inválida; mantida a anterior.', true);
+      return;
+    }
+    try { state.settings.cutoff = e.target.value; persistSuccess('Data de corte atualizada.'); }
+    catch (x) { showToast(x.message, true); }
+  }
+  if (id === 'themeSelect') {
+    try { state.settings.theme = e.target.value; persistSuccess('Tema atualizado.'); }
+    catch (x) { showToast(x.message, true); }
+  }
+  if (id === 'periodConfig') {
+    const v = e.target.value;
+    if (!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(v)) { showToast('Mês inválido.', true); renderAjustes(); return; }
+    try { state.settings.period = v; persistSuccess('Período financeiro atualizado.'); } catch(x) { showToast(x.message, true); }
+  }
+  if (e.target.matches('[data-pref]')) {
+    const key = e.target.dataset.pref;
+    if (!PREF_BOOL_KEYS.includes(key)) return;
+    try { state.settings[key] = e.target.checked; persistSuccess('Preferência atualizada.'); } catch(x) { showToast(x.message, true); }
+  }
+  if (e.target.matches('[data-pref-select]')) {
+    const key = e.target.dataset.prefSelect;
+    if (!PREF_ENUMS[key]) return;
+    const v = ['forecastMonths', 'budgetWarningPct'].includes(key) ? Number(e.target.value) : e.target.value;
+    if (!PREF_ENUMS[key].includes(v)) { showToast('Opção inválida.', true); renderAjustes(); return; }
+    try { state.settings[key] = v; persistSuccess('Preferência atualizada.'); } catch(x) { showToast(x.message, true); }
+  }
+});
+
+/* Corrige Ponto 6: Validar se o período é um mês válido AAAA-MM antes de salvar ou mostrar toast */
+$('period').addEventListener('change', e => {
+  const v = e.target.value;
+  if (!/^20\d{2}-(?:0[1-9]|1[0-2])$/.test(v || '')) {
+    e.target.value = state.settings.period;
+    showToast('Selecione um mês válido (AAAA-MM). Mantido o período atual.', true);
+    return;
+  }
+  if (v === state.settings.period) return;
+  try { state.settings.period = v; persistSuccess('Período atualizado para ' + monthLabel(v) + '.'); }
+  catch (x) { showToast(x.message, true); }
+});
+
+$('settingsBtn').addEventListener('click', () => { configTab = 'aparencia'; go('ajustes'); });
+
+$('quickAdd').addEventListener('click', () => modal('transaction'));
+
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'importJson') return;
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    if (file.size > 8_000_000) throw Error('Backup excede o limite de 8 MB para esta prévia.');
+    const incoming = parseImportedJSON(await file.text());
+    openConfirmModal('Restaurar backup JSON', 'O arquivo foi validado com sucesso. Deseja substituir a base atual pelos dados do backup?', () => {
+      state = incoming;
+      persistSuccess('Backup JSON validado e restaurado.');
+    });
+  } catch (x) {
+    showToast(x.message, true);
+  } finally {
+    e.target.value = '';
+  }
+});
+
+render();
+
+/* Suíte de testes automatizados ClaraQA: 75 originais + 15 correções RC3.2 + 10 da RC3.3 = 100 testes */
+let qaLastRun = [];
+function qaAssert(condition, message) { if (!condition) throw Error(message || 'Falhou a condição esperada.'); }
+function qaFixture(run) {
+  const previous = state;
+  state = {
+    version: 2,
+    accounts: [{ id: 'qa1', name: 'Conta QA', type: 'Conta', openingCents: 100000 }, { id: 'qa2', name: 'Reserva QA', type: 'Reserva', openingCents: 20000 }],
+    categories: [{ name: 'Salário', group: 'Receita', limitCents: 0 }, { name: 'Alimentação', group: 'Despesa', limitCents: 40000 }],
+    goals: [{ id: 'qgoal', name: 'Fundo QA', targetCents: 100000, savedCents: 25000, dueDate: '2027-12-01' }],
+    transactions: [],
+    reconciliations: [],
+    settings: { period: '2026-10', cutoff: '2026-10-31', theme: 'dark' }
+  };
+  try { return run(); } finally { state = previous; }
+}
+const qaTx = (id, kind, status, amountCents, date = '2026-10-10', paidAt = '') => ({
+  id, kind, status, amountCents, date, paidAt, description: id,
+  category: kind === 'Receita' ? 'Salário' : 'Alimentação', accountId: 'qa1', toAccountId: '', note: ''
+});
+
+const qaSpecs = [
+  ['QA-001', 'HTML com idioma português', () => qaAssert(document.documentElement.lang === 'pt-BR')],
+  ['QA-002', 'Seis módulos presentes', () => qaAssert(['painel', 'mov', 'plan', 'ajustes', 'assist', 'conf'].every(id => !!$('view-' + id)))],
+  ['QA-003', 'Pacote inicial não inclui movimentações fictícias', () => qaAssert(SOURCE_DATA.transactions.length === 0)],
+  ['QA-004', 'Nenhuma conta fictícia é embutida', () => qaAssert(SOURCE_DATA.accounts.length === 0)],
+  ['QA-005', 'Dados de referência contêm categorias', () => qaAssert(SOURCE_DATA.categories.length >= 10)],
+  ['QA-006', 'Layout sem rolagem horizontal no viewport atual', () => qaAssert(document.documentElement.scrollWidth <= window.innerWidth + 5, 'Rolagem horizontal: ' + document.documentElement.scrollWidth + '/' + innerWidth)],
+  ['QA-007', 'Conversão decimal brasileira para centavos', () => qaAssert(parseBRL('1.234,56') === 123456)],
+  ['QA-008', 'Conversão de número inteiro em reais', () => qaAssert(parseBRL('42') === 4200)],
+  ['QA-009', 'Arredondamento de centavo', () => qaAssert(parseBRL('0,01') === 1)],
+  ['QA-010', 'Bloqueio de entrada monetária vazia', () => { let caught = false; try { parseBRL(''); } catch { caught = true; } qaAssert(caught); }],
+  ['QA-011', 'Bloqueio de valor não numérico', () => { let caught = false; try { parseBRL('não é número'); } catch { caught = true; } qaAssert(caught); }],
+  ['QA-012', 'Formatação BRL por centavos', () => qaFixture(() => qaAssert(brl(123456).includes('1.234,56')))],
+  ['QA-013', 'Escape de HTML em descrições', () => qaAssert(esc('<img onerror="x">').includes('&lt;img') && !esc('<img>').includes('<img>'))],
+  ['QA-014', 'Acréscimo de mês mantém último dia possível', () => qaAssert(plusMonth('2026-01-31', 1) === '2026-02-28')],
+  ['QA-015', 'Bissexto no parcelamento', () => qaAssert(plusMonth('2028-01-31', 1) === '2028-02-29')],
+  ['QA-016', 'Virada de ano por meses', () => qaAssert(plusMonth('2026-12-31', 2) === '2027-02-28')],
+  ['QA-017', 'Soma e subtração de dias no calendário', () => qaAssert(addDays('2026-12-31', 1) === '2027-01-01')],
+  ['QA-018', 'Saldo inicial em centavos', () => qaFixture(() => qaAssert(totalBalance() === 120000))],
+  ['QA-019', 'Receita realizada aumenta conta', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Realizado', 40000, '2026-10-15', '2026-10-15')); qaAssert(accountBalance('qa1') === 140000); })],
+  ['QA-020', 'Despesa realizada reduz conta', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Realizado', 20000, '2026-10-15', '2026-10-15')); qaAssert(accountBalance('qa1') === 80000); })],
+  ['QA-021', 'Despesa pendente não reduz conta', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Pendente', 20000)); qaAssert(accountBalance('qa1') === 100000); })],
+  ['QA-022', 'Movimentação cancelada não reduz saldo', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Cancelado', 20000)); qaAssert(accountBalance('qa1') === 100000); })],
+  ['QA-023', 'Transferência interna é neutra no consolidado', () => qaFixture(() => { state.transactions.push({ ...qaTx('t', 'Transferência', 'Realizado', 20000, '2026-10-18', '2026-10-18'), toAccountId: 'qa2' }); qaAssert(totalBalance() === 120000 && accountBalance('qa1') === 80000 && accountBalance('qa2') === 40000); })],
+  ['QA-024', 'Abertura e fechamento de período corretos', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Realizado', 40000, '2026-10-15', '2026-10-15'), qaTx('d', 'Despesa', 'Realizado', 20000, '2026-10-16', '2026-10-16')); qaAssert(stat('2026-10').net === 20000); })],
+  ['QA-025', 'Receita pendente contabilizada a receber', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Pendente', 15000)); qaAssert(stat('2026-10').toReceive === 15000); })],
+  ['QA-026', 'Despesa pendente contabilizada a pagar', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Pendente', 12000)); qaAssert(stat('2026-10').toPay === 12000); })],
+  ['QA-027', 'Data efetiva usa pagamento realizado', () => qaFixture(() => { const tx = qaTx('r', 'Receita', 'Realizado', 10000, '2026-09-30', '2026-10-01'); qaAssert(inMonth(tx, '2026-10') && !inMonth(tx, '2026-09')); })],
+  ['QA-028', 'Reserva reflete somente contas Reserva', () => qaFixture(() => qaAssert(reserve() === 20000))],
+  ['QA-029', 'Pendências dos próximos 30 dias', () => qaFixture(() => { state.transactions.push(qaTx('p', 'Despesa', 'Pendente', 5000, '2026-11-05'), qaTx('far', 'Despesa', 'Pendente', 9000, '2027-02-01')); qaAssert(future30() === 5000); })],
+  ['QA-030', 'Pendência vencida permanece na previsão a pagar', () => qaFixture(() => { state.transactions.push(qaTx('due', 'Despesa', 'Pendente', 5000, '2026-10-05')); qaAssert(future30() === 5000); })],
+  ['QA-031', 'Orçamento soma realizados e pendentes', () => qaFixture(() => { state.transactions.push(qaTx('one', 'Despesa', 'Realizado', 10000, '2026-10-05', '2026-10-05'), qaTx('two', 'Despesa', 'Pendente', 5000, '2026-10-10')); const b = budgetRows('2026-10').find(x => x.name === 'Alimentação'); qaAssert(b.done === 10000 && b.pending === 5000 && b.planned === 15000); })],
+  ['QA-032', 'Orçamento calcula proporção corretamente', () => qaFixture(() => { state.transactions.push(qaTx('one', 'Despesa', 'Realizado', 10000, '2026-10-05', '2026-10-05')); qaAssert(budgetRows('2026-10').find(x => x.name === 'Alimentação').ratio === .25); })],
+  ['QA-033', 'Projeção mensal com quatro meses', () => qaFixture(() => qaAssert(forecast(4).length === 4))],
+  ['QA-034', 'Projeção mensal atravessa dezembro/janeiro', () => qaFixture(() => { state.settings.cutoff = '2026-12-15'; qaAssert(forecast(3).map(x => x.p).join(',') === '2026-12,2027-01,2027-02'); })],
+  ['QA-035', 'Recebimentos futuros entram na projeção', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Pendente', 10000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 130000); })],
+  ['QA-036', 'Despesas futuras são descontadas da projeção', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Pendente', 15000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 105000); })],
+  ['QA-037', 'Parcelamento preserva centavos do total', () => qaFixture(() => { const arr = generateInstallments(10001, 3, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(arr.reduce((s, t) => s + t.amountCents, 0) === 10001 && arr.length === 3); })],
+  ['QA-038', 'Parcelas têm IDs únicos', () => qaFixture(() => { const arr = generateInstallments(70000, 7, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(new Set(arr.map(x => x.id)).size === 7); })],
+  ['QA-039', 'Parcelamento com vencimentos mensais', () => qaFixture(() => { const arr = generateInstallments(10000, 3, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(arr[1].date === '2026-11-30' && arr[2].date === '2026-12-31'); })],
+  ['QA-040', 'Parcelas geradas ficam pendentes', () => qaFixture(() => qaAssert(generateInstallments(10000, 3, '2026-10-31', 'QA', 'Alimentação', 'qa1').every(x => x.status === 'Pendente')))],
+  ['QA-041', 'Rejeição de parcelamento menor que duas parcelas', () => qaFixture(() => { let ok = false; try { generateInstallments(10000, 1, '2026-10-31', 'QA', 'Alimentação', 'qa1'); } catch { ok = true; } qaAssert(ok); })],
+  ['QA-042', 'Rejeição de parcelamento acima de 60', () => qaFixture(() => { let ok = false; try { generateInstallments(10000, 61, '2026-10-31', 'QA', 'Alimentação', 'qa1'); } catch { ok = true; } qaAssert(ok); })],
+  ['QA-043', 'Duplicidade detectada na auditoria', () => qaFixture(() => { state.transactions.push(qaTx('dup', 'Despesa', 'Pendente', 800, '2026-10-01'), { ...qaTx('dup', 'Despesa', 'Pendente', 800, '2026-10-01'), id: 'dup2', description: 'dup' }); qaAssert(audits().some(x => x.type === 'Coincidência')); })],
+  ['QA-044', 'Pendência vencida é sinalizada', () => qaFixture(() => { state.transactions.push(qaTx('old', 'Despesa', 'Pendente', 300, '2026-09-01')); qaAssert(audits().some(x => x.type === 'Vencido')); })],
+  ['QA-045', 'Pagamento futuro confirmado é sinalizado', () => qaFixture(() => { state.transactions.push(qaTx('future', 'Despesa', 'Realizado', 300, '2026-11-15', '2026-11-15')); qaAssert(audits().some(x => x.type === 'Data futura')); })],
+  ['QA-046', 'Dados fictícios não incluem credenciais bancárias', () => qaAssert(!JSON.stringify(SOURCE_DATA).match(/access_token|client_secret|password.*:/i))],
+  ['QA-047', 'A interface oferece exportação JSON', () => qaAssert(typeof dl === 'function' && Array.isArray(state.transactions))],
+  ['QA-048', 'Há áreas para transações, orçamentos e metas', () => qaAssert(typeof renderMov === 'function' && typeof renderPlan === 'function' && typeof renderAssist === 'function')],
+  ['QA-049', 'Barra de navegação existe no layout móvel', () => qaAssert(!!$('mobileNav') && !!$('sideNav'))],
+  ['QA-050', 'O diálogo de lançamentos está disponível', () => qaAssert(!!$('modalBg') && typeof modal === 'function')],
+  ['QA-051', 'As categorias têm limites inteiros em centavos', () => qaAssert(SOURCE_DATA.categories.every(c => Number.isSafeInteger(c.limitCents)))],
+  ['QA-052', 'As transações têm valores inteiros em centavos', () => qaAssert(SOURCE_DATA.transactions.every(t => Number.isSafeInteger(t.amountCents)))],
+  ['QA-053', 'Número 1.234 significa mil duzentos e trinta e quatro reais', () => qaAssert(parseBRL('1.234') === 123400)],
+  ['QA-054', 'Rejeita decimal com mais de 2 casas', () => { let b = false; try { parseBRL('1,005'); } catch { b = true; } qaAssert(b); }],
+  ['QA-055', 'Bloqueia hexadecimal, notação científica e formato estrangeiro', () => { for (const v of ['0x10', '1e3', '1,234.56']) { let b = false; try { parseBRL(v); } catch { b = true; } qaAssert(b); } }],
+  ['QA-056', 'Saldo de reservas usa data de corte', () => qaFixture(() => { state.transactions.push(qaTx('f', 'Receita', 'Realizado', 25000, '2026-11-05', '2026-11-05')); qaAssert(reserve() === 20000); })],
+  ['QA-057', 'Projeção inclui confirmado após corte', () => qaFixture(() => { state.transactions.push(qaTx('after', 'Receita', 'Realizado', 9000, '2026-11-10', '2026-11-10')); qaAssert(forecast(2)[1].balance === 129000); })],
+  ['QA-058', 'Projeção inclui pendências vencidas no primeiro mês', () => qaFixture(() => { state.transactions.push(qaTx('past', 'Despesa', 'Pendente', 4000, '2026-10-05')); qaAssert(forecast(1)[0].balance === 116000); })],
+  ['QA-059', 'Importação inválida rejeita conta e lançamento ausentes', () => { let b = false; try { validateData({ accounts: [], categories: [], goals: [], transactions: [{}], reconciliations: [], settings: { period: '2026-10', cutoff: '2026-10-31', theme: 'dark' } }); } catch { b = true; } qaAssert(b); }],
+  ['QA-060', 'Rejeita ID contendo HTML perigoso', () => qaFixture(() => { state.accounts[0].id = '" onfocus="x(1)'; let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-061', 'Rejeita data impossível em lançamento', () => qaFixture(() => { state.transactions.push(qaTx('bad', 'Despesa', 'Pendente', 500, '2026-02-30')); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-062', 'Rejeita valor do lançamento em string', () => qaFixture(() => { state.transactions.push({ ...qaTx('bad', 'Despesa', 'Pendente', 500), amountCents: '500' }); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-063', 'Rejeita categoria incompatível com receita/despesa', () => qaFixture(() => { state.transactions.push({ ...qaTx('bad', 'Despesa', 'Pendente', 500), category: 'Salário' }); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-064', 'Rejeita contas duplicadas no JSON', () => qaFixture(() => { state.accounts.push({ ...state.accounts[0] }); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-065', 'Parcelas distribuem centavos sem parcela zero', () => qaFixture(() => { const r = generateInstallments(10000, 7, '2026-10-31', 'Teste', 'Alimentação', 'qa1'); qaAssert(r.every(t => t.amountCents > 0) && Math.max(...r.map(t => t.amountCents)) - Math.min(...r.map(t => t.amountCents)) <= 1); })],
+  ['QA-066', 'Parcelas de R$ 0,59 não aceitam 60 vezes', () => qaFixture(() => { let b = false; try { generateInstallments(59, 60, '2026-10-31', 'Teste', 'Alimentação', 'qa1'); } catch { b = true; } qaAssert(b); })],
+  ['QA-067', 'Saldo na data de corte ignora lançamentos futuros realizados', () => qaFixture(() => { state.transactions.push(qaTx('after', 'Receita', 'Realizado', 9000, '2026-11-05', '2026-11-05')); qaAssert(totalBalance(state.settings.cutoff) === 120000); })],
+  ['QA-068', 'Filtro de conta considera destino da transferência', () => qaFixture(() => { state.transactions.push({ ...qaTx('t', 'Transferência', 'Realizado', 5000, '2026-10-12', '2026-10-12'), toAccountId: 'qa2' }); qaAssert(state.transactions.some(t => t.kind === 'Transferência' && t.toAccountId === 'qa2')); })],
+  ['QA-069', 'Busca normaliza palavras com acento', () => qaAssert(normalized('Salário') === normalized('salario'))],
+  ['QA-070', 'Modal escapa aspas em valores de atributo', () => qaAssert(esc('" onfocus="x(1)').includes('&quot;'))],
+  ['QA-071', 'Backend do revisor não depende de recursos externos', () => qaAssert(!document.querySelector('script[src^="http"],link[href^="http"]'))],
+  ['QA-072', 'Backup de demonstração válido e íntegro', () => qaAssert(validateData(fresh()) === true)],
+  ['QA-073', 'Status pago exige data de pagamento válida', () => qaFixture(() => { state.transactions.push({ ...qaTx('bad', 'Despesa', 'Realizado', 200), paidAt: '2026-02-30' }); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-074', 'Pendente não pode possuir data de pagamento', () => qaFixture(() => { state.transactions.push({ ...qaTx('bad', 'Despesa', 'Pendente', 200), paidAt: '2026-10-20' }); let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  ['QA-075', 'Não aceita duas conciliações na mesma conta e data', () => qaFixture(() => { state.reconciliations = [{ id: 'r1', accountId: 'qa1', date: '2026-10-10', statementCents: 10000 }, { id: 'r2', accountId: 'qa1', date: '2026-10-10', statementCents: 10000 }]; let b = false; try { validateData(state); } catch { b = true; } qaAssert(b); })],
+  /* Novos testes de correções de erros e interface (QA-076 a QA-090) */
+  ['QA-076', 'Quitar lançamento preserva a data de competência (paidAt === date)', () => qaFixture(() => {
+    const tx = qaTx('q1', 'Despesa', 'Pendente', 12000, '2026-10-10', '');
+    state.transactions.push(tx);
+    tx.status = 'Realizado';
+    tx.paidAt = tx.date;
+    qaAssert(inMonth(tx, '2026-10') && totalBalance('2026-10-31') === 108000 && !audits().some(a => a.type === 'Data futura'));
+  })],
+  ['QA-077', 'Modal de edição de lançamento carrega valores no DOM', () => qaFixture(() => {
+    state.transactions.push(qaTx('edit1', 'Despesa', 'Pendente', 15500, '2026-10-12', ''));
+    modal('editTransaction', 'edit1');
+    const ok = $('m_description')?.value === 'edit1' && $('m_amount')?.value === '155,00' && $('m_date')?.value === '2026-10-12';
+    closeModal();
+    qaAssert(ok);
+  })],
+  ['QA-078', 'Exclusão de lançamento remove item e recalcula saldo', () => qaFixture(() => {
+    state.transactions.push(qaTx('del1', 'Despesa', 'Realizado', 20000, '2026-10-12', '2026-10-12'));
+    qaAssert(accountBalance('qa1') === 80000);
+    state.transactions.splice(0, 1);
+    qaAssert(accountBalance('qa1') === 100000);
+  })],
+  ['QA-079', 'Proteção contra exclusão de conta com lançamentos vinculados', () => qaFixture(() => {
+    state.transactions.push(qaTx('l1', 'Despesa', 'Pendente', 5000, '2026-10-10'));
+    const canDelLinked = deleteAccount('qa1');
+    qaAssert(canDelLinked === false && state.accounts.length === 2);
+  })],
+  ['QA-080', 'Edição de meta financeira via modal preenche campos', () => qaFixture(() => {
+    modal('editGoal', 'qgoal');
+    const ok = $('m_name')?.value === 'Fundo QA' && $('m_target')?.value === '1000,00';
+    closeModal();
+    qaAssert(ok);
+  })],
+  ['QA-081', 'Edição de conciliação bancária via modal preenche campos', () => qaFixture(() => {
+    state.reconciliations.push({ id: 'rec1', accountId: 'qa1', date: '2026-10-20', statementCents: 95000 });
+    modal('editRecon', 'rec1');
+    const ok = $('m_amount')?.value === '950,00' && $('m_date')?.value === '2026-10-20';
+    closeModal();
+    qaAssert(ok);
+  })],
+  ['QA-082', 'Fatura aberta de cartão calculada separadamente', () => qaFixture(() => {
+    state.accounts.push({ id: 'card1', name: 'Cartão QA', type: 'Cartão', openingCents: 0 });
+    state.transactions.push({ ...qaTx('c1', 'Despesa', 'Pendente', 18000, '2026-10-18'), accountId: 'card1' });
+    qaAssert(accountPendingCard('card1') === 18000 && totalCardOpenInvoice() === 18000);
+  })],
+  ['QA-083', 'Renderização e filtro textual da tabela de Movimentações no DOM', () => qaFixture(() => {
+    state.transactions.push(qaTx('Padaria Central', 'Despesa', 'Pendente', 3500, '2026-10-11'), qaTx('Salário Outubro', 'Receita', 'Realizado', 300000, '2026-10-05', '2026-10-05'));
+    search = 'Padaria';
+    renderMov();
+    const html = $('view-mov').innerHTML;
+    qaAssert(html.includes('Padaria Central') && !html.includes('Salário Outubro'));
+  })],
+  ['QA-084', 'Campo de período ignora valor vazio mantendo mês válido', () => qaFixture(() => {
+    $('period').value = '';
+    $('period').dispatchEvent(new Event('change'));
+    qaAssert(state.settings.period === '2026-10' && $('period').value === '2026-10');
+  })],
+  ['QA-085', 'Distinção entre armazenamento indisponível e corrupção de dados', () => qaAssert(typeof safeStorageGet === 'function' && typeof safeStorageSet === 'function' && !!$('storageNotice'))],
+  ['QA-086', 'Contraste WCAG AA configurado no tema claro', () => {
+    const prev = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = 'light';
+    const styles = getComputedStyle(document.documentElement);
+    const teal = styles.getPropertyValue('--teal').trim();
+    const orange = styles.getPropertyValue('--orange').trim();
+    const red = styles.getPropertyValue('--red').trim();
+    document.documentElement.dataset.theme = prev;
+    qaAssert(/^#[0-9a-f]{6}$/i.test(teal) && /^#[0-9a-f]{6}$/i.test(orange) && /^#[0-9a-f]{6}$/i.test(red));
+  }],
+  ['QA-087', 'Cores fixas determinísticas por categoria no gráfico', () => qaAssert(categoryColor('Moradia') === '#4cdbcd' && categoryColor('Alimentação') === '#858ff4' && categoryColor('Transporte') === '#f5aa72')],
+  ['QA-088', 'Barras de orçamento por faixa configurável', () => qaAssert(budgetSemanticClass(0.5) === '' && budgetSemanticClass(pref('budgetWarningPct') / 100) === 'warn' && budgetSemanticClass(1.1) === 'over')],
+  ['QA-089', 'Hierarquia em 3 níveis e perguntas do usuário no Painel', () => qaFixture(() => {
+    renderPainel();
+    const h = $('view-painel').innerHTML;
+    qaAssert(h.includes('Como estou este mês?') && h.includes('Onde estou gastando?') && h.includes('O que vem por aí?') && h.includes('sparkline-svg'));
+  })],
+  ['QA-090', 'Ícones SVG inline presentes na navegação', () => qaAssert(!!document.querySelector('#sideNav svg.svg-ico') && !!document.querySelector('#mobileNav svg.svg-ico'))]
+];
+
+
+/* RC3.3 — casos adicionais: relatórios, importações CSV seguras, tendência e base vazia. */
+qaSpecs.push(
+  ['QA-091', 'Pacote distribuído não carrega dados de demonstração', () => qaAssert(SOURCE_DATA.transactions.length === 0 && SOURCE_DATA.goals.length === 0)],
+  ['QA-092', 'Base vazia passa na validação de esquema', () => qaAssert(validateData(cleanData()))],
+  ['QA-093', 'Base vazia não contém demonstração, metas ou conciliações', () => { const c = cleanData(); qaAssert(!c.transactions.length && !c.goals.length && !c.reconciliations.length && c.accounts.length === 1); }],
+  ['QA-094', 'CSV neutraliza fórmula maliciosa em texto', () => qaAssert(csvCell('=SOMA(1;2)').includes("'=SOMA(1;2)") && csvCell('+HYPERLINK()').includes("'+HYPERLINK"))],
+  ['QA-095', 'CSV escapa aspas e separador de ponto e vírgula', () => qaAssert(csvCell('Teste; "OK"') === '"Teste; ""OK"""')],
+  ['QA-096', 'Relatório anual usa doze meses e soma receitas e despesas', () => qaFixture(() => { state.transactions.push(qaTx('r','Receita','Realizado',10000,'2026-10-20','2026-10-20'), qaTx('d','Despesa','Realizado',3500,'2026-10-20','2026-10-20')); const r = yearReport('2026'); qaAssert(r.months.length === 12 && r.total.net === 6500 && r.total.expense === 3500); })],
+  ['QA-097', 'Despesas pendentes não são somadas às despesas realizadas', () => qaFixture(() => { state.transactions.push(qaTx('d','Despesa','Pendente',8500,'2026-10-20')); const r = yearReport('2026'); qaAssert(r.total.expense === 0 && r.total.toPay === 8500); })],
+  ['QA-098', 'Sparkline apresenta doze períodos e tendência conforme valor', () => qaFixture(() => { state.transactions.push(qaTx('r','Receita','Realizado',25000,'2026-10-20','2026-10-20')); const p = sparklineData(); qaAssert(p.balances.length === 12 && p.trend === 'Saldo em alta' && p.delta === 25000); })],
+  ['QA-099', 'Relatórios e três ações integrados em Conferências', () => qaFixture(() => { renderConf(); qaAssert(!!$('claraReportArea') && !!$('exportAnnualCSV') && !!$('exportTxCSV') && !!$('printFinancialReport')); })],
+  ['QA-100', 'Rótulos compactos preservam seis módulos em dispositivos móveis', () => qaAssert(Object.keys(MOBILE_NAV_LABELS).length === 6 && MOBILE_NAV_LABELS.conf === 'Conferir' && !!document.querySelector('#mobileNav [aria-label="Conferências"]'))]
+);
+
+/* RC3.5 — controles centralizados, compatibilidade e personalização responsiva. */
+qaSpecs.push(
+  ['QA-101', 'Módulo Configurações ocupa o antigo Ajustes sem duplicar navegação', () => qaAssert(NAV.some(x => x[0] === 'ajustes' && x[2] === 'Configurações') && NAV.length === 6)],
+  ['QA-102', 'Paletas violeta, azul e petróleo disponíveis', () => qaAssert(PREF_ENUMS.palette.length === 3 && PREF_ENUMS.palette.includes('blue') && PREF_DEFAULTS.palette === 'violet')],
+  ['QA-103', 'Preferências antigas são complementadas sem alterar valores', () => {const old={settings:{period:'2026-10',cutoff:'2026-10-31',theme:'dark'}}; withDefaultPreferences(old); qaAssert(old.settings.theme === 'dark' && old.settings.palette==='violet');}],
+  ['QA-104', 'Preferência de privacidade mascara exibição mas não altera centavos', () => qaFixture(() => {state.settings.hideValues=true; qaAssert(brl(10000)==='R$ ••••' && moneyValid(10000));})],
+  ['QA-105', 'Preferência de privacidade é exportável e válida', () => qaFixture(() => {state.settings.hideValues=true; qaAssert(validateData(state));})],
+  ['QA-106', 'Rejeita paleta inválida em backup', () => qaFixture(() => {state.settings.palette='inexistente'; let ok=false;try{validateData(state)}catch{ok=true};qaAssert(ok);})],
+  ['QA-107', 'Horizonte financeiro aceita 3, 4, 6 e 12 meses', () => qaAssert(PREF_ENUMS.forecastMonths.every(n=>forecast(n).length===n))],
+  ['QA-108', 'Cinco seções de Configurações disponíveis', () => qaAssert(CONFIG_TABS.length===5 && CONFIG_TABS.some(t=>t[0]==='dados'))],
+  ['QA-109', 'Contas e categorias continuam acessíveis em Configurações', () => qaFixture(() => {const prev=configTab;configTab='contas';try{renderAjustes();qaAssert(!!$('saveLimits')&&!!document.querySelector('[data-open=account]'));}finally{configTab=prev;}})],
+  ['QA-110', 'Configurações de privacidade, exportação e manutenção disponíveis', () => qaFixture(() => {const prev=configTab;configTab='dados';try{renderAjustes();qaAssert(!!$('exportJson')&&!!$('importJson')&&!!$('startEmpty'));}finally{configTab=prev;}})]
+);
+
+qaSpecs.push(
+  ['QA-111', 'Configurações é o último módulo', () => qaAssert(NAV.at(-1)?.[0] === 'ajustes')],
+  ['QA-112', 'Dados de primeira instalação sem registros', () => { const c = fresh(); qaAssert(c.transactions.length === 0 && c.goals.length === 0 && c.reconciliations.length === 0); }],
+  ['QA-113', 'Categorias iniciais não contêm orçamento fictício', () => qaAssert(fresh().categories.every(c => c.limitCents === 0))],
+  ['QA-114', 'Menu flutuante acessível instalado', () => qaAssert(!!$('mobileFab') && !!$('mobileMenu'))],
+  ['QA-115', 'Menu flutuante inicia fechado', () => qaAssert($('mobileFab').getAttribute('aria-expanded') === 'false')],
+  ['QA-116', 'Ativação do menu sincroniza ARIA', () => { toggleMobileMenu(true); qaAssert($('mobileFab').getAttribute('aria-expanded') === 'true' && $('mobileMenu').getAttribute('aria-hidden') === 'false'); toggleMobileMenu(false); }],
+  ['QA-117', 'Os seis destinos estão no menu flutuante', () => qaAssert($('mobileMenuGrid').querySelectorAll('[data-view]').length === NAV.length)],
+  ['QA-118', 'Configurações é último destino flutuante', () => qaAssert($('mobileMenuGrid').lastElementChild.dataset.view === 'ajustes')],
+  ['QA-119', 'Conta padrão começa sem saldo', () => qaAssert(fresh().accounts.length === 1 && fresh().accounts[0].openingCents === 0)],
+  ['QA-120', 'Não existem exemplos financeiros embutidos', () => qaAssert(!SOURCE_DATA.transactions.length && !SOURCE_DATA.accounts.length && !SOURCE_DATA.goals.length)]
+);
+
+function qaRun() {
+  const results = [];
+  const saved = state, previous = active, previousSearch = search, previousStatus = statusFilter, previousAccount = accountFilter;
+  const runAt = new Date().toISOString();
+  try {
+    for (const [id, title, fn] of qaSpecs) {
+      try {
+        fn();
+        results.push({ id, title, status: 'APROVADO', message: '' });
+      } catch (e) {
+        results.push({ id, title, status: 'FALHOU', message: String(e.message || e) });
+      }
+    }
+  } finally {
+    state = saved;
+    active = previous;
+    search = previousSearch;
+    statusFilter = previousStatus;
+    accountFilter = previousAccount;
+    render();
+  }
+  qaLastRun = results;
+  const passed = results.filter(x => x.status === 'APROVADO').length;
+  $('qaSummary').textContent = passed + ' / ' + results.length + ' verificações aprovadas';
+  $('qaSummary').style.color = passed === results.length ? 'var(--green)' : 'var(--red)';
+  $('qaMeta').textContent = 'Data UTC: ' + runAt + ' | Viewport: ' + innerWidth + '×' + innerHeight + ' | Navegador: ' + navigator.userAgent;
+  $('qaResults').innerHTML = results.map(x => '<div class="qa-result" role="listitem"><span>' + esc(x.id + ' · ' + x.title) + (x.message ? '<small class="muted"> — ' + esc(x.message) + '</small>' : '') + '</span><strong class="' + (x.status === 'APROVADO' ? 'qa-pass' : 'qa-fail') + '">' + x.status + '</strong></div>').join('');
+  window.ClaraQA.lastRun = {
+    generatedAt: runAt,
+    app: 'Clara Finanças RC3.5 — Mobills & Configurações',
+    viewport: { width: innerWidth, height: innerHeight },
+    userAgent: navigator.userAgent,
+    passed,
+    total: results.length,
+    results
+  };
+  return window.ClaraQA.lastRun;
+}
+
+function qaMarkdown() {
+  const run = window.ClaraQA.lastRun || qaRun();
+  return '# Validação do HTML Clara Finanças RC3.5\n\n**Data UTC:** ' + run.generatedAt + '  \n**Viewport:** ' + run.viewport.width + '×' + run.viewport.height + '  \n**Aprovados:** ' + run.passed + '/' + run.total + '\n\n> Testes do HTML standalone; incluem validação de regras financeiras, CRUD, contraste WCAG AA e fluxos de interface.\n\n| ID | Caso | Resultado | Observação |\n|---|---|---|---|\n' + run.results.map(x => '| ' + x.id + ' | ' + x.title + ' | ' + x.status + ' | ' + String(x.message || '—').replace(/\|/g, '/') + ' |').join('\n') + '\n';
+}
+
+function qaDownload(name, content, type) { dl(name, content, type); }
+$('qaOpen').addEventListener('click', () => {
+  $('qaCover').classList.add('open');
+  $('qaCover').setAttribute('aria-hidden', 'false');
+  $('qaClose').focus();
+});
+function qaClose() {
+  $('qaCover').classList.remove('open');
+  $('qaCover').setAttribute('aria-hidden', 'true');
+  $('qaOpen').focus();
+}
+$('qaClose').addEventListener('click', qaClose);
+$('qaCover').addEventListener('click', e => { if (e.target === $('qaCover')) qaClose(); });
+$('qaRun').addEventListener('click', () => qaRun());
+$('qaDownloadMd').addEventListener('click', () => qaDownload('Clara_RC3_4_Resultado_Autotestes.md', qaMarkdown(), 'text/markdown;charset=utf-8'));
+$('qaDownloadJson').addEventListener('click', () => qaDownload('Clara_RC3_4_Evidencias_Autotestes.json', JSON.stringify(window.ClaraQA.lastRun || qaRun(), null, 2), 'application/json'));
+$('qaCopy').addEventListener('click', async () => {
+  const txt = qaMarkdown();
+  try {
+    await navigator.clipboard.writeText(txt);
+    showToast('Relatório copiado para a área de transferência.');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast('Relatório copiado para a área de transferência.');
+    } catch {
+      showToast('Cópia direta indisponível. Use "Relatório .MD".', true);
+    } finally {
+      ta.remove();
+    }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('qaCover').classList.contains('open')) qaClose(); });
+window.ClaraQA = {
+  run: qaRun,
+  lastRun: null,
+  markdown: qaMarkdown,
+  tests: qaSpecs.map(([id, title]) => ({ id, title })),
+  scope: 'standalone'
+};
+// Inicialização do serviço offline somente quando publicado via HTTPS/localhost.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+      function offerUpdate() {
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          // Atualiza apenas com autorização: não modifica nem limpa dados financeiros.
+          if (window.confirm('Uma atualização do Clara está disponível. Aplicar agora?')) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+        }
+      }
+      if (reg.waiting) offerUpdate();
+      reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        worker?.addEventListener('statechange', () => { if (worker.state === 'installed') offerUpdate(); });
+      });
+      let updating = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (!updating) { updating = true; location.reload(); } });
+    }).catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
