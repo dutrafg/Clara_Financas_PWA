@@ -7,8 +7,17 @@ from playwright.async_api import async_playwright
 
 BASE = 'http://127.0.0.1:8765/'
 
+async def unlock(page):
+    if await page.locator('#securityCover').is_visible():
+        await page.locator('#securityPassword').fill('Clara-QA-Senha-2026!')
+        if await page.locator('#securityConfirmWrap').is_visible():
+            await page.locator('#securityConfirm').fill('Clara-QA-Senha-2026!')
+        await page.locator('#securitySubmit').click()
+        await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+
 async def home(page):
     await page.goto(BASE, wait_until='load')
+    await unlock(page)
     await page.locator('#dashboardMiniapps').wait_for()
 
 async def all_widgets(page):
@@ -141,7 +150,9 @@ async def run():
     assert await page.locator('.clw-editor').count()==1
     await page.locator('[data-clw-action="toggle"][data-clw-id="attention"]').click()
     assert await page.locator('[data-widget="attention"]').count()==0
+    await page.evaluate("window.ClaraSecurity.flush()")
     await page.reload(wait_until='load')
+    await unlock(page)
     assert await page.locator('[data-widget="attention"]').count()==0
     await page.evaluate("""() => {const x=structuredClone(state);x.settings.dashboardCards=['attention','attention'];
       let failed=false;try{validateData(x);}catch(_){failed=true;}if(!failed)throw Error('Rejeição de backup duplicado não funcionou');}""")
@@ -167,7 +178,9 @@ async def run():
     }""")
     assert perf['count']==1000 and perf['cards']==15,perf
     assert perf['elapsed']<15000,perf
+    await page.evaluate("window.ClaraSecurity.flush()")
     await page.reload(wait_until='load')
+    await unlock(page)
     assert await page.evaluate("() => state.transactions.length")==1000
     checked.append('carga-1000-registros-e-persistencia')
     await ctx.close()
@@ -244,7 +257,9 @@ async def run():
     }""")
     assert perf10k['count']==10000 and perf10k['widgets']==15,perf10k
     assert perf10k['elapsed']<30000,perf10k
+    await page.evaluate("window.ClaraSecurity.flush()")
     await page.reload(wait_until='load')
+    await unlock(page)
     assert await page.evaluate("() => state.transactions.length")==10000
     checked.append('carga-10000-registros-e-recarga')
     await ctx.close()
