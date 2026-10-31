@@ -2034,6 +2034,71 @@ const PREF_ENUMS = Object.freeze({
 });
 const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
+const AUDIT_MAX=2500;
+const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
+let auditBaseline=null;
+function auditMonthFor(entity,item) {
+ if(!item)return '';
+ if(entity==='transactions')return (item.status==='Realizado'?(item.paidAt||item.date):item.date).slice(0,7);
+ if(entity==='reconciliations')return (item.date||'').slice(0,7);
+ return todayISO().slice(0,7);
+}
+function auditLabel(entity,item) {
+ return String(entity==='transactions'?item.description:entity==='reconciliations'?'Extrato '+item.date:item.name||'Registro').slice(0,130);
+}
+function auditValue(entity,item) {
+ if(!item)return '';
+ const cents=entity==='transactions'?item.amountCents:entity==='accounts'?item.openingCents:entity==='goals'?item.savedCents:item.statementCents;
+ const value=Number.isSafeInteger(cents)?'R$ '+(cents/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+ if(entity==='transactions')return [item.kind,item.status,value,'Conta: '+item.accountId,'Data: '+item.date].join(' · ').slice(0,250);
+ if(entity==='accounts')return [item.type,value].join(' · ').slice(0,250);
+ if(entity==='goals')return ['Reservado: '+value,'Prazo: '+(item.dueDate||'')].join(' · ').slice(0,250);
+ return ['Extrato: '+value,'Conta: '+item.accountId].join(' · ').slice(0,250);
+}
+function recordAuditChanges(previous,next) {
+ if(!Array.isArray(next.auditLog))next.auditLog=[];
+ if(!previous)return;
+ const timestamp=new Date().toISOString(),actor=(next.profile?.name||'Usuário local').slice(0,80),entries=[];
+ for(const [entity,singular] of AUDIT_COLLECTIONS) {
+  const before=new Map((previous[entity]||[]).map(item=>[item.id,item]));
+  const after=new Map((next[entity]||[]).map(item=>[item.id,item]));
+  const changes=[];
+  for(const [id,item] of after){
+   const old=before.get(id);
+   if(old&&JSON.stringify(old)===JSON.stringify(item))continue;
+   changes.push({id,old,item,action:old?'Editado':'Criado'});
+  }
+  for(const [id,old] of before)if(!after.has(id))changes.push({id,old,item:null,action:'Excluído'});
+  if(changes.length>32){
+   const counts=new Map();
+   for(const change of changes){
+    const month=auditMonthFor(entity,change.item||change.old);
+    const key=month+'|'+change.action;
+    counts.set(key,(counts.get(key)||0)+1);
+   }
+   for(const [key,count] of counts){
+    const [month,action]=key.split('|');
+    entries.push({id:uid(),at:timestamp,actor,action:'Lote '+action,entity,ref:'lote',
+      month,relatedMonth:'',label:count+' '+singular+'(s)',before:'',after:'',
+      detail:count+' registros processados em lote'});
+   }
+  } else {
+   for(const change of changes){
+    const oldMonth=auditMonthFor(entity,change.old);
+    const newMonth=auditMonthFor(entity,change.item);
+    entries.push({id:uid(),at:timestamp,actor,action:change.action,entity,ref:change.id,
+      month:newMonth||oldMonth,relatedMonth:oldMonth!==newMonth?oldMonth:'',
+      label:auditLabel(entity,change.item||change.old),
+      before:auditValue(entity,change.old),after:auditValue(entity,change.item),detail:''});
+   }
+  }
+ }
+ if(entries.length){
+  next.auditLog.push(...entries);
+  if(next.auditLog.length>AUDIT_MAX)next.auditLog.splice(0,next.auditLog.length-AUDIT_MAX);
+ }
+}
+
 const safeProfile=()=>({...PROFILE_DEFAULTS,...(state?.profile||{})});
 function profileInitials(name) {
  const parts=(name||'').trim().split(/\s+/).filter(Boolean);
