@@ -1,7 +1,7 @@
 name: Clara RC3.5 - QA PWA Offline
 on:
   push:
-    branches: [main, 'release/**']
+    branches: [main, 'release/**', 'feature/clara-dashboard-miniapps']
   workflow_dispatch:
 permissions:
   contents: read
