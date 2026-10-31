@@ -25,7 +25,7 @@ test('Navegação de cards aponta somente para módulos existentes',()=>{
  assert.equal(unique.size,ids.length);
  for(const id of unique){
    assert.ok(html.includes('id="view-'+id+'"'),'Falta área do módulo '+id);
-   const renderer={painel:'renderPainel',mov:'renderMov',plan:'renderPlan',assist:'renderAssist',conf:'renderConf',ajustes:'renderAjustes'}[id];
+   const renderer={painel:'renderPainel',mov:'renderMov',plan:'renderPlan',assist:'renderAssist',conf:'renderConf',historico:'renderHistorico',ajustes:'renderAjustes'}[id];
    assert.ok(html.includes('function '+renderer+'('),'Falta renderizador '+renderer);
  }
  for(const id of literals('data-view')) assert.ok(unique.has(id),'Botão aponta para módulo antigo: '+id);
