@@ -196,6 +196,19 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.get_by_text('Extrato:',exact=False).first.wait_for(timeout=15000)
   assert not errors,errors
   print('PASSOU: conciliação, identificação de diferença e persistência')
+  # Etapa 9: exportação CSV e PDF no navegador, sem backend.
+  page.get_by_role('button',name='Relatórios',exact=True).last.click()
+  page.get_by_role('heading',name='Demonstrativo anual').wait_for(timeout=15000)
+  with page.expect_download() as csv_dl:
+   page.get_by_role('button',name='CSV mensal').click()
+  assert csv_dl.value.suggested_filename.endswith('.csv')
+  with page.expect_download() as pdf_dl:
+   page.get_by_role('button',name='Baixar PDF').click()
+  assert pdf_dl.value.suggested_filename.endswith('.pdf')
+  pdf_path=pdf_dl.value.path()
+  assert pdf_path and Path(pdf_path).read_bytes()[:5]==b'%PDF-'
+  assert not errors,errors
+  print('PASSOU: relatórios mensais, anuais, CSV e PDF válido')
   browser.close()
  srv.shutdown()
 print('ACEITE: execução end-to-end do build de produção concluída')
