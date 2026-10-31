@@ -184,6 +184,18 @@ with ThreadingServer(('127.0.0.1',0),Handler) as srv:
   page.locator('.debt-card').filter(has_text='Financiamento de notebook').wait_for(timeout=15000)
   assert not errors,errors
   print('PASSOU: edição mantém debtId, reabertura e exclusão restauram dívida e saldo')
+  # Etapa 7: saldo conciliado, auditoria e recarga.
+  page.get_by_role('button',name='Contas e cartões',exact=True).last.click()
+  page.get_by_label('Conta para conferência').select_option(index=0)
+  page.get_by_label('Data do extrato').fill('2026-10-29')
+  page.get_by_label('Saldo no extrato').fill('123456,78')
+  page.get_by_role('button',name='Conferir saldo').click()
+  page.get_by_text('Divergência:',exact=False).first.wait_for(timeout=15000)
+  page.reload()
+  page.get_by_role('button',name='Contas e cartões',exact=True).last.click()
+  page.get_by_text('Extrato:',exact=False).first.wait_for(timeout=15000)
+  assert not errors,errors
+  print('PASSOU: conciliação, identificação de diferença e persistência')
   browser.close()
  srv.shutdown()
 print('ACEITE: execução end-to-end do build de produção concluída')
