@@ -57,9 +57,10 @@ test('Cabeçalho sem Ajustar e seletor de meses',()=>{
  assert.match(html, /<input id="period" type="hidden"/);
  assert.match(html,/state\.settings\.period = todayISO\(\)\.slice\(0, 7\)/);
 });
-test('PWA atualiza HTML pela rede mas abre offline',()=>{
- assert.match(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
- assert.match(sw,/cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
+test('PWA só apresenta novo HTML após troca autorizada do SW',()=>{
+ assert.match(sw,/const installed = await cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
+ assert.match(sw,/if \(installed\) return installed/);
+ assert.doesNotMatch(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
 });
 
 test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
@@ -135,4 +136,18 @@ test('Versão exibida acompanha a única constante do aplicativo',async()=>{
  assert.match(html,/Versão \$\{esc\(CLARA_APP_VERSION\)\}/);
  assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
  assert.doesNotMatch(html,/Versão 3\.6\.3-rc/);
+});
+
+test('Atualizador EFI avisa e consulta automaticamente, sem instalação compulsória',()=>{
+ assert.match(html,/id="claraUpdateNotice"/);
+ assert.match(html,/id="claraUpdateNoticeLater"/);
+ assert.match(html,/id="applyClaraUpdate"/);
+ assert.match(html,/O que há de novidade/);
+ assert.match(html,/ÚLTIMA VERIFICAÇÃO/);
+ assert.match(html,/window\.addEventListener\('online'/);
+ assert.match(html,/window\.setInterval\(/);
+ assert.match(html,/document\.addEventListener\('visibilitychange'/);
+ assert.match(html,/ClaraSecurity\.flush\(\)/);
+ assert.match(html,/waiting\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
+ assert.doesNotMatch(sw,/await self\.skipWaiting\(\);/);
 });
