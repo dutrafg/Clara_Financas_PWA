@@ -44,12 +44,12 @@ self.addEventListener('fetch', event => {
       catch { return await cache.match(scopedURL('./version.json')) || Response.error(); }
     }
     if (request.mode === 'navigate') {
-      // Navegação sempre tenta HTML novo pela rede. Somente offline usa a versão instalada.
-      try {
-        const fresh = await fetch(new Request(request, {cache:'no-store'}));
-        if (fresh.ok) return fresh;
-      } catch {}
-      return await cache.match(scopedURL('./index.html')) || Response.error();
+      // Não substituir silenciosamente um PWA instalado: a nova shell só é
+      // servida depois que o usuário confirma a troca de Service Worker.
+      const installed = await cache.match(scopedURL('./index.html'));
+      if (installed) return installed;
+      try { return await fetch(request); }
+      catch { return Response.error(); }
     }
     const hit = await cache.match(request, {ignoreSearch:true});
     if (hit) return hit;
