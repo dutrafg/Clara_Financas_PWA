@@ -8,7 +8,7 @@ import {createMovements,changeMovementStatus,isOverdue,listMovements,movementTot
 import type {Frequency,MovementFilters} from './domain/movements';
 import {installmentSchedule,createInstallmentMovements,summarizeInstallmentGroups} from './domain/installments';
 import {createAccount,updateAccount,archiveAccount,deleteAccount,createCategory,updateCategory,archiveCategory,deleteCategory,setFinancialPreferences,savingsOverview} from './domain/catalogs';
-import {addDebt,updateDebt,deleteDebt,recordDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
+import {addDebt,updateDebt,deleteDebt,recordDebtPayment,reviseDebtPayment,removeDebtPayment,allDebtSummaries,cashflowForecast,goalPace} from './domain/planning';
 
 const sections:{id:View;name:string;short:string}[]=[
  {id:'dashboard',name:'Dashboard',short:'Início'},{id:'transactions',name:'Movimentações',short:'Lançamentos'},
@@ -143,6 +143,7 @@ function Modal({data,modal,onClose,onSave,saving}:{data:FinanceData;modal:ModalS
  {field('note','Observações',<textarea name="note" rows={2} value={values.note} onChange={e=>change('note',e.currentTarget.value)} placeholder="Opcional"/>,true)}
  {!item&&field('recurrence','Repetição',select('recurrence',[{value:'none',label:'Não repetir'},{value:'weekly',label:'Semanal'},{value:'monthly',label:'Mensal'},{value:'yearly',label:'Anual'}]))}
  {!item&&values.recurrence!=='none'&&field('occurrences','Total de ocorrências (2 a 24)',<input name="occurrences" aria-label="Total de ocorrências" type="number" min="2" max="24" step="1" required value={values.occurrences} onChange={e=>change('occurrences',e.currentTarget.value)}/>)}
+ {item?.debtId&&<p className="recurring-hint">Pagamento vinculado a uma dívida. A edição mantém o vínculo e somente permite despesas na categoria original. O valor e a situação podem ser corrigidos sem ultrapassar o saldo devedor.</p>}
  {item?.installmentGroupId&&<p className="recurring-hint">Parcela {item.installmentIndex===0?'de entrada':item.installmentIndex+'/'+item.installmentCount}. Para preservar a amortização, o valor é fixo; altere apenas data, situação, conta ou observação.</p>}
  {item?.recurrenceGroupId&&<p className="recurring-hint">Ocorrência {item.recurrenceIndex} de {item.recurrenceCount}. Esta edição altera apenas este lançamento.</p>}
  </>:modal.type==='category'?<>
@@ -230,11 +231,12 @@ export default function App(){
      const old=d.transactions.find(t=>t.id===id);
      const tx:Transaction={id:old?.id||uid('tx'),date:v.date,paidAt:v.status==='Realizado'?v.paidAt:'',description:v.description.trim(),kind:v.kind as Kind,category:v.kind==='Transferência'?'':v.category,amountCents:parseMoney(v.amount),accountId:v.accountId,toAccountId:v.kind==='Transferência'?v.toAccountId:'',status:v.status as Status,note:v.note.trim(),
       ...(old?.recurrenceGroupId?{recurrenceGroupId:old.recurrenceGroupId,recurrenceIndex:old.recurrenceIndex,recurrenceCount:old.recurrenceCount,recurrenceFrequency:old.recurrenceFrequency}:{}),
-      ...(old?.installmentGroupId?{installmentGroupId:old.installmentGroupId,installmentIndex:old.installmentIndex,installmentCount:old.installmentCount,installmentPrincipalCents:old.installmentPrincipalCents,installmentInterestCents:old.installmentInterestCents}:{})};
+      ...(old?.installmentGroupId?{installmentGroupId:old.installmentGroupId,installmentIndex:old.installmentIndex,installmentCount:old.installmentCount,installmentPrincipalCents:old.installmentPrincipalCents,installmentInterestCents:old.installmentInterestCents}:{}),
+      ...(old?.debtId?{debtId:old.debtId}:{})};
      if(old?.installmentGroupId&&tx.amountCents!==old.amountCents)throw Error('O valor de uma parcela já gerada não pode ser alterado. Ajuste somente data, conta ou situação.');
      validateTransaction(tx,d);
      const idx=d.transactions.findIndex(t=>t.id===id);
-     if(idx>=0)d.transactions[idx]=tx;
+     if(idx>=0){if(old?.debtId)reviseDebtPayment(d,tx);else d.transactions[idx]=tx;}
      else{
       const frequency=(v.recurrence||'none') as Frequency;
       const count=frequency==='none'?1:Number(v.occurrences);
@@ -265,9 +267,14 @@ export default function App(){
  };
  const remove=async(type:Exclude<ModalKind,'installment'|'debtPayment'>,id:string)=>{
   if(!data)return;const label=type==='transaction'?'lançamento':type==='account'?'conta':type==='category'?'categoria':type==='debt'?'dívida':type==='budget'?'orçamento':'meta';
-  if(!window.confirm(`Excluir ${label}? Esta operação não pode ser desfeita.`))return;
+  const linked=type==='transaction'&&data.transactions.find(t=>t.id===id)?.debtId;
+ if(!window.confirm(linked?'Excluir este pagamento? O valor pago será retirado do histórico e o saldo da dívida será recalculado. Esta ação não pode ser desfeita.':`Excluir ${label}? Esta operação não pode ser desfeita.`))return;
   try{await modify(d=>{
-   if(type==='transaction')d.transactions=d.transactions.filter(x=>x.id!==id);
+   if(type==='transaction'){
+    const original=d.transactions.find(x=>x.id===id);
+    if(original?.debtId)removeDebtPayment(d,id);
+    else d.transactions=d.transactions.filter(x=>x.id!==id);
+   }
    if(type==='account')deleteAccount(d,id);
    if(type==='category')deleteCategory(d,id);
    if(type==='debt')deleteDebt(d,id);
@@ -287,7 +294,8 @@ export default function App(){
  }
  async function updatePayment(tx:Transaction,target:Status){
   try{await modify(d=>{const idx=d.transactions.findIndex(t=>t.id===tx.id);if(idx<0)throw Error('Lançamento não encontrado.');
-   const next=changeMovementStatus(d.transactions[idx],target,target==='Realizado'?today():'');validateTransaction(next,d);d.transactions[idx]=next;
+   const next=changeMovementStatus(d.transactions[idx],target,target==='Realizado'?today():'');
+   if(next.debtId)reviseDebtPayment(d,next);else{validateTransaction(next,d);d.transactions[idx]=next;}
   },target==='Realizado'?'Lançamento confirmado.':'Lançamento voltou a ficar pendente.');}
   catch(e){notify((e as Error).message,true)}
  }
