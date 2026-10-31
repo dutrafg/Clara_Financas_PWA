@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync}from'node:fs';const h=readFileSync('index.html','utf8');
+test('tela obrigatória bloqueia interface antes de senha',()=>{assert.match(h,/html:not\(\[data-unlocked="true"\]\) \.shell/);assert.match(h,/id="securityCover"/);assert.match(h,/id="securityForm"/)});
+test('criptografia AES-GCM e derivação robusta',()=>{for(const s of ["AES-256-GCM","PBKDF2-SHA256","310000","clara-financas-vault-aesgcm-v1","crypto.subtle.encrypt","crypto.subtle.decrypt"])assert.ok(h.includes(s),s)});
+test('migracao preserva dados anteriores até salvar cofre',()=>{assert.match(h,/safeStorageSet\(CLARA_VAULT_KEY,encrypted\)/);assert.match(h,/localStorage.removeItem\(KEY\)/);assert.ok(h.indexOf("safeStorageSet(CLARA_VAULT_KEY,encrypted)")<h.indexOf("localStorage.removeItem(KEY)"))});
+test('nenhuma exportacao JSON legivel nos botoes',()=>{assert.doesNotMatch(h,/if \(id === 'exportJson'\) dl\(/);assert.match(h,/window.ClaraSecurity.exportBackup/);assert.match(h,/id="importClara"/)});
+test('bloqueio em troca de janela e perda de foco',()=>{assert.match(h,/visibilitychange/);assert.match(h,/pagehide/);assert.match(h,/secureLock\(/)});
+test('miniaplicativos existentes preservados',()=>{assert.match(h,/const CLARA_WIDGETS/);assert.match(h,/renderClaraMiniapps/)});
