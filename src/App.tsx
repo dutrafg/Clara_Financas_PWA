@@ -641,7 +641,14 @@ export default function App(){
  </div>;
  const installmentGroups=summarizeInstallmentGroups(data);
  const transactions=<div className="vertical"><div className="section-top"><div><h2>Movimentações</h2><p>Receitas, despesas, transferências e lançamentos recorrentes · {showAllMonths?'todos os meses':monthText(month)}</p></div><div className="head-actions"><Button icon="download" onClick={()=>download(`clara-movimentacoes-${today()}.csv`,transactionsCSV(data),'text/csv;charset=utf-8')}>Exportar CSV</Button><Button icon="upload" onClick={()=>movementImportRef.current?.click()}>Importar CSV</Button><input ref={movementImportRef} type="file" hidden accept=".csv,text/csv" onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)importMovements(file)}}/><Button icon="plus" onClick={()=>setModal({type:'installment'})}>Novo parcelamento</Button><Button variant="primary" icon="plus" onClick={()=>setModal({type:'transaction'})}>Novo lançamento</Button></div></div>
- {installmentGroups.length>0&&<Pane title="Assistente de parcelamentos" detail="Compras parceladas · entradas, juros, pagamentos e valores pendentes"><div className="installment-summary-grid">
+ {installmentGroups.length>0&&<Pane title="Assistente de parcelamentos" detail="Compras parceladas · entradas, juros, pagamentos e valores pendentes">
+  <div className="sheet-overview-stripe">
+   <div><small>Compras parceladas</small><strong>{installmentGroups.length}</strong></div>
+   <div><small>Parcelas pagas</small><strong>{installmentGroups.reduce((n,g)=>n+g.completed,0)}</strong></div>
+   <div><small>Valor pendente</small><strong>{mask(installmentGroups.reduce((n,g)=>n+g.pendingCents,0))}</strong></div>
+   <div><small>Juros previstos</small><strong>{mask(installmentGroups.reduce((n,g)=>n+g.interestCents,0))}</strong></div>
+  </div>
+  <div className="installment-summary-grid">
   {installmentGroups.slice(0,8).map(g=><div key={g.id} className="installment-summary-card">
    <b>{g.entries.find(t=>t.installmentIndex===1)?.description.split(' — ')[0]||'Compra parcelada'}</b>
    <small>{g.completed} de {g.count} parcelas pagas · {g.canceled} canceladas</small>
@@ -650,7 +657,14 @@ export default function App(){
    <div><span>Juros previstos</span><strong>{mask(g.interestCents)}</strong></div>
   </div>)}
  </div></Pane>}
- <div className="movement-overview"><div className="surface"><small>Selecionados</small><b>{totals.count}</b></div><div className="surface"><small>Despesas realizadas</small><b>{mask(totals.expense)}</b></div><div className="surface"><small>A pagar</small><b>{mask(totals.toPay)}</b></div><div className="surface"><small>A receber</small><b>{mask(totals.toReceive)}</b></div></div>
+ <div className="movement-overview sheet-movement-overview">
+  <div className="surface"><small>Selecionados</small><b>{totals.count}</b></div>
+  <div className="surface"><small>Receitas realizadas</small><b>{mask(totals.income)}</b></div>
+  <div className="surface"><small>Despesas realizadas</small><b>{mask(totals.expense)}</b></div>
+  <div className="surface"><small>A pagar</small><b>{mask(totals.toPay)}</b></div>
+  <div className="surface"><small>A receber</small><b>{mask(totals.toReceive)}</b></div>
+  <div className="surface"><small>Pendentes para revisão</small><b>{totals.pending}</b></div>
+ </div>
  <Pane><div className="movement-toolbar"><label className="check-wrap"><input type="checkbox" checked={showAllMonths} onChange={e=>setShowAllMonths(e.target.checked)}/> Todos os meses</label><label className="check-wrap"><input type="checkbox" checked={!!filters.overdue} onChange={e=>patchFilter({overdue:e.target.checked})}/> Somente atrasados ({overdueCount})</label><Button variant="ghost" onClick={()=>{setFilters(emptyFilter);setShowAllMonths(false)}}>Limpar filtros</Button></div>
  <div className="filters movement-filters">
  <input aria-label="Pesquisar movimentações" placeholder="Pesquisar descrição, categoria, conta ou observação" value={filters.search||''} onChange={e=>patchFilter({search:e.target.value})}/>
@@ -674,6 +688,12 @@ export default function App(){
  </Pane><div className="footnote">{results.length} lançamento(s) filtrados · {totals.pending} pendente(s) · Somente realizados afetam os saldos. Transferências não alteram o resultado. Recorrências e parcelas futuras ficam pendentes; somente a quitação afeta o saldo.</div></div>;
  const accounts=<div className="vertical">
  <div className="section-top"><div><h2>Contas e categorias</h2><p>Organize seu dinheiro e mantenha o histórico financeiro consistente.</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'account'})}>Nova conta</Button></div>
+ <div className="sheet-overview-stripe">
+  <div><small>Contas cadastradas</small><strong>{data.accounts.length}</strong></div>
+  <div><small>Contas ativas</small><strong>{data.accounts.filter(a=>!a.archived).length}</strong></div>
+  <div><small>Saldo consolidado</small><strong>{mask(summary.totalBalance)}</strong></div>
+  <div><small>Conferências registradas</small><strong>{reconciliations.length}</strong></div>
+ </div>
  <div className="account-grid">{data.accounts.map(a=><Pane key={a.id} className="account-card">
   <div className="account-top"><div className="account-icon"><Icon name="wallet" size={21}/></div>{actions('account',a.id)}</div>
   <h3>{a.name}{a.archived&&<span className="catalog-inactive"> Arquivada</span>}</h3>
@@ -683,6 +703,11 @@ export default function App(){
  </Pane>)}</div>
  <div className="tip"><Icon name="info" size={17}/>Arquivar oculta a conta de novos lançamentos, mas preserva saldos e históricos. Contas utilizadas não podem ser excluídas.</div>
  <Pane title="Conciliação de extrato" detail="Compare o saldo de um extrato externo com o saldo calculado no Clara. Não ajusta o saldo automaticamente.">
+ <div className="sheet-overview-stripe">
+  <div><small>Registros verificados</small><strong>{reconciliations.length}</strong></div>
+  <div><small>Conciliados</small><strong>{reconciliations.filter(r=>r.matched).length}</strong></div>
+  <div><small>Com diferença</small><strong>{reconciliations.filter(r=>!r.matched).length}</strong></div>
+ </div>
  <div className="recon-grid">
  <label>Conta<select aria-label="Conta para conferência" value={reconAccount||data.accounts[0]?.id} onChange={e=>setReconAccount(e.target.value)}>{data.accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
  <label>Data do extrato<input aria-label="Data do extrato" type="date" value={reconDate} onChange={e=>setReconDate(e.target.value)}/></label>
@@ -712,6 +737,12 @@ export default function App(){
  </Pane>
  </div>;
  const planning=<div className="vertical"><div className="section-top"><div><h2>Planejamento</h2><p>Acompanhe limites e metas para manter o controle.</p></div><Button variant="primary" icon="plus" onClick={()=>setModal({type:'budget'})}>Novo orçamento</Button></div>
+ {sheet&&<div className="sheet-overview-stripe">
+   <div><small>Limite total</small><strong>{mask(sheet.budgetTotalCents)}</strong></div>
+   <div><small>Despesas realizadas</small><strong>{mask(sheet.budgetUsedCents)}</strong></div>
+   <div><small>Restante previsto</small><strong>{mask(sheet.budgetTotalCents-sheet.budgetProjectedCents)}</strong></div>
+   <div><small>Categorias acima do limite</small><strong>{sheet.budgetOverLimit}</strong></div>
+ </div>}
  {savings&&<Pane title="Meta mensal de economia" detail="Receitas realizadas menos despesas realizadas no período escolhido"><div className="savings-overview">
   <div><small>Resultado do mês</small><strong>{mask(savings.netCents)}</strong></div>
   <div><small>Meta definida</small><strong>{mask(savings.targetCents)}</strong></div>
