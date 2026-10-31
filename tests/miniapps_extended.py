@@ -171,6 +171,83 @@ async def run():
     assert await page.evaluate("() => state.transactions.length")==1000
     checked.append('carga-1000-registros-e-persistencia')
     await ctx.close()
+
+    # Propriedades financeiras: 500 parcelamentos com soma exata em centavos.
+    ctx=await browser.new_context(viewport={'width':1440,'height':900})
+    page=await ctx.new_page()
+    await home(page)
+    finance=await page.evaluate("""() => {
+      let checked=0;
+      for(let n=2;n<=60;n++){
+        for(let base=1;base<=10;base++){
+          const total=n*base+Math.floor(n/3);
+          const rows=generateInstallments(total,n,'2026-01-31','Compra de teste','Moradia','principal');
+          if(rows.length!==n||rows.reduce((a,b)=>a+b.amountCents,0)!==total||rows.some(x=>x.amountCents<=0))
+            throw Error('Parcelamento inconsistente: '+n+' x '+total);
+          checked++;
+        }
+      }
+      const a=generateInstallments(12000,3,'2026-01-31','Jan','Moradia','principal');
+      if(a.map(x=>x.date).join(',')!=='2026-01-31,2026-02-28,2026-03-31') throw Error('Datas de parcelas inválidas');
+      for(const input of ['1.234,56','0,01','999.999,99']) {
+        if(parseBRL(numField(parseBRL(input)))!==parseBRL(input))throw Error('Centavos não conservados');
+      }
+      return checked;
+    }""")
+    assert finance==590,finance
+    checked.append('590-parcelamentos-e-centavos-exatos')
+    # Entrada hostil deve virar texto, nunca markup ativo.
+    xss=await page.evaluate("""() => {
+      state.transactions.push({id:'xss-safe',description:'<img src=x onerror=alert(1)>',
+        kind:'Despesa',category:'Moradia',status:'Realizado',date:todayISO(),
+        paidAt:todayISO(),amountCents:10,accountId:'principal',toAccountId:''});
+      save();
+      return {encoded:document.querySelector('#view-painel').innerHTML.includes('&lt;img'),
+       injected:!!document.querySelector('#view-painel img[onerror]')};
+    }""")
+    assert xss['encoded'] and not xss['injected'],xss
+    checked.append('injecao-html-tratada-como-texto')
+    # Validação rejeita backups adulterados sem mutar a base real.
+    invalid=await page.evaluate("""() => {
+      const bad=[
+        x=>x.accounts.push({...x.accounts[0]}),
+        x=>x.settings.dashboardCards=['inexistente'],
+        x=>x.transactions[0].amountCents=-1,
+        x=>x.transactions[0].date='2026-02-31',
+        x=>x.accounts[0].type='Banco falso'
+      ];
+      return bad.map(edit=>{const x=structuredClone(state);edit(x);
+        try{validateData(x);return false;}catch(_){return true;}});
+    }""")
+    assert invalid==[True]*5,invalid
+    checked.append('5-backups-adulterados-rejeitados')
+    await ctx.close()
+    # 10.000 registros, preservação de saldo e recarga a partir do localStorage.
+    ctx=await browser.new_context(viewport={'width':1440,'height':900})
+    page=await ctx.new_page()
+    await all_widgets(page)
+    perf10k=await page.evaluate("""() => {
+      const t0=performance.now(),month=todayISO().slice(0,7);
+      const inputs=Array.from({length:10000},(_,i)=>({
+         id:'bulk'+i,date:month+'-'+String(i%28+1).padStart(2,'0'),
+         description:'Carga 10k '+i,kind:i%2?'Despesa':'Receita',
+         category:i%2?'Moradia':'Salário',
+         amountCents:100+i,accountId:'principal',toAccountId:'',
+         status:i%4?'Realizado':'Pendente',
+         paidAt:i%4?month+'-'+String(i%28+1).padStart(2,'0'):''
+      }));
+      state.transactions=inputs;
+      save();
+      return {elapsed:performance.now()-t0,count:state.transactions.length,
+         widgets:document.querySelectorAll('#dashboardMiniapps [data-widget]').length,
+         balance:totalBalance(state.settings.cutoff)};
+    }""")
+    assert perf10k['count']==10000 and perf10k['widgets']==15,perf10k
+    assert perf10k['elapsed']<30000,perf10k
+    await page.reload(wait_until='load')
+    assert await page.evaluate("() => state.transactions.length")==10000
+    checked.append('carga-10000-registros-e-recarga')
+    await ctx.close()
     await browser.close()
   print('QA EXTENDIDO APROVADO:',len(checked),'grupos:',', '.join(checked))
 
