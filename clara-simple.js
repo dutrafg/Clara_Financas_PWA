@@ -115,7 +115,6 @@
  renderNav=function(){
    native.nav();
    const current=['painel','mov','plan'].includes(active)?active:'mais';
-   $('sideNav').innerHTML=mainNav.map(([id,icon,label])=>`<button type="button" class="navlink ${current===id?'active':''}" data-view="${id}" title="${label}" aria-label="${label}" ${current===id?'aria-current="page"':''}><span class="ico">${icon}</span><span>${label}</span></button>`).join('');
    desktopDock.querySelectorAll('[data-view]').forEach(btn=>{
      const selected=btn.dataset.view===active;
      btn.classList.toggle('active',selected);
