@@ -465,3 +465,14 @@ body{
 }
 :root[data-motion="reduced"] .float-menu.open .mobile-nav,
 :root[data-motion="reduced"] .float-menu.open .float-backdrop{animation:none!important;}
+
+/* Sobreposições: navegação < notificações < menus/modal < diálogos especiais.
+   Quando o menu estiver aberto, cobre o sino; a dock continua como controle superior.
+   O toast de validação deve permanecer visível também acima dos diálogos. */
+.modal-backdrop{z-index:1800;}
+.toast{z-index:4500;}
+@media screen and (max-width:760px){
+  body.clara-menu-open{overflow:hidden;overscroll-behavior:none;}
+  .float-menu.open{z-index:950;}
+  body.clara-menu-open .mobile-dock-wrap{z-index:960;}
+}
