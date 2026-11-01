@@ -86,10 +86,23 @@ async def run():
       assert all(r>=14 for r in dock_geometry['linkRadii']),dock_geometry
       assert dock_geometry['left']>=-2 and dock_geometry['right']<=width+2,dock_geometry
       if width<=760:
-        # Modo avançado: capturar os primeiros frames da abertura do menu.
+        # Modo avançado: o menu deve bloquear a rolagem de fundo e ficar acima do sino.
         await page.locator('#floatTrigger').click()
         assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='false'
         assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='true'
+        overlay=await page.evaluate("""() => {
+          const z=id=>Number(getComputedStyle(document.querySelector(id)).zIndex);
+          return {menu:z('#floatMenu'),dock:z('.mobile-dock-wrap'),bell:z('#claraNotificationButton'),
+                  body:document.body.classList.contains('clara-menu-open'),
+                  overflow:getComputedStyle(document.body).overflowY};
+        }""")
+        assert overlay['body'] and overlay['overflow']=='hidden',overlay
+        assert overlay['dock']>overlay['menu']>overlay['bell'],overlay
+        # Ciclo de foco sem deixar a navegação de fundo capturar TAB.
+        await page.keyboard.press('Shift+Tab')
+        assert await page.evaluate("document.activeElement===document.querySelector('#mobileNav .navlink:last-child')")
+        await page.keyboard.press('Tab')
+        assert await page.evaluate("document.activeElement===document.querySelector('#mobileNav .navlink:first-child')")
         snapshots=await page.evaluate("""async () => {
           const menu=document.getElementById('mobileNav');
           const read=()=>{
@@ -109,11 +122,32 @@ async def run():
         await page.keyboard.press('Escape')
         assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='true'
         assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='false'
+        assert not await page.evaluate("document.body.classList.contains('clara-menu-open')")
+        assert await page.evaluate("document.activeElement.id")=='floatTrigger'
         await page.locator('#floatTrigger').click()
         await page.locator('#floatBackdrop').click(position={'x':3,'y':3},force=True)
         assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='true'
         if width in (320,390):
           await page.screenshot(path=str(CAPTURES/f'studio-dock-{width}.png'),full_page=False)
+      # Formulários bloqueiam o sino e a dock, sem permitir cliques por trás.
+      await page.evaluate("modal('transaction')")
+      modal_layers=await page.evaluate("""() => {
+        const z=selector=>Number(getComputedStyle(document.querySelector(selector)).zIndex);
+        return {modal:z('#modalBg'),bell:z('#claraNotificationButton'),
+                dock:z('.mobile-dock-wrap'),toast:z('#toast')};
+      }""")
+      assert modal_layers['toast']>modal_layers['modal']>max(modal_layers['bell'],modal_layers['dock']),modal_layers
+      assert await page.locator('#modalBg').get_attribute('aria-hidden')=='false'
+      await page.evaluate("closeModal()")
+      assert await page.locator('#modalBg').get_attribute('aria-hidden')=='true'
+      # Atualizações ficam abaixo do sino no desktop, sem sobreposição dos controles.
+      if width>760:
+        notification_placement=await page.evaluate("""() => {
+          const bell=document.getElementById('claraNotificationButton').getBoundingClientRect();
+          const notice=document.getElementById('claraUpdateNotice').getBoundingClientRect();
+          return {bellBottom:bell.bottom,noticeTop:notice.top};
+        }""")
+        assert notification_placement['noticeTop']>notification_placement['bellBottom'],notification_placement
       await page.emulate_media(reduced_motion='reduce')
       animation=await page.evaluate("""() => getComputedStyle(document.querySelector('.view.active')).animationName""")
       assert animation=='none',(width,animation)
