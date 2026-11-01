@@ -1,6 +1,6 @@
 (function setupClaraAgenda(){
 'use strict';
-let month=todayISO().slice(0,7),selected=todayISO(),bellOpen=false,openedEvent=null;
+let month=todayISO().slice(0,7),selected=todayISO(),bellOpen=false,openedEvent=null,demoCompactOverride=null;
 const $id=id=>document.getElementById(id);
 // Traçado vetorial original, inspirado no contorno leve dos símbolos do macOS.
 const glyph='<svg class="ca-apple-bell" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.1 9.25c0-3.54-2.46-6.05-6.1-6.05S5.9 5.71 5.9 9.25v3.7c0 1.25-.55 2.25-1.52 3.15-.44.4-.6.72-.6 1.08 0 .67.52 1.12 1.29 1.12h13.86c.77 0 1.29-.45 1.29-1.12 0-.36-.16-.68-.6-1.08-.97-.9-1.52-1.9-1.52-3.15v-3.7Z"/><path d="M9.65 20.7c.46.7 1.22 1.08 2.35 1.08s1.89-.38 2.35-1.08"/></svg>';
@@ -115,9 +115,16 @@ function renderCalendar(){
   return `<button type="button" class="ca-day ${iso===selected?'ca-selected':''} ${iso===today()?'ca-today':''}" data-ca-day="${iso}" aria-pressed="${iso===selected}" aria-label="${day} de ${monthName}, ${count} evento(s)"><span>${day}</span>${count?`<i aria-hidden="true">${count>9?'9+':count}</i>`:''}</button>`;
  });
  const selectedItems=dayEntries(data,selected);
+ const compact=window.ClaraGuest?.active&&demoCompactOverride!==null?demoCompactOverride:
+   typeof state.settings?.calendarCompact==='boolean'?state.settings.calendarCompact:window.innerWidth<=760;
+ root.dataset.compact=String(compact);
+ const nextSeven=Array.from(data.entries()).filter(([d])=>d>=today()&&d<=addDays(today(),7))
+   .reduce((count,[,items])=>count+items.filter(x=>!x.done).length,0);
  root.innerHTML=`<div class="ca-top">
  <div><h3>Calendário e agenda</h3><p>Compromissos, contas, parcelas e metas em um só lugar.</p></div>
  <button type="button" class="ca-primary" data-ca-new="${safe(selected)}">+ Compromisso</button></div>
+ <div class="ca-compact-row"><span>${nextSeven} item(ns) pendente(s) nos próximos 7 dias</span>
+ <button type="button" data-ca-expand aria-expanded="${!compact}">${compact?'Ver calendário completo':'Recolher calendário'}</button></div>
  <div class="ca-header"><button type="button" data-ca-prev aria-label="Mês anterior">‹</button><strong>${safe(monthName)}</strong><button type="button" data-ca-today>Hoje</button><button type="button" data-ca-next aria-label="Próximo mês">›</button></div>
  <div class="ca-grid" role="group" aria-label="Calendário de ${safe(monthName)}">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(s=>`<span class="ca-weekday">${s}</span>`).join('')}${dates.join('')}</div>
  <div class="ca-agenda"><div class="ca-agenda-head"><h4>${labelDate(selected)} <span>(${selectedItems.length})</span></h4><button type="button" data-ca-new="${safe(selected)}">Adicionar</button></div>
@@ -220,6 +227,11 @@ document.addEventListener('click',e=>{
   else if('caReadall' in ds){markRead(listNotifications().map(n=>n.id));renderBell();}
   else if('caAlert' in ds)alertAction(ds.caAlert);
   else if('caOpenagenda' in ds){bellOpen=false;go('painel');$id('claraCalendar')?.scrollIntoView({behavior:'smooth'});}
+  else if('caExpand' in ds){
+   const compact=$id('claraCalendar')?.dataset.compact==='true';
+   if(window.ClaraGuest?.active){demoCompactOverride=!compact;paint();}
+   else{state.settings.calendarCompact=!compact;persistSuccess('Visualização do calendário atualizada.');}
+  }
   else if('caPrev' in ds){month=plusMonth(month+'-01',-1).slice(0,7);selected=month+'-01';paint();}
   else if('caNext' in ds){month=plusMonth(month+'-01',1).slice(0,7);selected=month+'-01';paint();}
   else if('caToday' in ds){changeDay(today());}
