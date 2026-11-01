@@ -90,14 +90,40 @@ async def run():
             
             # 10 MB: arquivo PNG pequeno com payload adicional, convertido em JPEG compacto.
             outcome=await page.evaluate("""async () => {
-              const b64='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRFMAAAAASUVORK5CYII=';
-              const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-              const original=new File([raw,new Uint8Array(8*1024*1024)],'perfil.png',{type:'image/png'});
-              const photo=await loadProfilePhoto(original);
-              return {size:original.size,decoded:photo.startsWith('data:image/jpeg;base64,'),small:photo.length<120000};
+              const original=new File([new Uint8Array(8*1024*1024)],'perfil.png',{type:'image/png'});
+              const draw=document.createElement('canvas');draw.width=32;draw.height=32;
+              draw.getContext('2d').fillRect(0,0,32,32);
+              const native=window.createImageBitmap;
+              window.createImageBitmap=async()=>({width:32,height:32,close(){},...{
+                // Canvas é CanvasImageSource e pode ser desenhado diretamente.
+              }});
+              // Usar um Canvas real como retorno para testar o redimensionamento.
+              window.createImageBitmap=async()=>draw;
+              let photo;
+              try{photo=await loadProfilePhoto(original);}finally{window.createImageBitmap=native;}
+              const rejected=await loadProfilePhoto(new File([new Uint8Array(10*1024*1024+1)],'maior.png',{type:'image/png'}))
+                .then(()=>false,()=>true);
+              return {size:original.size,decoded:photo.startsWith('data:image/jpeg;base64,'),small:photo.length<120000,rejected};
             }""")
-            assert outcome['size']>2*1024*1024 and outcome['decoded'] and outcome['small'],outcome
+            assert outcome['size']>2*1024*1024 and outcome['decoded'] and outcome['small'] and outcome['rejected'],outcome
 
+            # O banco cifrado deve existir no OPFS, sem dados financeiros em claro.
+            storage=await page.evaluate("""async()=>{
+              if(!window.ClaraPrivateFolder?.active)return {supported:false};
+              await window.ClaraSecurity.flush();
+              const root=await navigator.storage.getDirectory(),dir=await root.getDirectoryHandle('ClaraFinancas');
+              const files=[];
+              for await(const [name,entry] of dir.entries()){
+                if(entry.kind!=='file')continue;
+                const data=await (await entry.getFile()).text();
+                files.push({name,envelope:data.includes('CLARA-OPFS-1'),encrypted:!data.includes('Compra de teste')});
+              }
+              return {supported:true,files};
+            }""")
+            if storage['supported']:
+                assert storage['files'] and all(x['encrypted'] and x['envelope'] for x in storage['files']),storage
+            assert await page.locator('#securityBiometric').count()==1
+            assert await page.evaluate("window.ClaraBiometric?.enabled") is False
             # Dados continuam cifrados e o modo persiste após fechar o app.
             await page.evaluate("window.ClaraSecurity.flush()")
             raw=await page.evaluate("localStorage.getItem('clara-financas-vault-aesgcm-v1')")
