@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.0.0 • Instalação PWA</title>
+<title>Clara Finanças RC4.0.1 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1646,6 +1646,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 #claraInstallBtn[hidden]{display:none!important}
 </style>
 <link rel="stylesheet" href="./clara-simple.css">
+<link rel="stylesheet" href="./clara-biometric.css">
 </head>
 <body>
 <div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
@@ -1662,6 +1663,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
       </label>
       <button class="secure-button" id="securitySubmit" type="submit">Continuar</button>
     </form>
+    <button type="button" id="securityBiometric" hidden aria-label="Abrir Clara com biometria">Abrir com biometria</button>
     <p class="secure-status" id="securityStatus" role="alert" aria-live="polite"></p>
     <div class="secure-foot">A senha do Clara é local: ela não vai à Vercel. Não pode ser recuperada. Salve um backup criptografado e guarde sua senha. A instalação existente será migrada sem apagar os lançamentos.</div>
   </section>
@@ -2188,13 +2190,12 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.0.0-rc';
+const CLARA_APP_VERSION='4.0.1-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
-  "A Clara agora mostra somente quatro áreas: Início, Lançar, Planejar e Mais.",
-  "A tela inicial destaca saldo, entradas, saídas, próximos vencimentos e registros.",
-  "Cadastro de gastos, receitas e transferências direto, com menos etapas.",
-  "Os 15 miniaplicativos e as ferramentas completas ficam no modo avançado.",
-  "Cofre criptografado, backups, dados existentes e atualização confirmada preservados."
+  "Acesse com biometria ou senha: a biometria é opcional e protegida pelo autenticador do aparelho.",
+  "Configuração e desativação da biometria em Mais → Segurança e backup.",
+  "O modo avançado agora tem um botão visível para voltar ao modo simples.",
+  "Cofre e dados financeiros preservados, com atualização de Service Worker por versão."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
@@ -4911,5 +4912,6 @@ const ClaraInstall=(()=>{
 window.ClaraInstall=ClaraInstall;
 </script>
 <script src="./clara-simple.js"></script>
+<script src="./clara-biometric.js"></script>
 </body>
 </html>
