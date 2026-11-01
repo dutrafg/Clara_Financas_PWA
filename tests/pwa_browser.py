@@ -58,6 +58,12 @@ async def run():
 
             await page.wait_for_function("document.querySelectorAll('#sideNav [data-view]').length===4",timeout=10000)
             assert await page.locator('#sideNav [data-view]').count()==4
+            assert await page.evaluate("getComputedStyle(document.querySelector('.sidebar')).display")=='none'
+            assert await page.locator('#claraDesktopDock [data-view]').count()==8
+            if width>760:
+                assert await page.locator('#claraDesktopDock').is_visible()
+            else:
+                assert not await page.locator('#claraDesktopDock').is_visible()
             assert await page.locator('#view-painel .clara-balance').is_visible()
             assert await page.locator('#dashboardMiniapps').count()==0
             assert await page.evaluate("CLARA_WIDGETS.length")==15
@@ -81,7 +87,7 @@ async def run():
             if width<=760:
                 await page.locator('#floatTrigger').click()
             else:
-                await page.locator('#sideNav [data-view="mais"]').click()
+                await page.locator('#claraDesktopDock [data-view="mais"]').click()
             assert await page.locator('#view-mais').is_visible()
             assert await page.locator('#view-mais .clara-more-item').count()==7
             await page.locator('#view-mais [data-config-jump="dados"]').click()
