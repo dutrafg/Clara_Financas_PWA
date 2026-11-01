@@ -106,3 +106,12 @@
  .clara-simple-action {flex-direction:column;min-height:67px;}
  .clara-simple-stats article strong {font-size:16px;}
 }
+
+/* A saída do modo avançado deve ficar visível em qualquer módulo. */
+#claraExitAdvanced {display:none;flex:none;align-items:center;justify-content:center;gap:5px;min-height:43px;max-width:260px;padding:10px 16px;border-radius:999px;border:1px solid var(--stroke);background:var(--panel);color:var(--text);font:700 13px/1.2 system-ui,sans-serif;box-shadow:var(--e1);cursor:pointer;}
+:root[data-simple="false"] #claraExitAdvanced:not([hidden]) {display:inline-flex;}
+#claraExitAdvanced:focus-visible {outline:2px solid var(--teal);outline-offset:3px;}
+@media(max-width:760px) {
+ #claraExitAdvanced {max-width:145px;padding:9px 11px;font-size:11px;text-align:center;line-height:1.25;}
+ :root[data-simple="false"] .topbar {align-items:flex-start;gap:8px;}
+}
