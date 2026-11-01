@@ -219,8 +219,11 @@ async def run():
             assert await page.locator('#applyClaraUpdate').is_enabled()
             await page.evaluate("go('painel')")
             await page.locator('#claraUpdateNoticeInstall').click()
-            await page.wait_for_function("document.getElementById('claraUpdateNoticeInstall').textContent==='Preparando…'",timeout=15000)
-            assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
+            # O erro da captura era o botão ficar desativado em "Preparando...".
+            # A nova implementação permite tentar novamente sem bloquear o cofre.
+            assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
+            assert await page.locator('#claraUpdateNoticeInstall').inner_text() in ('Atualizar agora','Tentar novamente','Instalar atualização','Reabrir atualizado')
+            assert not await page.locator('#claraUpdateNoticeInstall').get_attribute('aria-busy')=='true'
             assert await page.evaluate("window.ClaraSecurity.unlocked") is True
             assert await page.evaluate("window.ClaraUpdate.installedVersion")==APP_VERSION
             await page.locator('#claraUpdateNoticeLater').click()
