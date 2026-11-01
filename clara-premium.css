@@ -465,3 +465,8 @@ body{
 }
 :root[data-motion="reduced"] .float-menu.open .mobile-nav,
 :root[data-motion="reduced"] .float-menu.open .float-backdrop{animation:none!important;}
+
+/* Estados de recuperação do atualizador, sem introduzir callout persistente. */
+.clara-update-recovery-hint{font-size:12px;line-height:1.55;color:var(--muted);border-left:3px solid var(--orange);padding:7px 10px;margin:10px 0 0;}
+.clara-update-recovery-hint[hidden]{display:none!important;}
+.clara-update-center #applyClaraUpdate[disabled]{cursor:progress;opacity:.7;}
