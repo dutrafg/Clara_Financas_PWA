@@ -4362,6 +4362,7 @@ const qaSpecs = [
   ['QA-087', 'Cores fixas determinísticas por categoria no gráfico', () => qaAssert(categoryColor('Moradia') === '#4cdbcd' && categoryColor('Alimentação') === '#858ff4' && categoryColor('Transporte') === '#f5aa72')],
   ['QA-088', 'Barras de orçamento por faixa configurável', () => qaAssert(budgetSemanticClass(0.5) === '' && budgetSemanticClass(pref('budgetWarningPct') / 100) === 'warn' && budgetSemanticClass(1.1) === 'over')],
   ['QA-089', 'Resumo e miniaplicativos do painel financeiro', () => qaFixture(() => {
+    state.settings.simpleMode=false;
     renderPainel();
     const h = $('view-painel').innerHTML;
     qaAssert(h.includes('Como estou este mês?') && h.includes('Minha central financeira') && h.includes('data-widget="attention"') && h.includes('sparkline-svg'));
