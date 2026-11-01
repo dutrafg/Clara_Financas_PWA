@@ -49,3 +49,48 @@
 @media(max-width:350px){.cb-status{grid-template-columns:1fr}.cb-entry{display:grid}.clx-card,.cb-card{padding:13px}}
 @media(prefers-reduced-motion:reduce){.clx-card button,.cb-card button{transition:none!important}}
 @media print{.clx-section,.cb-card{break-inside:avoid;box-shadow:none!important}.clx-modal{display:none!important}}
+
+/* Clara Studio 4.2.4 — botões com vidro discreto (20%).
+   A cor de cada ação mantém o seu significado; nunca usar opacity no
+   botão inteiro, pois isso também apagaria ícones, foco e textos. */
+:root{
+  --clara-button-glass:color-mix(in srgb,var(--panel2) 80%,transparent);
+  --clara-primary-glass:color-mix(in srgb,var(--teal) 80%,transparent);
+}
+:where(button:not(.float-backdrop):not(.ca-notification)){
+  -webkit-backdrop-filter:blur(5px) saturate(1.05);
+  backdrop-filter:blur(5px) saturate(1.05);
+  background-clip:padding-box;
+}
+/* Superfícies com preenchimento: respeitar a linguagem de cada módulo. */
+:where(.btn:not(.ghost):not(.primary),.clara-simple-action:not(.primary),
+ .clara-more-item,.clx-add,.clx-dialog button:not(.primary),
+ .ca-header button,.ca-compact-row button,.ca-dialog button:not(.ca-primary),
+ .secure-card button:not(.secure-button),.clara-update-notice button:not(.primary)){
+  background:var(--clara-button-glass);
+  box-shadow:inset 0 1px 0 #ffffff15,0 3px 10px #050b1510;
+}
+:where(.btn.primary,.ca-primary,.clara-simple-action.primary,.clx-dialog button.primary,
+ .secure-button,.ca-dialog .ca-primary,.clara-update-notice .btn.primary){
+  background:var(--clara-primary-glass);
+  box-shadow:inset 0 1px 0 #ffffff27,0 4px 13px #050b151c;
+}
+/* Ações textuais e dias do calendário mantêm o fundo discreto e a legibilidade. */
+:where(.clara-quiet,.ca-agenda-head button,.ca-item-actions button,
+ .clx-item-actions button,.cb-entry button,.ca-popover button,.ca-day){
+  box-shadow:none;
+}
+:where(button:not(.float-backdrop):not(.ca-notification)):focus-visible{
+  outline:2px solid var(--teal);
+  outline-offset:2px;
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{--clara-button-glass:var(--panel2);--clara-primary-glass:var(--teal);}
+  :where(button:not(.float-backdrop):not(.ca-notification)){
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  :where(button){transition:none!important;}
+}
