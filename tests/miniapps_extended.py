@@ -119,16 +119,28 @@ async def run():
       await page.locator(f'[data-widget="{widget}"] [data-clw-action="{action}"]').click()
     assert await page.evaluate("() => JSON.stringify(state)")==original,'Filtro modificou o cofre'
     checked.append('filtros-novos-sem-escrita')
-    # Exportações reais no navegador: todas disponíveis, dados locais.
+    # Os navegadores podem bloquear downloads automáticos em lote (>10);
+    # instrumentar o download nos 13 cards e validar cada CSV em memória.
+    await page.evaluate("""() => {
+      window.__claraQaOriginalDl=dl;window.__claraQaExports=[];
+      dl=(name,content,mime)=>window.__claraQaExports.push({name,content,mime});
+    }""")
     for widget in ['attention','agenda','budgets','goals','accounts','comparison','recent',
                    'insights','forecast','audit','categories','history','recurring']:
-      print('QA CSV MINIAPP:',widget,flush=True)
-      async with page.expect_download(timeout=12000) as d:
-        await page.locator(f'[data-widget="{widget}"] [data-clw-action="widget-export"]').click()
-        print('STATUS EXPORT:',await page.locator('#toast').inner_text(),flush=True)
-      assert (await d.value).suggested_filename.startswith('Clara_Miniapp_'+widget)
+      before_count=await page.evaluate("window.__claraQaExports.length")
+      await page.locator(f'[data-widget="{widget}"] [data-clw-action="widget-export"]').click()
+      result=await page.evaluate("window.__claraQaExports.at(-1)")
+      assert await page.evaluate("window.__claraQaExports.length")==before_count+1,widget
+      assert result['name'].startswith('Clara_Miniapp_'+widget),result
+      assert result['content'].startswith('\\ufeff') and len(result['content'])>25,widget
+      assert result['mime'].startswith('text/csv'),widget
+    await page.evaluate("() => {dl=window.__claraQaOriginalDl;delete window.__claraQaOriginalDl;}")
+    # Pelo menos um download físico, para aferir integração nativa com o Chromium.
+    async with page.expect_download() as d:
+      await page.locator('[data-widget="categories"] [data-clw-action="widget-export"]').click()
+    assert (await d.value).suggested_filename.startswith('Clara_Miniapp_categories')
     assert await page.evaluate("() => JSON.stringify(state)")==original
-    checked.append('13-relatorios-csv')
+    checked.append('13-relatorios-csv-e-download-nativo')
     # Duplicação de recorrência é rascunho no mês seguinte.
     button=page.locator('[data-widget="recurring"] [data-clw-next="true"]').first
     source_id=await button.get_attribute('data-clw-id')
