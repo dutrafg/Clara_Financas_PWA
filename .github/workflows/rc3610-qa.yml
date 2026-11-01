@@ -48,6 +48,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Regressão ampliada dos 15 miniaplicativos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-http-extended.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/miniapps_extended.py 2>&1 | tee /tmp/clara-miniapps-extended.log
       - name: Guardar logs de QA
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,4 +64,5 @@ jobs:
           path: |
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
+            /tmp/clara-miniapps-extended.log
           if-no-files-found: ignore
