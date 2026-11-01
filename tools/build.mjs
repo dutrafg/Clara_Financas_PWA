@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 
 const root = new URL('../',import.meta.url);
 const dist = new URL('../dist/',import.meta.url);
-const files = ['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
+const files = ['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
 const file = name => new URL(name,root);
 const load = async name => readFile(file(name));
 const pkg=JSON.parse((await load('package.json')).toString('utf8'));
