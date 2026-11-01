@@ -2,7 +2,8 @@
 'use strict';
 let month=todayISO().slice(0,7),selected=todayISO(),bellOpen=false,openedEvent=null;
 const $id=id=>document.getElementById(id);
-const glyph='<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>';
+// Traçado vetorial original, inspirado no contorno leve dos símbolos do macOS.
+const glyph='<svg class="ca-apple-bell" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.1 9.25c0-3.54-2.46-6.05-6.1-6.05S5.9 5.71 5.9 9.25v3.7c0 1.25-.55 2.25-1.52 3.15-.44.4-.6.72-.6 1.08 0 .67.52 1.12 1.29 1.12h13.86c.77 0 1.29-.45 1.29-1.12 0-.36-.16-.68-.6-1.08-.97-.9-1.52-1.9-1.52-3.15v-3.7Z"/><path d="M9.65 20.7c.46.7 1.22 1.08 2.35 1.08s1.89-.38 2.35-1.08"/></svg>';
 const safe=esc;
 const calendarData=()=>Array.isArray(state?.calendarEvents)?state.calendarEvents:[];
 const readData=()=>Array.isArray(state?.notificationsRead)?state.notificationsRead:[];
@@ -105,18 +106,19 @@ function renderCalendar(){
  </div>`;
 }
 function renderBell(){
- const header=document.querySelector('.topbar');if(!header)return;
+ // Ancorar no body impede que o sino acompanhe a rolagem do cabeçalho.
+ const overlayParent=document.body;if(!overlayParent)return;
  let bell=$id('claraNotificationButton');
  if(!bell){
   bell=document.createElement('button');bell.type='button';bell.id='claraNotificationButton';bell.className='ca-bell';
   bell.dataset.caBell='1';bell.setAttribute('aria-label','Abrir notificações');bell.setAttribute('aria-controls','claraNotificationPanel');
   bell.innerHTML=glyph+'<span id="claraNotifBadge" class="ca-badge" hidden>0</span>';
-  header.appendChild(bell);
+  overlayParent.appendChild(bell);
  }
  let panel=$id('claraNotificationPanel');
  if(!panel){
   panel=document.createElement('section');panel.id='claraNotificationPanel';panel.className='ca-popover';
-  panel.setAttribute('aria-label','Central de notificações');panel.setAttribute('role','region');header.appendChild(panel);
+  panel.setAttribute('aria-label','Central de notificações');panel.setAttribute('role','region');overlayParent.appendChild(panel);
  }
  const notifications=listNotifications(),read=new Set(readData()),unread=notifications.filter(x=>!read.has(x.id));
  const badge=$id('claraNotifBadge');badge.hidden=unread.length===0;badge.textContent=unread.length>99?'99+':String(unread.length);
