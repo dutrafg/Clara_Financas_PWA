@@ -1,14 +1,14 @@
 {
   "name": "Clara Finanças",
-  "version": "4.0.1-rc",
+  "version": "4.0.2-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "Abertura opcional por biometria ou chave de acesso do dispositivo, mantendo a senha do cofre.",
-    "A biometria pode ser ativada e desativada em Segurança e backup.",
-    "Botão sempre visível para sair do modo avançado e voltar ao modo simples.",
-    "Pílula de navegação maior no celular, com margens laterais.",
-    "Fotos de perfil de até 10 MB, otimizadas antes da gravação criptografada.",
-    "Service Worker e cache atualizados para a nova versão."
+    "Banco de dados criptografado dentro de uma pasta privada do navegador, com gravação em dois snapshots.",
+    "Seus dados anteriores são preservados e migrados automaticamente para o armazenamento privado quando disponível.",
+    "Biometria opcional via chave de acesso, mantendo a senha e o backup do cofre.",
+    "Um botão visível permite voltar do modo avançado ao modo simples em qualquer módulo.",
+    "Dock flutuante ampliada no celular e fotos de perfil de até 10 MB, reduzidas antes de criptografar.",
+    "Service Worker atualizado e cache offline renovado para esta versão."
   ]
 }
