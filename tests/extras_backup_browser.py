@@ -37,6 +37,8 @@ async def run():
             await page.wait_for_function('window.ClaraSecurity.unlocked',timeout=30000)
             assert await page.evaluate('state.reminders.length')==0
             assert await page.evaluate('state.quickNotes.length')==0
+            # Sem pasta definida, a Dashboard oferece a configuração inicial.
+            assert await page.locator('#claraBackupCard').is_visible()
             await page.locator('#claraExtras [data-clx="new-reminder"]').click()
             await page.locator('#claraExtrasForm [name="title"]').fill('Pagar conta fictícia')
             await page.locator('#claraExtrasForm [name="dueDate"]').fill(await page.evaluate('todayISO()'))
@@ -69,13 +71,21 @@ async def run():
               catch(e){return e.message.includes('Escolha uma pasta local');}
             }""")
             assert rejected, 'Backup sem pasta foi indevidamente permitido'
-            # Seleção explícita de uma pasta (substituto OPFS para o seletor nativo no Chromium CI).
+            # Configurar pelo painel correto e verificar remoção imediata da Dashboard.
             await page.evaluate("""async () => {
               const root=await navigator.storage.getDirectory();
               const chosen=await root.getDirectoryHandle('ClaraDestinoExternoQA',{create:true});
               window.showDirectoryPicker=async()=>chosen;
-              await window.ClaraBackups.chooseFolder();
             }""")
+            await page.evaluate("go('ajustes')")
+            await page.locator('[data-config-tab="dados"]').click()
+            assert await page.locator('#claraBackupSettings [data-cb-folder]').is_visible()
+            await page.locator('#claraBackupSettings [data-cb-folder]').click()
+            await page.wait_for_function("window.ClaraBackups.folderReady")
+            assert await page.locator('#claraBackupSettings [data-cb-folder]').inner_text()=='Trocar pasta local'
+            await page.evaluate("go('painel')")
+            assert await page.locator('#claraBackupCard').count()==0, 'Card de backup permaneceu na Dashboard'
+            assert await page.locator('#claraExtras').is_visible()
             assert await page.evaluate("window.ClaraBackups.folderReady") is True
             assert await page.evaluate("window.ClaraBackups.folder")=='ClaraDestinoExternoQA'
             assert await page.evaluate("pref('autoBackup')") is True
@@ -127,12 +137,21 @@ async def run():
             assert await page.evaluate('state.quickNotes.length')==1
             await page.reload(wait_until='load')
             await page.wait_for_function('window.ClaraBackups.folderReady',timeout=10000)
+            assert await page.locator('#claraBackupCard').count()==0, 'Card reapareceu depois de recarregar'
             if await page.locator('#securityCover').is_visible():
                 await page.locator('#securityPassword').fill(PASSWORD)
                 await page.locator('#securitySubmit').click()
                 await page.wait_for_function('window.ClaraSecurity.unlocked',timeout=30000)
             assert await page.evaluate('state.quickNotes[0].title')=='Nota de exemplo'
             assert await page.evaluate('state.reminders[0].title')=='Pagar conta fictícia'
+            # O gerenciamento deve continuar funcional depois do reload e da troca de abas.
+            await page.evaluate("go('ajustes')")
+            await page.locator('[data-config-tab="dados"]').click()
+            assert await page.locator('#claraBackupSettings [data-cb-folder]').is_visible()
+            assert await page.locator('#claraBackupSettings [data-cb-create]').is_visible()
+            assert 'ClaraDestinoExternoQA' in await page.locator('#claraBackupSettings').inner_text()
+            await page.evaluate("go('painel')")
+            assert await page.locator('#claraBackupCard').count()==0
             assert not errors,errors
             print('LEMBRETES + NOTAS + BACKUP QA OK',width)
             await context.close()
