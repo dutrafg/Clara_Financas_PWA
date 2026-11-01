@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.2.1 • Instalação PWA</title>
+<title>Clara Finanças RC4.2.2 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2080,9 +2080,12 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.2.1-rc';
+const CLARA_APP_VERSION='4.2.2-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "Atualizador com ação disponível também em Configurações, detecção de falhas do Service Worker, novas tentativas seguras e proteção contra preparações intermináveis.",
+  "Correções de sobreposição: menu e formulários acima do sino, foco de teclado contido na navegação, fundo sem rolagem e aviso de atualização reposicionado.",
   "Estabilização visual da dock e do menu flutuante: cantos sempre arredondados, animação sem alterações de geometria, responsividade e acessibilidade revisadas.",
+  "Dock com vidro sutil: 20% de transparência e desfoque de 5 px, mantendo ícones e textos legíveis nos temas claro e escuro.",
   "Microbackups criptografados após alterações, retenção de até 20 pontos locais e cópias externas em lotes quando autorizadas.",
   "Proteção pré-atualização com snapshot cifrado e alerta explícito quando não existe cópia externa confirmada.",
   "Calendário compacto na Dashboard do celular, expansível, com preferência preservada no cofre.",
@@ -3023,6 +3026,7 @@ function renderAjustes() {
         </div>
         <div class="clara-update-status"><span class="clara-update-indicator" id="claraUpdateState">Aguardando</span><span id="claraUpdateMessage">Verificação automática com internet.</span></div>
         <div class="control-row"><button type="button" class="btn" id="checkClaraUpdate">Verificar agora</button><button type="button" class="btn primary" id="applyClaraUpdate" hidden>Atualizar agora</button></div>
+        <p class="clara-update-recovery-hint" id="claraUpdateRecoveryHint" hidden>Se a instalação falhar, tente novamente com internet estável. Não use “Limpar dados do site”: isso pode apagar o cofre e os backups internos.</p>
       </div>
       <details class="config-disclosure" id="claraReleaseNotes"><summary>O que há de novidade</summary>
         <ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(item=>'<li>'+esc(item)+'</li>').join('')}</ul>
@@ -4109,18 +4113,34 @@ document.addEventListener('change',async e=>{
 });
 let floatOpen = false;
 function setFloatMenu(open) {
+  const wasOpen=floatOpen;
   floatOpen = !!open && matchMedia('(max-width: 760px)').matches;
-  $('floatMenu').classList.toggle('open', floatOpen);
-  $('floatMenu').setAttribute('aria-hidden', String(!floatOpen));
-  $('floatTrigger').setAttribute('aria-expanded', String(floatOpen));
-  $('floatTrigger').setAttribute('aria-label', floatOpen ? 'Fechar lista de módulos' : 'Abrir todos os módulos');
-  if (floatOpen) $('mobileNav').querySelector('.navlink.active')?.focus();
+  const menu=$('floatMenu'), trigger=$('floatTrigger'), nav=$('mobileNav');
+  menu.classList.toggle('open', floatOpen);
+  menu.setAttribute('aria-hidden', String(!floatOpen));
+  trigger.setAttribute('aria-expanded', String(floatOpen));
+  trigger.setAttribute('aria-label', floatOpen ? 'Fechar lista de módulos' : 'Abrir todos os módulos');
+  // Bloquear a rolagem do conteúdo atrás do painel, sem alterar o cofre.
+  document.body.classList.toggle('clara-menu-open',floatOpen);
+  if(floatOpen)nav.querySelector('.navlink.active')?.focus();
+  else if(wasOpen&&nav.contains(document.activeElement))trigger.focus();
 }
 function closeFloatMenu() { if (floatOpen) setFloatMenu(false); }
 $('floatTrigger').addEventListener('click', () => setFloatMenu(!floatOpen));
 $('floatBackdrop').addEventListener('click', () => { closeFloatMenu(); $('floatTrigger').focus(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && floatOpen) { closeFloatMenu(); $('floatTrigger').focus(); }
+  if (e.key === 'Escape' && floatOpen) {
+    e.preventDefault();closeFloatMenu();$('floatTrigger').focus();
+  }
+  if (e.key !== 'Tab'||!floatOpen)return;
+  const links=[...$('mobileNav').querySelectorAll('button:not([disabled])')];
+  if(!links.length)return;
+  const first=links[0],last=links[links.length-1],focused=document.activeElement;
+  if(e.shiftKey&&(focused===first||!links.includes(focused))){
+    e.preventDefault();last.focus();
+  }else if(!e.shiftKey&&(focused===last||!links.includes(focused))){
+    e.preventDefault();first.focus();
+  }
 });
 matchMedia('(max-width: 760px)').addEventListener('change', () => closeFloatMenu());
 // Configurações permanece acessível exclusivamente como módulo de navegação.
@@ -4763,6 +4783,7 @@ const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const HOUR=60*60*1000, RESUME=15*60*1000, DISMISS_KEY='clara-update-dismissed-v1';
  let registration=null, initialPromise=null, checking=null, applying=false, observed=false;
+ const observedWorkers=new WeakSet();
  let installRequested=false, installPromise=null, prepareTimer=null;
  const PREPARE_TIMEOUT=25000;
  let status='Aguardando', message='Verificação automática ao desbloquear.', lastCheck=0;
@@ -4778,12 +4799,14 @@ const ClaraUpdate=(()=>{
  function setStatus(next,msg){status=next;message=msg;paint();}
  function clearPreparation(){installRequested=false;if(prepareTimer)clearTimeout(prepareTimer);prepareTimer=null;}
  function startPreparation(){
-  if(prepareTimer)clearTimeout(prepareTimer);
+  // Também protege verificações automáticas, não somente cliques no aviso.
+  // Evita um estado "Preparando atualização" indefinido.
+  if(prepareTimer)return;
   prepareTimer=setTimeout(()=>{
    prepareTimer=null;
-   if(installRequested&&!registration?.waiting){
+   if(compare(remoteVersion,INSTALLED_VERSION)>0&&!registration?.waiting&&!applying){
     installRequested=false;
-    setStatus('Falha ao preparar','O pacote ainda não está disponível. Confira a conexão e tente Atualizar agora novamente.');
+    setStatus('Falha ao preparar','O novo pacote não ficou pronto. Toque em Atualizar agora para tentar novamente. Não apague os dados do site.');
    }
   },PREPARE_TIMEOUT);
  }
@@ -4797,7 +4820,15 @@ const ClaraUpdate=(()=>{
   const checkButton=get('checkClaraUpdate');
   if(checkButton){checkButton.disabled=!!checking;checkButton.textContent=checking?'Verificando…':'Verificar agora';}
   const action=get('applyClaraUpdate');
-  if(action)action.hidden=!ready||applying;
+  const hasUpdate=!!remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
+  if(action){
+   action.hidden=!hasUpdate||applying;
+   action.disabled=applying||installRequested;
+   action.textContent=installRequested?'Preparando…':'Atualizar agora';
+   action.setAttribute('aria-busy',String(!!installRequested));
+  }
+  const hint=get('claraUpdateRecoveryHint');
+  if(hint)hint.hidden=!hasUpdate||!['Falha ao preparar','Sem confirmação'].includes(status);
   const notice=get('claraUpdateNotice');
   if(notice){
    const available=remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
@@ -4813,19 +4844,35 @@ const ClaraUpdate=(()=>{
     button.hidden=false;
     button.disabled=applying||installRequested;
     button.textContent=installRequested?'Preparando…':'Atualizar agora';
+    button.setAttribute('aria-busy',String(!!installRequested));
    }
   }
  }
  function handleWaiting(){
   ready=!!registration?.waiting;
   if(ready){
-   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Confira as novidades e escolha Atualizar agora.');
-   if(installRequested){
-    clearPreparation();
-    // A instalação exige confirmação e o salvamento do cofre; nunca ativar o SW sem ambos.
+   const wasRequested=installRequested;
+   clearPreparation();
+   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Escolha Atualizar agora para instalar.');
+   if(wasRequested){
+    // Não trocar o Service Worker sem confirmação e sem salvar o cofre.
     void installReady(registration).catch(error=>showToast(error.message,true));
    }
   }else paint();
+ }
+ function watchInstalling(worker){
+  if(!worker||observedWorkers.has(worker))return;
+  observedWorkers.add(worker);
+  const sync=()=>{
+   if(worker.state==='installed')handleWaiting();
+   else if(worker.state==='redundant'&&compare(remoteVersion,INSTALLED_VERSION)>0&&!registration?.waiting){
+    clearPreparation();
+    ready=false;
+    setStatus('Falha ao preparar','O navegador não conseguiu instalar o pacote offline. Verifique a conexão e toque em Atualizar agora para repetir, sem limpar os dados do site.');
+   }
+  };
+  worker.addEventListener('statechange',sync);
+  sync();
  }
  function bindEvents(){
   if(observed)return;
@@ -4850,12 +4897,8 @@ const ClaraUpdate=(()=>{
   initialPromise=(async()=>{
    const r=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
    registration=r;bindEvents();
-   r.addEventListener('updatefound',()=>{
-    const worker=r.installing;
-    worker?.addEventListener('statechange',()=>{
-     if(worker.state==='installed')handleWaiting();
-    });
-   });
+   r.addEventListener('updatefound',()=>watchInstalling(r.installing));
+   watchInstalling(r.installing);
    handleWaiting();
    return r;
   })().finally(()=>{initialPromise=null;});
@@ -4881,16 +4924,26 @@ const ClaraUpdate=(()=>{
     releaseNotes=Array.isArray(info.notes)?info.notes.filter(x=>typeof x==='string').slice(0,5):[];
     lastCheck=Date.now();
     const newer=compare(remoteVersion,INSTALLED_VERSION)>0;
-    if(newer&&!r.waiting)setStatus('Preparando atualização','Versão '+remoteVersion+' identificada. Baixando recursos para uso offline.');
+    if(newer&&!r.waiting){
+     startPreparation();
+     setStatus('Preparando atualização','Versão '+remoteVersion+' identificada. Preparando os arquivos para uso offline.');
+    }
     await r.update();
     ready=!!r.waiting;
     if(ready)handleWaiting();
-    else if(newer)setStatus('Preparando atualização','Versão '+remoteVersion+' encontrada. O novo pacote será oferecido quando estiver pronto.');
-    else setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+    else if(newer&&status!=='Falha ao preparar'){
+     watchInstalling(r.installing);
+     setStatus('Preparando atualização','Versão '+remoteVersion+' encontrada. O pacote está sendo preparado; Atualizar agora permite solicitar outra tentativa.');
+    }else if(!newer){
+     clearPreparation();
+     setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+    }
     if(interactive&&!newer&&!ready)showToast('Clara atualizado. Versão '+INSTALLED_VERSION+'.');
     return newer||ready;
    }catch(e){
-    setStatus('Sem confirmação','A verificação não foi concluída. Seus dados permanecem disponíveis neste dispositivo.');
+    clearPreparation();
+    ready=!!registration?.waiting;
+    setStatus('Sem confirmação','A verificação falhou: '+(e?.message||'erro de conexão')+'. O cofre permanece intacto.');
     if(interactive)showToast(e.message,true);
     return false;
    }finally{checking=null;paint();}
@@ -4939,10 +4992,10 @@ const ClaraUpdate=(()=>{
   setStatus('Preparando atualização','Atualização solicitada. Preparando o pacote offline antes de confirmar a instalação.');
   await check(false);
   if(r.waiting){
-   installRequested=false;
+   clearPreparation();
    return installReady(r);
   }
-  if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'){
+  if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'||status==='Falha ao preparar'){
    clearPreparation();
    paint();
    showToast('O pacote ainda não pôde ser preparado. Verifique a conexão e tente novamente.',true);

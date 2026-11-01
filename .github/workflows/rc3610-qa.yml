@@ -1,4 +1,4 @@
-name: Clara Finanças 4.1.2 — QA único
+name: Clara Finanças — QA contínuo
 
 on:
   push:
@@ -49,6 +49,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Validar troca real do Service Worker em subpasta e offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8766 --directory . > /tmp/clara-version-paths-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/version_paths_browser.py 2>&1 | tee /tmp/clara-version-paths-browser.log
       - name: Testar calendário e central de notificações no Chromium
         shell: bash
         run: |
@@ -98,6 +106,8 @@ jobs:
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
             /tmp/clara-miniapps-extended.log
+            /tmp/clara-version-paths-browser.log
+            /tmp/clara-version-paths-server.log
             /tmp/clara-agenda-browser.log
             /tmp/clara-guest-browser.log
             /tmp/clara-extras-browser.log

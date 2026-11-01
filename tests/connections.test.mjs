@@ -89,6 +89,21 @@ test('Service Worker não confirma versão antiga quando a rede falha',async()=>
  }
 });
 
+test('Atualização não fica pendente indefinidamente e mantém cache antigo se o download falhar',async()=>{
+ const sw=await readFile('sw.js','utf8');
+ assert.match(sw,/Promise\.allSettled\(APP_FILES\.map/);
+ assert.match(sw,/caches\.delete\(CACHE_NAME\)/);
+ assert.match(sw,/attempt<3/);
+ assert.doesNotMatch(sw,/caches\.delete\(['"]clara-financas-vault/);
+ assert.match(html,/id="applyClaraUpdate"/);
+ assert.match(html,/action\.hidden=!hasUpdate\|\|applying/);
+ assert.match(html,/const PREPARE_TIMEOUT=25000/);
+ assert.match(html,/watchInstalling\(r\.installing\)/);
+ assert.match(html,/worker\.state==='redundant'/);
+ assert.match(html,/id="claraUpdateRecoveryHint"/);
+ assert.match(html,/window\.ClaraBackups\?\.beforeUpdate\?\.\(\)/);
+});
+
 test('Versão no painel deriva da mesma constante usada pelo atualizador',()=>{
  const appVersion=html.match(/const CLARA_APP_VERSION='([^']+)'/);
  assert.ok(appVersion);

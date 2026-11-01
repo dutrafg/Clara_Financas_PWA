@@ -73,7 +73,9 @@ async def run():
      const d=dock.getBoundingClientRect(),w=wrap.getBoundingClientRect(),
            m=main.getBoundingClientRect();
      const c=getComputedStyle(wrap),dc=getComputedStyle(dock);
-     return {viewport:win,mainLeft:m.left,mainRight:m.right,mainWidth:m.width,
+     const glass=getComputedStyle(win<=760?document.querySelector('.mobile-dock'):dock);
+     return {glassFilter:glass.backdropFilter,glassBackground:glass.backgroundColor,
+       viewport:win,mainLeft:m.left,mainRight:m.right,mainWidth:m.width,
        dockLeft:d.left,dockTop:w.top,dockHeight:w.height,
        dockRight:d.right,dockCenter:w.top+w.height/2,
        vCenter:innerHeight/2,dockFlow:dc.flexDirection,
@@ -81,6 +83,8 @@ async def run():
        overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
        dockVisible:d.width>0&&dc.display!=='none'};
    }""")
+   assert 'blur(5px)' in dims['glassFilter'],dims
+   assert '0.8' in dims['glassBackground'],dims
    assert dims['overflow']<=3,dims
    if width>=1024:
     assert dims['dockVisible'] and dims['dockFlow']=='column' and dims['wrapFlow']=='column',dims

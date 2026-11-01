@@ -4,18 +4,38 @@ const APP_FILES = ['./','./index.html','./clara-simple.css','./clara-simple.js',
 const scopedURL = relative => new URL(relative, self.registration.scope);
 const versionPath = scopedURL('./version.json').pathname;
 
-self.addEventListener('install', event => event.waitUntil((async () => {
-  const cache = await caches.open(CACHE_NAME);
-  // Não reutilizar respostas mantidas em cache por um controlador anterior.
-  // Cada recurso deve vir da rede e ser gravado pelo caminho canônico,
-  // inclusive durante uma troca de versão ainda controlada pelo SW antigo.
-  await Promise.all(APP_FILES.map(async path => {
-    const url = scopedURL(path);
-    const response = await fetch(new Request(url, {cache:'no-store'}));
-    if (!response.ok) throw Error('Falha ao preparar atualização PWA: ' + path);
-    await cache.put(url, response);
-  }));
-  // O novo SW fica aguardando confirmação pelo atualizador da interface.
+// A instalação é atômica: recursos obrigatórios precisam estar íntegros antes
+// de oferecer o pacote. Repetir uma falha temporária, sem tocar no cofre
+// (OPFS, IndexedDB e localStorage não participam deste ciclo).
+async function downloadRequired(path){
+ const url=scopedURL(path);
+ let lastError;
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   const response=await fetch(new Request(url, {cache:'no-store'}));
+   if(!response.ok)throw Error('HTTP '+response.status+' em '+path);
+   return {url,response};
+  }catch(error){
+   lastError=error;
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,350*(attempt+1)));
+  }
+ }
+ throw Error('Recurso obrigatório indisponível: '+path+' ('+(lastError?.message||'rede')+')');
+}
+self.addEventListener('install',event=>event.waitUntil((async()=>{
+ const cache=await caches.open(CACHE_NAME);
+ // Promise.allSettled aguarda todas as gravações antes de apagar um cache incompleto,
+ // evitando sobras concorrentes quando um único arquivo falhar.
+ const results=await Promise.allSettled(APP_FILES.map(async path=>{
+  const {url,response}=await downloadRequired(path);
+  await cache.put(url, response);
+ }));
+ const failed=results.find(x=>x.status==='rejected');
+ if(failed){
+  await caches.delete(CACHE_NAME);
+  throw Error('Instalação do Clara não concluída: '+(failed.reason?.message||'falha no cache'));
+ }
+ // Nunca executar skipWaiting automaticamente; a troca exige aprovação e backup.
 })()));
 
 self.addEventListener('activate', event => event.waitUntil((async () => {
