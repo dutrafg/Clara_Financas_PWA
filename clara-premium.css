@@ -354,6 +354,7 @@ body{
   width:100%;max-width:none;min-width:0;
  }
  .view.active>*{max-width:none;}
+ .clara-simple-home,.clara-balance,.clara-simple-intro{width:100%;max-width:none;min-width:0;}
  .mobile-dock-wrap{
   position:fixed;
   display:flex!important;
