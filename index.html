@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.0.6 • Instalação PWA</title>
+<title>Clara Finanças RC4.1.0 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -107,57 +107,8 @@ a { color: inherit; }
 
 /* Layout Principal */
 .shell {
-  display: grid;
-  grid-template-columns: 244px minmax(0, 1fr);
-  min-height: 100dvh;
-}
-.sidebar {
-  position: sticky;
-  top: 0;
-  height: 100dvh;
-  border-right: 1px solid var(--stroke);
-  background: #0b1620;
-  color: #e8f3f6;
-  padding: 22px 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-y: auto;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 10px;
-}
-.logo {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
-  border-radius: var(--r-md);
-  background: linear-gradient(145deg, #4cdbcd, #216b8a);
-  color: #05262b;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  font-weight: 800;
-  box-shadow: 0 6px 18px #29c5c328;
-}
-/* Corrige P1: Wordmark "Clara" sempre legível sobre a sidebar escura, inclusive no tema claro */
-.brand h1, :root[data-theme=light] .brand h1 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-  color: #e8f3f6;
-}
-.brand small {
   display: block;
-  font-size: var(--fs-xs);
-  margin-top: 3px;
-  color: #9fb3c0;
-  font-weight: 500;
+  min-height: 100dvh;
 }
 .navlinks { display: grid; gap: 4px; }
 .navlink {
@@ -188,47 +139,6 @@ a { color: inherit; }
   align-items: center;
   justify-content: center;
 }
-.sidefoot {
-  margin-top: auto;
-  border-top: 1px solid #223544;
-  padding: 14px 10px 0;
-  color: #9fb3c0;
-  font-size: var(--fs-xs);
-  line-height: 1.45;
-  display: grid;
-  gap: 10px;
-}
-.sidefoot strong {
-  display: block;
-  color: #e8f3f6;
-  margin-bottom: 2px;
-}
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: #6fdc8c;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-/* Botão de QA integrado na sidebar sem flutuar sobre o conteúdo (Corrige P1) */
-.qa-launch {
-  width: 100%;
-  border: 1px solid #3c9d96;
-  background: #12333b;
-  color: #e8f3f6;
-  border-radius: var(--r-sm);
-  padding: 9px 12px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.qa-launch:hover { background: #194752; }
-
 .main {
   min-width: 0;
   max-width: 1600px;
@@ -1116,19 +1026,12 @@ a { color: inherit; }
   .compact-item:nth-child(2) { border-right: 0; }
 }
 @media (max-width: 1060px) {
-  .shell { grid-template-columns: 76px minmax(0, 1fr); }
-  .sidebar { padding: 18px 8px; }
-  .brand { padding: 0; justify-content: center; }
-  .brand > div, .navlink span:not(.ico), .sidefoot-text { display: none; }
-  .navlink { justify-content: center; padding: 11px 8px; }
-  .sidefoot { display:none; }
   .layout-two, .layout-equal, .hero { grid-template-columns: 1fr; }
 }
 
 /* Responsividade Mobile (375px / 760px) — Topbar em 2 linhas, Navegação com Rótulos 12px */
 @media (max-width: 760px) {
   .shell { display: block; }
-  .sidebar { display: none; }
   .main {
     padding: 14px 12px calc(98px + env(safe-area-inset-bottom));
   }
@@ -1223,7 +1126,7 @@ a { color: inherit; }
   .qa-cover { backdrop-filter: none; }
 }
 @media print {
-  .sidebar, .mobile-nav, .toolbar, .btn, .toast, .modal-backdrop, .qa-launch, .qa-cover { display: none !important; }
+  .mobile-nav, .toolbar, .btn, .toast, .modal-backdrop, .qa-cover { display: none !important; }
   .shell { display: block; }
   .main { padding: 0; max-width: none; }
   .panel, .metric { box-shadow: none; break-inside: avoid; }
@@ -1279,7 +1182,6 @@ a { color: inherit; }
 :root[data-palette="petrol"][data-theme="dark"] {
   --side-bg: #0b1620; --side-selected: #162e3d; --hero-start: #0b2230; --hero-end: #0d3b44;
 }
-.sidebar { background: var(--side-bg, #0b1620); }
 .navlink:hover, .navlink.active { background: var(--side-selected, #162e3d); color: #f3f0ff; }
 .logo { background: linear-gradient(145deg, var(--teal), var(--blue)); color: var(--teal-ink); }
 .hero { background: linear-gradient(130deg, var(--hero-start, #0b2230), var(--hero-end, #0d3b44)); border-color: color-mix(in srgb,var(--teal) 37%, transparent); }
@@ -1293,14 +1195,6 @@ a { color: inherit; }
 :root[data-density="compact"] .table th, :root[data-density="compact"] .table td { padding: 7px 9px; }
 :root[data-text="large"] { --fs-xs: 13px; --fs-sm: 15px; --fs-md: 17px; --fs-lg: 20px; }
 :root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; scroll-behavior: auto !important; }
-@media(min-width: 1061px) {
-  :root[data-sidebar="compact"] .shell { grid-template-columns: 76px minmax(0,1fr); }
-  :root[data-sidebar="compact"] .sidebar { padding: 18px 8px; }
-  :root[data-sidebar="compact"] .brand { padding: 0; justify-content: center; }
-  :root[data-sidebar="compact"] .brand > div, :root[data-sidebar="compact"] .navlink span:not(.ico), :root[data-sidebar="compact"] .sidefoot-text { display: none; }
-  :root[data-sidebar="compact"] .navlink { justify-content: center; padding: 11px 8px; }
-  :root[data-sidebar="compact"] .sidefoot {display:none;}
-}
 [hidden] { display: none !important; }
 .config-intro { display:flex; justify-content:space-between; align-items:center; gap:24px; background:var(--panel2); border:1px solid var(--stroke); border-radius:var(--r-lg); padding:22px 24px; margin-bottom:14px; }
 .config-intro h3 { font-size:24px; line-height:1.2; letter-spacing:-.5px; margin:6px 0; }
@@ -1649,6 +1543,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 <link rel="stylesheet" href="./clara-biometric.css">
 <link rel="stylesheet" href="./clara-storage-ui.css">
 <link rel="stylesheet" href="./clara-agenda.css">
+<link rel="stylesheet" href="./clara-premium.css">
 </head>
 <body>
 <div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
@@ -1671,22 +1566,6 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
   </section>
 </div>
 <div class="shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="logo" aria-hidden="true">C</div>
-      <div>
-        <h1>Clara</h1>
-        <small>Finanças pessoais</small>
-      </div>
-    </div>
-    <nav class="navlinks" id="sideNav" aria-label="Menu principal"></nav>
-    <div class="sidefoot">
-      <div class="sidefoot-text">
-        <span class="dot"></span><strong>Seus dados, no dispositivo</strong>
-        Armazenamento local neste navegador. Faça backups periódicos em Configurações.
-      </div>
-    </div>
-  </aside>
 
   <main class="main">
     <div id="integrityNotice" role="alert" hidden></div>
@@ -2192,17 +2071,17 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.0.6-rc';
+const CLARA_APP_VERSION='4.1.0-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
-  "Avisos da agenda corrigidos: lembrete de 1 hora antes tem prioridade sobre a notificação do dia; horário local validado.",
-  "QA de produção unificado para modos simples e avançado, miniaplicativos, cofre e uso offline.",
-  "Preparação da homologação no GitHub Pages em branch separada, mantendo Vercel vinculada à main.",
-  "Sino fixo, dock completa em tablet e desktop, proteção contra recarregamento, banco privado, biometria e backups preservados.",
-  "Atualização segura com Service Worker e cache renovados para a Clara 4.0.6."
+  "Design Clara Studio: tipografia editorial, superfícies sofisticadas, microinterações e hierarquia adaptável aos dispositivos.",
+  "Remoção da barra lateral legada, seu HTML, configurações e renderizações desnecessárias; pílula continua sendo a navegação principal.",
+  "Todos os 15 miniaplicativos, agenda, notificações, biometria, cofre e operações financeiras preservados.",
+  "Animações respeitam movimento reduzido; contraste, estados de foco e alvos de toque foram refinados.",
+  "Cache offline e Service Worker atualizados, com testes de navegação e integridade financeira."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
-  reduceMotion: false, sidebarCompact: false, hideValues: false,
+  reduceMotion: false, hideValues: false,
   showSummary: true, showCategories: true, showOutlook: true,
   forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true
 });
@@ -2211,7 +2090,7 @@ const PREF_ENUMS = Object.freeze({
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
@@ -3044,7 +2923,6 @@ function renderAjustes() {
       ${panel('Legibilidade e navegação', 'Preferências úteis para celular, tablet e desktop.', `<div class="list">
         ${prefSwitch('largeText','Texto maior','Aumenta textos, botões e campos.')} 
         ${prefSwitch('reduceMotion','Reduzir animações','Evita transições desnecessárias.')} 
-        ${prefSwitch('sidebarCompact','Barra lateral compacta','Recolhe os nomes no desktop, sem afetar a navegação do celular.')}
       </div>`)}
 
     </div>
@@ -3448,11 +3326,9 @@ const titleMap = {
 };
 
 function renderNav() {
-  for (const id of ['sideNav', 'mobileNav']) {
-    $(id).innerHTML = NAV.map(([key, icon, label]) =>
-      `<button type="button" class="navlink ${active === key ? 'active' : ''}" data-view="${key}" title="${label}" aria-label="${label}"><span class="ico">${icon}</span><span>${id === 'mobileNav' ? MOBILE_NAV_LABELS[key] : label}</span></button>`
-    ).join('');
-  }
+  $('mobileNav').innerHTML = NAV.map(([key, icon, label]) =>
+    `<button type="button" class="navlink ${active === key ? 'active' : ''}" data-view="${key}" title="${label}" aria-label="${label}"><span class="ico">${icon}</span><span>${MOBILE_NAV_LABELS[key]}</span></button>`
+  ).join('');
   for(const btn of document.querySelectorAll('.mobile-dock .dock-link')){
    const selected=btn.dataset.view===active;
    btn.classList.toggle('active',selected);
@@ -3469,7 +3345,6 @@ function render() {
   document.documentElement.dataset.backdrop = pref('backdrop');
   document.documentElement.dataset.text = pref('largeText') ? 'large' : 'normal';
   document.documentElement.dataset.motion = pref('reduceMotion') ? 'reduced' : 'normal';
-  document.documentElement.dataset.sidebar = pref('sidebarCompact') ? 'compact' : 'wide';
   $('period').value = state.settings.period;
 
   const notice = $('integrityNotice');
@@ -4292,7 +4167,7 @@ const qaSpecs = [
   ['QA-046', 'Dados fictícios não incluem credenciais bancárias', () => qaAssert(!JSON.stringify(SOURCE_DATA).match(/access_token|client_secret|password.*:/i))],
   ['QA-047', 'A interface oferece exportação JSON', () => qaAssert(typeof dl === 'function' && Array.isArray(state.transactions))],
   ['QA-048', 'Há áreas para transações, orçamentos e metas', () => qaAssert(typeof renderMov === 'function' && typeof renderPlan === 'function' && typeof renderAssist === 'function')],
-  ['QA-049', 'Menu de módulos existe para uso móvel', () => qaAssert(!!$('mobileNav') && !!$('floatTrigger') && !!$('sideNav'))],
+  ['QA-049', 'Menu de módulos existe para uso móvel', () => qaAssert(!!$('mobileNav') && !!$('floatTrigger') && !!$('claraDesktopDock'))],
   ['QA-050', 'O diálogo de lançamentos está disponível', () => qaAssert(!!$('modalBg') && typeof modal === 'function')],
   ['QA-051', 'As categorias têm limites inteiros em centavos', () => qaAssert(SOURCE_DATA.categories.every(c => Number.isSafeInteger(c.limitCents)))],
   ['QA-052', 'As transações têm valores inteiros em centavos', () => qaAssert(SOURCE_DATA.transactions.every(t => Number.isSafeInteger(t.amountCents)))],
@@ -4395,7 +4270,7 @@ const qaSpecs = [
     const h = $('view-painel').innerHTML;
     qaAssert(h.includes('Como estou este mês?') && h.includes('Minha central financeira') && h.includes('data-widget="attention"') && h.includes('sparkline-svg'));
   })],
-  ['QA-090', 'Ícones SVG inline presentes na navegação', () => qaAssert(!!document.querySelector('#sideNav svg.svg-ico') && !!document.querySelector('#mobileNav svg.svg-ico'))]
+  ['QA-090', 'Ícones SVG inline presentes na navegação', () => qaAssert(!!document.querySelector('#claraDesktopDock svg.svg-ico') && !!document.querySelector('#mobileNav svg.svg-ico'))]
 ];
 
 
