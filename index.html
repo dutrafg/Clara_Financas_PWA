@@ -2091,14 +2091,14 @@ const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
   reduceMotion: false, hideValues: false,
   showSummary: true, showCategories: true, showOutlook: true,
-  forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true
+  forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true, autoBackup: true
 });
 const PREF_ENUMS = Object.freeze({
   palette: ['violet', 'blue', 'petrol', 'bosque', 'coral', 'areia'], density: ['comfortable', 'compact'],
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock', 'autoBackup'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
@@ -3020,6 +3020,8 @@ function renderAjustes() {
       </details>
     `)}<div class="gap"></div>
     ${panel('Backup protegido', 'Seus dados permanecem criptografados.', `
+      ${prefSwitch('autoBackup','Backup automático às 2h','Cria uma cópia criptografada privada todos os dias. Se a Clara estiver fechada, executa na próxima abertura após as 2h.')}
+      <div class="clara-backup-settings" id="claraBackupSettings" aria-live="polite"></div>
       <div class="config-actions"><div><strong>Exportar .clara</strong><small>Cópia criptografada dos seus registros.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div>
       <div class="config-actions"><div><strong>Restaurar .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div>
       <details class="config-disclosure"><summary>Importar dados de versões antigas</summary>
@@ -4648,6 +4650,10 @@ async function secureEnter(password,confirm) {
     try {original=await decryptState(v,key);}catch {throw Error('Senha incorreta ou arquivo do cofre adulterado. Seus dados não foram apagados.');}
     claraKey=key;claraVaultRaw=raw;state=original;
     if(!Array.isArray(state.auditLog))state.auditLog=[];
+    if(!Array.isArray(state.reminders))state.reminders=[];
+    if(!Array.isArray(state.quickNotes))state.quickNotes=[];
+    if(!Array.isArray(state.calendarEvents))state.calendarEvents=[];
+    if(!Array.isArray(state.notificationsRead))state.notificationsRead=[];
     if(safeStorageGet(KEY))try{localStorage.removeItem(KEY);}catch{}
     render();
   }
@@ -4700,7 +4706,25 @@ document.addEventListener('change',async e=>{
     });
   }catch(err){showToast(err.message,true);}
 });
-window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+async function secureRestoreLocalEncrypted(raw,password){
+  if(!claraUnlocked||!claraKey||claraError||window.ClaraGuest?.active)throw Error('Desbloqueie o cofre para restaurar um backup.');
+  await claraSaving;
+  const v=validateVault(raw);
+  const key=await deriveKey(password,b64Bytes(v.salt));
+  let imported;
+  try{imported=await decryptState(v,key);}
+  catch{throw Error('Senha do backup incorreta ou arquivo adulterado. Nada foi alterado.');}
+  if(!Array.isArray(imported.reminders))imported.reminders=[];
+  if(!Array.isArray(imported.quickNotes))imported.quickNotes=[];
+  if(!Array.isArray(imported.calendarEvents))imported.calendarEvents=[];
+  if(!Array.isArray(imported.notificationsRead))imported.notificationsRead=[];
+  validateData(imported);
+  const old=state;
+  state=withDefaultPreferences(imported);
+  try{persistSuccess('Backup local restaurado com segurança.');await claraSaving;}
+  catch(error){state=old;render();throw error;}
+}
+window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,restoreLocalEncrypted:secureRestoreLocalEncrypted,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
 window.ClaraPrivateFolder={get folder(){return CLARA_FS_FOLDER;},get active(){return claraFSAvailable;},get revision(){return claraFSRevision;},get warning(){return claraFSWarning;}};
 (async()=>{
   try {
