@@ -1,9 +1,11 @@
 {
   "name": "Clara Finanças",
-  "version": "4.1.0-rc",
+  "version": "4.1.1-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Desktop: dock vertical à esquerda, centralizada, com módulos ocupando toda a largura útil.",
+    "Demonstração sem senha com dados fictícios; criar cofre antes de adicionar, importar ou editar registros.",
     "Design Clara Studio: tipografia editorial, superfícies sofisticadas, microinterações e hierarquia adaptável aos dispositivos.",
     "Remoção da barra lateral legada, seu HTML, configurações e renderizações desnecessárias; pílula continua sendo a navegação principal.",
     "Todos os 15 miniaplicativos, agenda, notificações, biometria, cofre e operações financeiras preservados nos modos simples e avançado.",
