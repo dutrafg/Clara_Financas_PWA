@@ -23,6 +23,7 @@ async def run():
             await unlock(page)
             await page.wait_for_function('navigator.serviceWorker.controller!==null',timeout=30000)
             assert await page.evaluate("window.ClaraSimple?.enabled") is True
+            await page.wait_for_function("document.querySelectorAll('#sideNav [data-view]').length===4",timeout=10000)
             assert await page.locator('#sideNav [data-view]').count()==4
             assert await page.locator('#view-painel .clara-balance').is_visible()
             assert await page.locator('#dashboardMiniapps').count()==0
