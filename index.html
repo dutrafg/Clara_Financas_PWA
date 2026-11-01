@@ -1733,7 +1733,7 @@ function renderSimulator(action){
 function exportRecurring(){
  const q=x=>'"'+String(x).replace(/"/g,'""')+'"';
  const csv=[['Descrição','Tipo','Meses','Ocorrências','Última data','Próxima referência estimada','Último valor (R$)'],
- ...recurringItems().map(r=>[r.name,r.kind,r.months,r.count,r.last,r.next,(r.amount/100).toFixed(2).replace('.',',')])]
+ ...recurringItems(claraWidgetUI.recurringKind).map(r=>[r.name,r.kind,r.months,r.count,r.last,r.next,(r.amount/100).toFixed(2).replace('.',',')])]
  .map(row=>row.map(q).join(';')).join('\r\n');
  dl('clara-recorrencias-'+todayISO()+'.csv','\uFEFF'+csv,'text/csv;charset=utf-8');
 }
@@ -2064,6 +2064,37 @@ function renderClaraMiniapps(p) {
 function handleClaraWidgetAction(b) {
  const action=b.dataset.clwAction, id=b.dataset.clwId;
  const persist=()=>{try{save();}catch(error){showToast(error.message,true);}};
+ // Filtros de miniaplicativos: estado efêmero, sem escrita no cofre.
+ const value=b.dataset.clwValue;
+ if(action==='widget-export'){try{exportClaraWidget(value);}catch(e){showToast(e.message,true);}return;}
+ if(action==='attention-filter'){if(['Todos','Atrasos','Limites','Metas'].includes(value)){claraWidgetUI.attention=value;renderPainel();}return;}
+ if(action==='budget-sort'){if(['Percentual','Gasto','Nome'].includes(value)){claraWidgetUI.budgetSort=value;renderPainel();}return;}
+ if(action==='goal-overdue'){if(['all','overdue'].includes(value)){claraWidgetUI.goalOverdue=value==='overdue';renderPainel();}return;}
+ if(action==='recent-kind'){if(['Todos','Receita','Despesa'].includes(value)){claraWidgetUI.recentKind=value;renderPainel();}return;}
+ if(action==='insight-filter'){if(['all','important'].includes(value)){claraWidgetUI.insightsImportant=value==='important';renderPainel();}return;}
+ if(action==='forecast-negative'){claraWidgetUI.onlyDeficits=!claraWidgetUI.onlyDeficits;renderPainel();return;}
+ if(action==='audit-difference'){claraWidgetUI.auditOnlyDifference=!claraWidgetUI.auditOnlyDifference;renderPainel();return;}
+ if(action==='category-metric'){if(['Realizado','Previsto'].includes(value)){claraWidgetUI.categoryMetric=value;renderPainel();}return;}
+ if(action==='history-negative'){if(['all','negative'].includes(value)){claraWidgetUI.historyOnlyNegative=value==='negative';renderPainel();}return;}
+ if(action==='recurring-kind'){if(['Todos','Receita','Despesa'].includes(value)){claraWidgetUI.recurringKind=value;renderPainel();}return;}
+ if(action==='sim-reset'){
+  const income=$('clw-sim-income'),expense=$('clw-sim-expense'),months=$('clw-sim-months'),result=$('clw-sim-result');
+  if(income)income.value='0,00';if(expense)expense.value='0,00';if(months)months.value='1';
+  if(result)result.textContent='Cenário zerado. Preencha novos valores para calcular.';
+  return;
+ }
+ if(action==='sim-export'){
+  try{
+   const income=parseBRL($('clw-sim-income').value),expense=parseBRL($('clw-sim-expense').value);
+   const months=Number($('clw-sim-months').value);
+   const {monthly,estimated}=computeSimulation(income,expense,months,state.settings.period);
+   const rows=[['Parâmetro','Valor'],['Mês de referência',state.settings.period],
+    ['Receita extra/mês (R$)',csvAmount(income)],['Despesa extra/mês (R$)',csvAmount(expense)],
+    ['Prazo (meses)',months],['Resultado mensal hipotético (R$)',csvAmount(monthly)],
+    ['Saldo final hipotético (R$)',csvAmount(estimated)]];
+   dl('Clara_Simulacao_'+todayISO()+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
+  }catch(e){showToast(e.message,true);}return;
+ }
  if(action==='simulate'){runSimulation();return;}
  if(action==='sim-draft'){
    try{
@@ -2089,7 +2120,7 @@ function handleClaraWidgetAction(b) {
   const v=b.dataset.clwValue;if(['Todos','Pendente','Realizado'].includes(v)){claraWidgetUI.recentStatus=v;renderPainel();}return;
  }
  if(action==='budget-risk'){claraWidgetUI.onlyRisk=!claraWidgetUI.onlyRisk;renderPainel();return;}
- if(action==='account-cards'){claraWidgetUI.onlyCards=!claraWidgetUI.onlyCards;renderPainel();return;}
+ if(action==='account-cards'){claraWidgetUI.onlyCards=b.dataset.clwValue==='all'?false:!claraWidgetUI.onlyCards;renderPainel();return;}
  if(action==='compare'){
   const v=Number(b.dataset.clwValue);if([1,3,12].includes(v)){claraWidgetUI.compareOffset=v;renderPainel();}return;
  }
@@ -2129,7 +2160,7 @@ function handleClaraWidgetAction(b) {
    const t=state.transactions.find(x=>x.id===id);
    if(!t)return;
    modal('transaction');
-   $('m_date').value=t.date;
+   $('m_date').value=b.dataset.clwNext==='true'?plusMonth(t.date,1):t.date;
    $('m_description').value=t.description;
    $('m_kind').value=t.kind;
    updateCategoryForKind();
