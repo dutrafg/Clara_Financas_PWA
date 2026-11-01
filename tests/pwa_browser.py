@@ -20,9 +20,42 @@ async def run():
             errors = []
             page.on('pageerror', lambda ex:errors.append(str(ex)))
             await page.goto('http://127.0.0.1:8765/',wait_until='load')
+            page.on('dialog', lambda dialog:asyncio.create_task(dialog.accept()))
             await unlock(page)
             await page.wait_for_function('navigator.serviceWorker.controller!==null',timeout=30000)
             assert await page.evaluate("window.ClaraSimple?.enabled") is True
+
+            assert await page.evaluate("pref('reloadLock')") is True
+            assert await page.evaluate("window.ClaraReloadGuard?.enabled") is True
+            blocked=await page.evaluate("""() => {
+              const f5=new KeyboardEvent('keydown',{key:'F5',cancelable:true,bubbles:true});
+              document.dispatchEvent(f5);
+              const ctrl=new KeyboardEvent('keydown',{key:'r',ctrlKey:true,cancelable:true,bubbles:true});
+              document.dispatchEvent(ctrl);
+              const cmd=new KeyboardEvent('keydown',{key:'R',metaKey:true,cancelable:true,bubbles:true});
+              document.dispatchEvent(cmd);
+              const leave=new Event('beforeunload',{cancelable:true});
+              window.dispatchEvent(leave);
+              return {f5:f5.defaultPrevented,ctrl:ctrl.defaultPrevented,cmd:cmd.defaultPrevented,leave:leave.defaultPrevented};
+            }""")
+            assert all(blocked.values()),blocked
+            await page.evaluate("""() => {state.settings.reloadLock=false;save();}""")
+            await page.evaluate("window.ClaraSecurity.flush()")
+            assert await page.evaluate("window.ClaraReloadGuard.enabled") is False
+            allowed=await page.evaluate("""() => {
+              const shortcut=new KeyboardEvent('keydown',{key:'F5',cancelable:true,bubbles:true});
+              document.dispatchEvent(shortcut);
+              const leaving=new Event('beforeunload',{cancelable:true});
+              window.dispatchEvent(leaving);
+              return !shortcut.defaultPrevented && !leaving.defaultPrevented;
+            }""")
+            assert allowed
+            await page.evaluate("""() => {state.settings.reloadLock=true;save();}""")
+            await page.evaluate("window.ClaraSecurity.flush()")
+            assert await page.evaluate("window.ClaraReloadGuard.enabled") is True
+            await page.evaluate("window.ClaraReloadGuard.allowOfficialUpdate()")
+            assert await page.evaluate("window.ClaraReloadGuard.enabled") is False
+
             await page.wait_for_function("document.querySelectorAll('#sideNav [data-view]').length===4",timeout=10000)
             assert await page.locator('#sideNav [data-view]').count()==4
             assert await page.locator('#view-painel .clara-balance').is_visible()
@@ -53,7 +86,7 @@ async def run():
             assert await page.locator('#view-mais .clara-more-item').count()==7
             await page.locator('#view-mais [data-config-jump="dados"]').click()
             assert await page.locator('#pageTitle').inner_text()=='Configurações'
-            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.0.2-rc'
+            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.0.3-rc'
             assert await page.locator('#exportJson').is_visible()
             assert await page.locator('#importClara').count()==1
             assert await page.locator('#claraAdvancedSettings').count()==1
@@ -132,6 +165,7 @@ async def run():
             await unlock(page)
             assert await page.evaluate("pref('simpleMode')") is True
             assert await page.evaluate("state.transactions.find(t=>t.id==='simple-qa').status")=='Realizado'
+            assert await page.evaluate("pref('reloadLock')") is True
             assert await page.locator('.clara-balance').is_visible()
             assert not errors,errors
             await context.set_offline(True)
