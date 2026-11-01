@@ -32,16 +32,18 @@ self.addEventListener('fetch', event => {
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Pedidos de atualização do navegador ou de um novo Service Worker devem buscar a rede.
-    // Caso contrário, o controlador anterior pode devolver recursos obsoletos do próprio cache.
+    // O número de versão NÃO pode ser inferido do cache quando não há rede:
+    // uma falha de conexão jamais deve responder com version.json antigo e
+    // afirmar incorretamente que o app está atualizado.
+    if (url.pathname === versionPath) {
+      try { return await fetch(new Request(request, {cache:'no-store'})); }
+      catch { return Response.error(); }
+    }
+    // Pedidos explícitos de recarga procuram a rede e só os recursos estáticos
+    // (nunca version.json) podem ter fallback offline para o cache ativo.
     if (request.cache === 'reload' || request.cache === 'no-store') {
       try { return await fetch(request); }
       catch { return await cache.match(request, {ignoreSearch:true}) || Response.error(); }
-    }
-    // A consulta de atualizações não pode ficar presa ao version.json em cache.
-    if (url.pathname === versionPath) {
-      try { return await fetch(request, {cache:'no-store'}); }
-      catch { return await cache.match(scopedURL('./version.json')) || Response.error(); }
     }
     if (request.mode === 'navigate') {
       // Não substituir silenciosamente um PWA instalado: a nova shell só é
