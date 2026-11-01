@@ -86,3 +86,14 @@ test('Instalação preserva manifesto, Service Worker e opções de segurança',
  assert.match(html,/window\.ClaraInstall\?\.paint\?\.\(\)/);
  assert.match(html,/const CLARA_VAULT_KEY/);
 });
+
+test('Clara 4.0 mantém todas as rotas antigas e separa as quatro áreas do menu',async()=>{
+ const simple=await readFile('clara-simple.js','utf8');
+ assert.match(html,/id="view-mais"/);
+ assert.match(html,/const NAV = \[/);
+ assert.match(simple,/mainNav=\[/);
+ assert.match(simple,/native\.nav\(\)/);
+ assert.match(simple,/window\.ClaraSimple=/);
+ for(const id of ['mais','historico','assist','conf','ajustes'])
+  assert.ok(html.includes('id="view-'+id+'"'),'Rota removida: '+id);
+});
