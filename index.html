@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.0.2 • Instalação PWA</title>
+<title>Clara Finanças RC4.0.3 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2191,27 +2191,25 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.0.2-rc';
+const CLARA_APP_VERSION='4.0.3-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
-  "Banco de dados criptografado dentro de uma pasta privada do navegador, com gravação em dois snapshots.",
-  "Seus dados anteriores são preservados e migrados automaticamente para o armazenamento privado quando disponível.",
-  "Biometria opcional via chave de acesso, mantendo a senha e o backup do cofre.",
-  "Um botão visível permite voltar do modo avançado ao modo simples em qualquer módulo.",
-  "Dock flutuante ampliada no celular e fotos de perfil de até 10 MB, reduzidas antes de criptografar.",
-  "Service Worker atualizado e cache offline renovado para esta versão."
+  "Proteção contra recarregamento acidental ativada por padrão em Configurações → Segurança → Atualizações.",
+  "F5, Ctrl+R e Command+R são bloqueados quando o cofre está aberto; o navegador pode solicitar confirmação para recarregar ou sair.",
+  "A atualização oficial da Clara continua funcionando após concluir a gravação criptografada do cofre.",
+  "Banco privado criptografado, biometria opcional, modo simples e avançado e os 15 miniaplicativos preservados."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
   reduceMotion: false, sidebarCompact: false, hideValues: false,
   showSummary: true, showCategories: true, showOutlook: true,
-  forecastMonths: 4, budgetWarningPct: 75, simpleMode: true
+  forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true
 });
 const PREF_ENUMS = Object.freeze({
   palette: ['violet', 'blue', 'petrol', 'bosque', 'coral', 'areia'], density: ['comfortable', 'compact'],
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
@@ -3070,6 +3068,7 @@ function renderAjustes() {
       </div>
     `)}<div class="gap"></div>
     ${panel('Atualizações', '', `
+      ${prefSwitch('reloadLock','Proteger contra recarregamento','Ativado por padrão: bloqueia F5 e Ctrl+R e pede confirmação ao sair ou atualizar a página. Atualizações da Clara continuam permitidas.')}
       <div class="clara-update-center" aria-label="Central de atualizações">
         <div class="clara-update-metrics">
           <div><small>VERSÃO INSTALADA</small><strong id="claraUpdateInstalled">${esc(CLARA_APP_VERSION)}</strong></div>
@@ -4832,7 +4831,7 @@ const ClaraUpdate=(()=>{
   if(observed)return;
   observed=true;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-   if(applying){applying=false;location.reload();}
+   if(applying){applying=false;window.ClaraReloadGuard?.allowOfficialUpdate();location.reload();}
   });
   window.addEventListener('online',()=>{check(false).catch(()=>{});});
   window.addEventListener('focus',()=>{if(lastCheck&&Date.now()-lastCheck>=RESUME)check(false).catch(()=>{});});
@@ -4993,6 +4992,35 @@ const ClaraInstall=(()=>{
  return {paint,request,get available(){return !!candidate;},get installed(){return installed;}};
 })();
 window.ClaraInstall=ClaraInstall;
+</script>
+
+<script id="clara-reload-guard">
+'use strict';
+/* Este bloqueio evita recarregamentos involuntários; um site não controla
+   o botão de recarregar do navegador nem o encerramento forçado do aplicativo. */
+(() => {
+  let approvedOfficialUpdateUntil=0;
+  const enabled=()=>Boolean(window.ClaraSecurity?.unlocked && pref('reloadLock') && Date.now()>=approvedOfficialUpdateUntil);
+  const isReloadShortcut=e=>{
+    const key=String(e.key||'').toLowerCase();
+    return key==='f5'||(key==='r'&&(e.ctrlKey||e.metaKey)&&!e.altKey);
+  };
+  document.addEventListener('keydown',event=>{
+    if(!isReloadShortcut(event)||!enabled())return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showToast('Recarregamento bloqueado. Para permitir, abra Mais → Segurança e backup → Atualizações.');
+  },true);
+  window.addEventListener('beforeunload',event=>{
+    if(!enabled())return;
+    event.preventDefault();
+    event.returnValue=' ';
+  });
+  window.ClaraReloadGuard={
+    get enabled(){return enabled();},
+    allowOfficialUpdate(){approvedOfficialUpdateUntil=Date.now()+15000;}
+  };
+})();
 </script>
 <script src="./clara-simple.js"></script>
 <script src="./clara-biometric.js"></script>
