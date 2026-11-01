@@ -1,14 +1,11 @@
-name: Clara Finanças 4.0.5 — QA
+name: Clara Finanças 4.0.6 — QA único
 
 on:
   push:
     branches:
-      - release/rc3610-menu-clean
-      - feature/clara-4-simples
-      - feature/clara-biometria-prf
-      - feature/clara-reload-lock
-      - feature/clara-notificacoes-agenda
-      - feature/clara-sino-macos-fixo
+      - main
+      - 'homologacao/**'
+      - feature/clara-406-estabilizacao
   pull_request:
     branches:
       - main
