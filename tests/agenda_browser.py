@@ -25,6 +25,13 @@ async def main():
             await page.goto(URL,wait_until='load')
             await unlock(page)
             await page.locator('#claraCalendar').wait_for(timeout=12000)
+            if width<=760:
+                assert await page.locator('#claraCalendar').get_attribute('data-compact')=='true'
+                assert await page.locator('#claraCalendar [data-ca-expand]').is_visible()
+                await page.locator('#claraCalendar [data-ca-expand]').click()
+                assert await page.locator('#claraCalendar').get_attribute('data-compact')=='false'
+            else:
+                assert await page.locator('#claraCalendar').get_attribute('data-compact')=='false'
             # Relógio local controlado: uma hora, véspera, atraso e eventos sem hora.
             reminder=await page.evaluate("""() => {
               const day='2026-11-01',next='2026-11-02';
