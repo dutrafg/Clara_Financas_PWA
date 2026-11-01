@@ -10,11 +10,6 @@
   --e1:0 1px 3px #1f23400a;--e2:0 5px 20px #21233a0a;
 }
 :root[data-simple="true"] body {background-image:none;letter-spacing:-.005em;}
-:root[data-simple="true"] .sidebar {background:var(--panel);color:var(--text);border-right-color:var(--stroke);}
-:root[data-simple="true"] .sidefoot-text {font-size:11px;color:var(--muted);max-width:220px;}
-:root[data-simple="true"] .navlink {color:var(--muted);font-weight:650;border-radius:13px;}
-:root[data-simple="true"] .navlink.active,
-:root[data-simple="true"] .navlink:hover {background:color-mix(in srgb,var(--teal) 10%,var(--panel));color:var(--teal);}
 :root[data-simple="true"] .main {width:100%;min-width:0;}
 :root[data-simple="true"] .topbar {max-width:900px;margin-left:auto;margin-right:auto;}
 :root[data-simple="true"] .topbar .eyebrow {display:none;}
@@ -147,7 +142,6 @@
 /* Clara 4.0.5: navegação centrada na pílula em todos os tamanhos.
    Sidebar antiga fica apenas como suporte interno aos renderizadores legados. */
 .shell{display:block!important;grid-template-columns:minmax(0,1fr)!important;}
-.sidebar{display:none!important;}
 .main{padding-bottom:calc(116px + env(safe-area-inset-bottom,0px));}
 .clara-desktop-dock{display:none;}
 @media (min-width:761px){
