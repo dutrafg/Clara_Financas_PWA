@@ -115,3 +115,31 @@
  #claraExitAdvanced {max-width:145px;padding:9px 11px;font-size:11px;text-align:center;line-height:1.25;}
  :root[data-simple="false"] .topbar {align-items:flex-start;gap:8px;}
 }
+
+/* 4.0.1 — pílula usa a largura útil da tela, sem encostar nas bordas. */
+@media (max-width:760px) {
+ .mobile-dock-wrap {
+  left:12px;right:12px;transform:none;
+  width:calc(100% - 24px);max-width:none;
+  gap:8px;box-sizing:border-box;
+ }
+ .mobile-dock {flex:1 1 auto;width:auto;min-width:0;max-width:none;justify-content:space-evenly;padding:7px 6px;}
+ .mobile-dock .dock-link,.mobile-dock .float-trigger,
+ :root[data-simple="true"] .mobile-dock .dock-link,
+ :root[data-simple="true"] .mobile-dock .float-trigger {
+  flex:1 1 0;min-width:0;max-width:none;height:55px;min-height:55px;
+  padding:6px 2px;gap:5px;overflow:hidden;
+ }
+ .mobile-dock .dock-link span:last-child,.mobile-dock .float-trigger span:last-child {
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:clamp(9px,2.5vw,12px);
+ }
+ .profile-fab {flex:0 0 54px;width:54px;height:54px;}
+}
+@media (max-width:350px) {
+ .mobile-dock-wrap{left:10px;right:10px;width:calc(100% - 20px);gap:6px;}
+ .mobile-dock{padding:5px 4px;}
+ .mobile-dock .dock-link,.mobile-dock .float-trigger,
+ :root[data-simple="true"] .mobile-dock .dock-link,
+ :root[data-simple="true"] .mobile-dock .float-trigger {height:52px;min-height:52px;}
+ .profile-fab{flex-basis:49px;width:49px;height:49px;}
+}
