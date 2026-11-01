@@ -22,6 +22,8 @@
   ];
   data.goals=[{id:'demo-goal',name:'Reserva de emergência',savedCents:120000,targetCents:500000,dueDate:plusMonth(today,4)}];
   data.calendarEvents=[{id:'demo-event',title:'Revisar o orçamento',date:today,time:'18:00',notes:'Exemplo ilustrativo',done:false,reminder:'both'}];
+  data.reminders=[{id:'demo-reminder',title:'Revisar fatura',detail:'Lembrete fictício',dueDate:today,time:'19:00',priority:'normal',reminder:'both',done:false}];
+  data.quickNotes=[{id:'demo-note',title:'Ideias para economizar',content:'Exemplo: separar uma quantia para a reserva mensal.',pinned:true,updatedAt:new Date().toISOString()}];
   data.settings.simpleMode=true;
   validateData(data);
   return data;
@@ -65,6 +67,7 @@
    go('painel');return;
   }
   if(b.closest(safePreviewSelector)||b.id==='floatTrigger'||b.id==='floatBackdrop')return;
+  if(b.dataset.clx==='view-note')return;
   if(b.dataset.clwAction && safeWidgetActions.has(b.dataset.clwAction))return;
   if(b.matches('a[href^="https://"],a[href^="http://"]'))return;
   event.preventDefault();event.stopImmediatePropagation();promptCreate();
