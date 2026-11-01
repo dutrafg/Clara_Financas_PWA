@@ -1,4 +1,4 @@
-"""Clara Finanças 4.0.5: calendário/agenda, sino e integração financeira em três viewports."""
+"""Clara Finanças 4.0.6: calendário/agenda, sino e integração financeira em três viewports."""
 import asyncio
 from playwright.async_api import async_playwright
 
@@ -25,6 +25,34 @@ async def main():
             await page.goto(URL,wait_until='load')
             await unlock(page)
             await page.locator('#claraCalendar').wait_for(timeout=12000)
+            # Relógio local controlado: uma hora, véspera, atraso e eventos sem hora.
+            reminder=await page.evaluate("""() => {
+              const day='2026-11-01',next='2026-11-02';
+              const ev=(date,time,reminder)=>({date,time,reminder,done:false});
+              const at=t=>new Date(t);
+              const fn=window.ClaraAgenda.reminderFor;
+              return {
+                hour:fn(ev(day,'09:30','both'),at(day+'T08:45:00')),
+                today:fn(ev(day,'09:30','both'),at(day+'T07:00:00')),
+                late:fn(ev(day,'09:30','both'),at(day+'T10:00:00')),
+                day:fn(ev(next,'09:30','both'),at(day+'T12:00:00')),
+                noDay:fn(ev(next,'09:30','hour'),at(day+'T12:00:00')),
+                withoutClock:fn(ev(day,'','none'),at(day+'T07:00:00')),
+                nextDayHour:fn(ev(next,'00:30','both'),at(day+'T23:45:00')),
+                done:fn({...ev(day,'09:30','both'),done:true},at(day+'T08:45:00'))
+              };
+            }""")
+            assert reminder=={
+              'hour':'Compromisso em até 1 hora',
+              'today':'Compromisso de hoje',
+              'late':'Compromisso atrasado',
+              'day':'Compromisso amanhã',
+              'noDay':'',
+              'withoutClock':'Compromisso de hoje',
+              'nextDayHour':'Compromisso em até 1 hora',
+              'done':''
+            },reminder
+
             assert await page.locator('#claraCalendar [data-ca-day]').count() in (28,30,35,42)
             assert await page.locator('#claraNotificationButton').is_visible()
             bell=await page.evaluate("""() => {
