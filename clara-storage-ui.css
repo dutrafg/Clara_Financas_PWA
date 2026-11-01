@@ -1,0 +1,8 @@
+/* Pasta criptografada local: bloco explicativo, sem novas decisões para o usuário. */
+.clara-private-folder{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:16px 0;padding:19px 20px;border:1px solid var(--stroke);border-radius:18px;background:var(--panel);color:var(--text);}
+.clara-private-folder h3{font-size:16px;letter-spacing:-.02em;margin:0 0 8px;}
+.clara-private-folder p{font-size:13px;font-weight:620;line-height:1.5;margin:5px 0;color:var(--text);}
+.clara-private-folder small{font-size:12px;line-height:1.55;color:var(--muted);display:block;max-width:63ch;}
+.clara-private-folder #claraPrivateFolderPersistence{font-size:12px;color:var(--muted);font-weight:450;}
+.clara-private-folder button{min-height:44px;}
+@media(max-width:760px){.clara-private-folder{display:grid}.clara-private-folder button{width:100%;}}
