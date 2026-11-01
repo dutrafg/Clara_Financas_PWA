@@ -1,12 +1,13 @@
 {
   "name": "Clara Finanças",
-  "version": "4.0.3-rc",
+  "version": "4.0.4-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "Proteção contra recarregamento acidental ativada por padrão em Configurações → Segurança → Atualizações.",
-    "F5, Ctrl+R e Command+R são bloqueados quando o cofre está aberto; o navegador pode solicitar confirmação para recarregar ou sair.",
-    "A atualização oficial da Clara continua funcionando após concluir a gravação criptografada do cofre.",
-    "Banco privado criptografado, biometria opcional, modo simples e avançado e os 15 miniaplicativos preservados."
+    "Calendário mensal com agenda integrada ao painel simples e avançado, compromissos editáveis e marcação de conclusão.",
+    "Sino de notificações com avisos de compromissos, vencimentos, metas, orçamento e novas versões disponíveis.",
+    "Compromissos e alertas lidos ficam no cofre privado criptografado, sem criar um banco separado.",
+    "Proteção contra recarregamento ativada por padrão, com atualizações oficiais e Service Worker versionado.",
+    "Os 15 miniaplicativos, a biometria opcional, os backups e os lançamentos anteriores continuam disponíveis."
   ]
 }
