@@ -190,7 +190,7 @@ test('RC4.0.0: notas da interface, metadata e instruções de segurança alinhad
  const pkg=JSON.parse(await readFile('package.json','utf8'));
  const version=JSON.parse(await readFile('version.json','utf8'));
  const readme=await readFile('README.md','utf8');
- const qa=await readFile('docs/QA-RC4.0.0.md','utf8');
+ const qa=await readFile('docs/QA-Clara-4.md','utf8');
  const notesSource=html.match(/const CLARA_RELEASE_NOTES=Object\.freeze\((\[[\s\S]*?\])\);/)?.[1];
  assert.ok(notesSource,'Lista de novidades da interface ausente');
  const notes=JSON.parse(notesSource);
