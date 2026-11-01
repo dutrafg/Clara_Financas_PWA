@@ -342,7 +342,7 @@ test('Clara 4.0.4: agenda mensal e sino para ambos os modos',async()=>{
  const calendar=await readFile('clara-agenda.js','utf8');
  const style=await readFile('clara-agenda.css','utf8');
  assert.match(calendar,/window\.ClaraAgenda=/);
- for(const term of ['renderCalendar','renderBell','calendarEvents','notificationsRead','dateValid','formOpen','saveEvent','persistSuccess','new Date','data-ca-bell','data-ca-day','data-ca-new','data-ca-edit','data-ca-toggle','data-ca-delete','data-ca-readall','data-ca-alert'])
+ for(const term of ['renderCalendar','renderBell','calendarEvents','notificationsRead','dateValid','formOpen','saveEvent','persistSuccess','new Date','bell.dataset.caBell','data-ca-day','data-ca-new','data-ca-edit','data-ca-toggle','data-ca-delete','data-ca-readall','data-ca-alert'])
   assert.ok(calendar.includes(term),'Agenda incompleta: '+term);
  assert.match(calendar,/const nativeRender=render/);
  assert.match(calendar,/render=function\(\)\{nativeRender\(\);paint\(\);\}/);
