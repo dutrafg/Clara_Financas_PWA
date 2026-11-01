@@ -2078,13 +2078,14 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.1.2-rc';
+const CLARA_APP_VERSION='4.1.3-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
   "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
   "Backup offline do cofre criptografado com histórico local, exportação, restauração autenticada e verificação automática às 02:00.",
   "Quando a Clara estiver fechada às 02:00, o backup automático é executado na primeira reabertura elegível; backups externos continuam necessários.",
   "Modo demonstração com dados fictícios sem senha, sem gravação e com convite para criar o cofre protegido.",
   "Desktop com módulos na largura útil e dock vertical flutuante à esquerda; experiência premium nos modos simples e avançado.",
+  "Backups externos com escolha explícita de pasta, proteção AES-256-GCM de todos os dados e nomes exclusivos, além do histórico privado.",
   "Proteção contra recarregamento, biometria opcional, agenda e 15 miniaplicativos originais preservados."
 ]);
 const PREF_DEFAULTS = Object.freeze({
@@ -3020,9 +3021,9 @@ function renderAjustes() {
       </details>
     `)}<div class="gap"></div>
     ${panel('Backup protegido', 'Seus dados permanecem criptografados.', `
-      ${prefSwitch('autoBackup','Backup automático às 2h','Cria uma cópia criptografada privada todos os dias. Se a Clara estiver fechada, executa na próxima abertura após as 2h.')}
+      ${prefSwitch('autoBackup','Backup automático às 2h','Cria backup criptografado às 02:00 na pasta escolhida, com o app aberto e permissão ativa. Se estiver fechado, tenta na próxima abertura elegível.')}
       <div class="clara-backup-settings" id="claraBackupSettings" aria-live="polite"></div>
-      <div class="config-actions"><div><strong>Exportar .clara</strong><small>Cópia criptografada dos seus registros.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div>
+      <div class="config-actions"><div><strong>Exportação criptografada</strong><small>Inclui todo o cofre, mesmo dados não financeiros. No celular, o navegador controla a pasta de destino.</small></div><button class="btn" type="button" id="exportJson">Exportar</button></div>
       <div class="config-actions"><div><strong>Restaurar .clara</strong><small>Exige a senha do arquivo.</small></div><label class="btn" for="importClara" style="cursor:pointer">Restaurar</label><input hidden type="file" id="importClara" accept=".clara,application/json"></div>
       <details class="config-disclosure"><summary>Importar dados de versões antigas</summary>
         <p class="helper">Use apenas para migrar um backup JSON sem criptografia.</p>
