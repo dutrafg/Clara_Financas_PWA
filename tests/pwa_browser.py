@@ -199,6 +199,8 @@ async def run():
                     status:200,headers:{'Content-Type':'application/json'}}))
                 : window.__qaOriginalFetch(input,options);
             }""")
+            # Se havia verificação automática em andamento, deixá-la terminar antes da simulação.
+            await page.evaluate("window.ClaraUpdate.check(false)")
             await page.evaluate("window.ClaraUpdate.check(true)")
             update_state=await page.evaluate("""() => ({
               remote:window.ClaraUpdate.remoteVersion,status:window.ClaraUpdate.status,
