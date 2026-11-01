@@ -50,6 +50,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Testar calendário e central de notificações no Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-agenda-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/agenda_browser.py 2>&1 | tee /tmp/clara-agenda-browser.log
       - name: Regressão ampliada dos 15 miniaplicativos
         shell: bash
         run: |
@@ -67,4 +75,5 @@ jobs:
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
             /tmp/clara-miniapps-extended.log
+            /tmp/clara-agenda-browser.log
           if-no-files-found: ignore
