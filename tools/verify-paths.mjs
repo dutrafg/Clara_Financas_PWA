@@ -6,7 +6,7 @@ const root=new URL('../',import.meta.url);
 const dist=new URL('../dist/',import.meta.url);
 const get=(base,path)=>readFile(new URL(path,base));
 const text=(base,path)=>get(base,path).then(b=>b.toString('utf8'));
-const files=['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','clara-premium.css','clara-guest.css','clara-guest.js','clara-extras.css','clara-extras.js','clara-backup.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
+const files=['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','clara-updater.js','clara-premium.css','clara-guest.css','clara-guest.js','clara-extras.css','clara-extras.js','clara-backup.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
 const pkg=JSON.parse(await text(root,'package.json'));
 const meta=JSON.parse(await text(root,'version.json'));
 const manifest=JSON.parse(await text(dist,'manifest.webmanifest'));
@@ -16,7 +16,8 @@ assert.equal(JSON.parse(await text(dist,'version.json')).version,pkg.version);
 assert.deepEqual([manifest.id,manifest.start_url,manifest.scope],['./','./','./'],'PWA deve seguir caminhos relativos');
 assert.ok(html.includes('Clara Finanças RC'+pkg.version.split('.').slice(0,2).join('.')),'Título da interface divergente');
 assert.ok(html.includes('href="./manifest.webmanifest"'),'Manifesto não referenciado');
-assert.ok(html.includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
+assert.ok(html.includes('src="./clara-updater.js"'),'Atualizador fora do pacote principal');
+assert.ok((await text(root,'clara-updater.js')).includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
 for (const path of files) {
   assert.deepEqual(await get(root,path),await get(dist,path),'Arquivo divergente: '+path);
   assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
@@ -39,7 +40,7 @@ assert.ok(!sw.includes("'.'+url.pathname"),'Não reintroduzir caminhos quebrados
 const match=sw.match(/const APP_FILES = (\[[^\n]+\]);/);
 assert.ok(match,'Lista de precache ausente');
 const items=[...match[1].matchAll(/'([^']+)'/g)].map(m=>m[1]);
-assert.deepEqual(items,['./','./index.html','./clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js','./clara-premium.css','./clara-guest.css','./clara-guest.js','./clara-extras.css','./clara-extras.js','./clara-backup.js','./manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png']);
+assert.deepEqual(items,['./','./index.html','./clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js','./clara-updater.js','./clara-premium.css','./clara-guest.css','./clara-guest.js','./clara-extras.css','./clara-extras.js','./clara-backup.js','./manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png']);
 for(const path of items.filter(p=>p!=='./'))await stat(new URL(path,dist));
 for(const icon of manifest.icons)await stat(new URL(icon.src,dist));
 const refs=[...html.matchAll(/<(?:link|script|img|source)\b[^>]*>/gi)]

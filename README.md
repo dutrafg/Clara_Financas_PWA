@@ -1,8 +1,17 @@
-# Clara Finanças RC4.1.2 — Design Clara Studio
+# Clara Finanças RC4.2.5 — Atualizador transacional e Clara Studio
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
+
+## O que mudou na RC4.2.5
+
+- O atualizador saiu do HTML principal para `clara-updater.js`, com comparação SemVer, metadados remotos limitados e mensagens de estado em texto seguro.
+- A preparação mostra a contagem real de arquivos em cache e só expira depois de dois minutos sem progresso. O avanço de download renova esse prazo; uma falha vira retentativa explícita.
+- O Service Worker descarrega e valida todos os arquivos obrigatórios antes de oferecer a troca. Falha parcial descarta somente o pacote candidato.
+- O pacote anterior permanece disponível até que a nova interface confirme os módulos críticos. Se o boot falhar, as próximas requisições usam o shell anterior; é possível tentar o candidato de novo.
+- Atualizar continua exigindo cofre desbloqueado, gravação concluída e ponto de proteção cifrado. A verificação de versão pode ser feita no modo demonstração.
+- Dados financeiros em OPFS, IndexedDB e localStorage nunca são apagados pelo ciclo de atualização.
 
 ## O que mudou na RC4.0.0
 
@@ -36,8 +45,9 @@ Ao criar o cofre, o aplicativo tenta migrar os dados da chave legada `clara-html
 - Artefatos canônicos: `index.html`, `manifest.webmanifest`, `sw.js`, `version.json` e `assets/icon-192.png` / `assets/icon-512.png`.
 - As rotas de manifesto, instalação e Service Worker usam `./` para respeitar a origem/escopo e evitar apontamentos para versões antigas.
 - O build verifica as referências e forma o nome do cache com **versão + SHA-256** dos arquivos relevantes; não reutilizar `dist/` antigo.
-- O Service Worker pré-carrega recursos da nova revisão usando a rede. Ao atualizar, o usuário deve confirmar; antes da ativação, o app aguarda a gravação pendente do cofre com `ClaraSecurity.flush()`.
-- A consulta de `version.json` prioriza a rede, com fallback offline. Atualização e instalação não implicam migração automática entre navegadores ou domínios.
+- O Service Worker pré-carrega recursos da nova revisão usando a rede. Ao atualizar, o usuário deve confirmar; antes da ativação, o app aguarda a gravação pendente do cofre com `ClaraSecurity.flush()` e exige um backup local cifrado.
+- O cache anterior só é removido após o app novo confirmar o boot; falha de instalação ou de boot não apaga o cofre nem o pacote estável anterior.
+- A consulta de `version.json` exige rede para confirmar a versão; offline, o app continua disponível, mas não apresenta metadados antigos como se fossem atuais. Atualização e instalação não implicam migração automática entre navegadores ou domínios.
 - A instalação no Chrome Android depende da elegibilidade apresentada pelo navegador (evento `beforeinstallprompt`). No Samsung Internet e em outros navegadores, o aplicativo mostra instruções de instalação manual; nunca simular sucesso.
 
 ## Validação obrigatória antes da main
@@ -49,6 +59,8 @@ npm test
 npm run build
 npm run verify:paths
 ```
+
+`npm test` inclui simulações do ciclo de vida do Service Worker, pacote incompleto, rollback, progresso prolongado, timeout recuperável, SemVer e metadados remotos inválidos. O workflow de Chromium também valida cofre/migração, valores financeiros incorretos, HTML ativo em campos de usuário, instalação offline, falha real de boot de módulo crítico, recuperação e os 15 miniaplicativos.
 
 Executar também a bateria de navegador com Chromium/Playwright em servidor local:
 

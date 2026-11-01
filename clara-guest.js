@@ -54,7 +54,7 @@
   render();
   byId('securityPassword').focus();
  }
- const safePreviewSelector='[data-view],[data-config-tab],[data-ca-expand],[data-ca-day],[data-ca-prev],[data-ca-next],[data-ca-today],[data-ca-bell],[data-ca-close-bell],[data-ca-openagenda]';
+ const safePreviewSelector='[data-view],[data-config-tab],[data-ca-expand],[data-ca-day],[data-ca-prev],[data-ca-next],[data-ca-today],[data-ca-bell],[data-ca-close-bell],[data-ca-openagenda],#checkClaraUpdate';
  const safeWidgetActions=new Set(['simulate','focus','agenda-days','agenda-kind','recent-status','budget-risk','account-cards','compare','editor']);
  window.addEventListener('click',event=>{
   if(!guest)return;
