@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.0.3 • Instalação PWA</title>
+<title>Clara Finanças RC4.0.4 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1648,6 +1648,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 <link rel="stylesheet" href="./clara-simple.css">
 <link rel="stylesheet" href="./clara-biometric.css">
 <link rel="stylesheet" href="./clara-storage-ui.css">
+<link rel="stylesheet" href="./clara-agenda.css">
 </head>
 <body>
 <div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
@@ -2191,12 +2192,13 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.0.3-rc';
+const CLARA_APP_VERSION='4.0.4-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
-  "Proteção contra recarregamento acidental ativada por padrão em Configurações → Segurança → Atualizações.",
-  "F5, Ctrl+R e Command+R são bloqueados quando o cofre está aberto; o navegador pode solicitar confirmação para recarregar ou sair.",
-  "A atualização oficial da Clara continua funcionando após concluir a gravação criptografada do cofre.",
-  "Banco privado criptografado, biometria opcional, modo simples e avançado e os 15 miniaplicativos preservados."
+  "Calendário mensal com agenda integrada ao painel simples e avançado, compromissos editáveis e marcação de conclusão.",
+  "Sino de notificações com avisos de compromissos, vencimentos, metas, orçamento e novas versões disponíveis.",
+  "Compromissos e alertas lidos ficam no cofre privado criptografado, sem criar um banco separado.",
+  "Proteção contra recarregamento ativada por padrão, com atualizações oficiais e Service Worker versionado.",
+  "Os 15 miniaplicativos, a biometria opcional, os backups e os lançamentos anteriores continuam disponíveis."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
@@ -2374,6 +2376,8 @@ function fresh() {
     goals: structuredClone(SOURCE_DATA.goals),
     transactions: structuredClone(SOURCE_DATA.transactions),
     reconciliations: [],
+    calendarEvents: [],
+    notificationsRead: [],
     auditLog: [],
     profile: {...PROFILE_DEFAULTS},
     settings: { ...PREF_DEFAULTS, period: todayISO().slice(0, 7), cutoff: todayISO(), theme: 'light' }
@@ -2386,7 +2390,7 @@ function cleanData() {
     version: 2,
     accounts: [{ id: 'principal', name: 'Conta principal', type: 'Conta', openingCents: 0 }],
     categories: structuredClone(SOURCE_DATA.categories),
-    goals: [], transactions: [], reconciliations: [],auditLog: [],
+    goals: [], transactions: [], reconciliations: [],calendarEvents: [],notificationsRead: [],auditLog: [],
     profile: {...safeProfile()},
     settings: { ...PREF_DEFAULTS, ...(state?.settings || {}), period: date.slice(0, 7), cutoff: date, theme: state?.settings?.theme === 'light' ? 'light' : 'dark' }
   };
@@ -2394,6 +2398,23 @@ function cleanData() {
 
 function validateData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Backup inválido: esperado objeto JSON.');
+  if(data.calendarEvents!==undefined){
+    if(!Array.isArray(data.calendarEvents)||data.calendarEvents.length>2000)throw Error('Agenda inválida: limite de compromissos.');
+    const seenEvents=new Set();
+    for(const ev of data.calendarEvents){
+      if(!ev||typeof ev!=='object'||typeof ev.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(ev.id)||seenEvents.has(ev.id)||
+        typeof ev.title!=='string'||!ev.title.trim()||ev.title.length>120||!dateValid(ev.date)||
+        typeof ev.time!=='string'||(ev.time!==''&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(ev.time))||
+        typeof ev.notes!=='string'||ev.notes.length>500||typeof ev.done!=='boolean'||
+        !['none','day','hour','both'].includes(ev.reminder))throw Error('Compromisso inválido na agenda.');
+      seenEvents.add(ev.id);
+    }
+  }
+  if(data.notificationsRead!==undefined){
+    if(!Array.isArray(data.notificationsRead)||data.notificationsRead.length>4000||
+      new Set(data.notificationsRead).size!==data.notificationsRead.length||
+      data.notificationsRead.some(id=>typeof id!=='string'||id.length>150))throw Error('Histórico de alertas inválido.');
+  }
   if(data.profile!==undefined)validProfile(data.profile);
   if(data.auditLog!==undefined){
     if(!Array.isArray(data.auditLog)||data.auditLog.length>AUDIT_MAX)
@@ -2488,6 +2509,8 @@ function parseImportedJSON(raw) {
   validateData(obj);
   obj.profile={...PROFILE_DEFAULTS,...(obj.profile||{})};
   obj.auditLog=obj.auditLog||[];
+  obj.calendarEvents=obj.calendarEvents||[];
+  obj.notificationsRead=obj.notificationsRead||[];
   return withDefaultPreferences(obj);
 }
 
@@ -5025,5 +5048,6 @@ window.ClaraInstall=ClaraInstall;
 <script src="./clara-simple.js"></script>
 <script src="./clara-biometric.js"></script>
 <script src="./clara-storage-ui.js"></script>
+<script src="./clara-agenda.js"></script>
 </body>
 </html>
