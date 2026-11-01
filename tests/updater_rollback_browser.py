@@ -28,6 +28,7 @@ async def main():
                 await page.locator('#securitySubmit').click()
                 await page.wait_for_function("document.documentElement.dataset.unlocked==='true'", timeout=30000)
             await page.wait_for_function('navigator.serviceWorker.controller !== null', timeout=30000)
+            await page.wait_for_function("window.ClaraUpdate.status==='Atualizado'", timeout=30000)
 
             metadata = json.loads(originals[FILES[1]])
             metadata['version'] = '99.9.9-rc'
