@@ -3023,6 +3023,7 @@ function renderAjustes() {
         </div>
         <div class="clara-update-status"><span class="clara-update-indicator" id="claraUpdateState">Aguardando</span><span id="claraUpdateMessage">Verificação automática com internet.</span></div>
         <div class="control-row"><button type="button" class="btn" id="checkClaraUpdate">Verificar agora</button><button type="button" class="btn primary" id="applyClaraUpdate" hidden>Atualizar agora</button></div>
+        <p class="clara-update-recovery-hint" id="claraUpdateRecoveryHint" hidden>Se a instalação falhar, tente novamente com internet estável. Não use “Limpar dados do site”: isso pode apagar o cofre e os backups internos.</p>
       </div>
       <details class="config-disclosure" id="claraReleaseNotes"><summary>O que há de novidade</summary>
         <ul class="clara-release-notes">${CLARA_RELEASE_NOTES.map(item=>'<li>'+esc(item)+'</li>').join('')}</ul>
@@ -4778,12 +4779,14 @@ const ClaraUpdate=(()=>{
  function setStatus(next,msg){status=next;message=msg;paint();}
  function clearPreparation(){installRequested=false;if(prepareTimer)clearTimeout(prepareTimer);prepareTimer=null;}
  function startPreparation(){
-  if(prepareTimer)clearTimeout(prepareTimer);
+  // Também protege verificações automáticas, não somente cliques no aviso.
+  // Evita um estado "Preparando atualização" indefinido.
+  if(prepareTimer)return;
   prepareTimer=setTimeout(()=>{
    prepareTimer=null;
-   if(installRequested&&!registration?.waiting){
+   if(compare(remoteVersion,INSTALLED_VERSION)>0&&!registration?.waiting&&!applying){
     installRequested=false;
-    setStatus('Falha ao preparar','O pacote ainda não está disponível. Confira a conexão e tente Atualizar agora novamente.');
+    setStatus('Falha ao preparar','O novo pacote não ficou pronto. Toque em Atualizar agora para tentar novamente. Não apague os dados do site.');
    }
   },PREPARE_TIMEOUT);
  }
@@ -4797,7 +4800,15 @@ const ClaraUpdate=(()=>{
   const checkButton=get('checkClaraUpdate');
   if(checkButton){checkButton.disabled=!!checking;checkButton.textContent=checking?'Verificando…':'Verificar agora';}
   const action=get('applyClaraUpdate');
-  if(action)action.hidden=!ready||applying;
+  const hasUpdate=!!remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
+  if(action){
+   action.hidden=!hasUpdate||applying;
+   action.disabled=applying||installRequested;
+   action.textContent=installRequested?'Preparando…':'Atualizar agora';
+   action.setAttribute('aria-busy',String(!!installRequested));
+  }
+  const hint=get('claraUpdateRecoveryHint');
+  if(hint)hint.hidden=!hasUpdate||!['Falha ao preparar','Sem confirmação'].includes(status);
   const notice=get('claraUpdateNotice');
   if(notice){
    const available=remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
@@ -4813,19 +4824,35 @@ const ClaraUpdate=(()=>{
     button.hidden=false;
     button.disabled=applying||installRequested;
     button.textContent=installRequested?'Preparando…':'Atualizar agora';
+    button.setAttribute('aria-busy',String(!!installRequested));
    }
   }
  }
  function handleWaiting(){
   ready=!!registration?.waiting;
   if(ready){
-   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Confira as novidades e escolha Atualizar agora.');
-   if(installRequested){
-    clearPreparation();
-    // A instalação exige confirmação e o salvamento do cofre; nunca ativar o SW sem ambos.
+   const wasRequested=installRequested;
+   clearPreparation();
+   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Escolha Atualizar agora para instalar.');
+   if(wasRequested){
+    // Não trocar o Service Worker sem confirmação e sem salvar o cofre.
     void installReady(registration).catch(error=>showToast(error.message,true));
    }
   }else paint();
+ }
+ function watchInstalling(worker){
+  if(!worker||worker.__claraObserved)return;
+  worker.__claraObserved=true;
+  const sync=()=>{
+   if(worker.state==='installed')handleWaiting();
+   else if(worker.state==='redundant'&&compare(remoteVersion,INSTALLED_VERSION)>0&&!registration?.waiting){
+    clearPreparation();
+    ready=false;
+    setStatus('Falha ao preparar','O navegador não conseguiu instalar o pacote offline. Verifique a conexão e toque em Atualizar agora para repetir, sem limpar os dados do site.');
+   }
+  };
+  worker.addEventListener('statechange',sync);
+  sync();
  }
  function bindEvents(){
   if(observed)return;
@@ -4850,12 +4877,8 @@ const ClaraUpdate=(()=>{
   initialPromise=(async()=>{
    const r=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
    registration=r;bindEvents();
-   r.addEventListener('updatefound',()=>{
-    const worker=r.installing;
-    worker?.addEventListener('statechange',()=>{
-     if(worker.state==='installed')handleWaiting();
-    });
-   });
+   r.addEventListener('updatefound',()=>watchInstalling(r.installing));
+   watchInstalling(r.installing);
    handleWaiting();
    return r;
   })().finally(()=>{initialPromise=null;});
@@ -4881,16 +4904,26 @@ const ClaraUpdate=(()=>{
     releaseNotes=Array.isArray(info.notes)?info.notes.filter(x=>typeof x==='string').slice(0,5):[];
     lastCheck=Date.now();
     const newer=compare(remoteVersion,INSTALLED_VERSION)>0;
-    if(newer&&!r.waiting)setStatus('Preparando atualização','Versão '+remoteVersion+' identificada. Baixando recursos para uso offline.');
+    if(newer&&!r.waiting){
+     startPreparation();
+     setStatus('Preparando atualização','Versão '+remoteVersion+' identificada. Preparando os arquivos para uso offline.');
+    }
     await r.update();
     ready=!!r.waiting;
     if(ready)handleWaiting();
-    else if(newer)setStatus('Preparando atualização','Versão '+remoteVersion+' encontrada. O novo pacote será oferecido quando estiver pronto.');
-    else setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+    else if(newer&&status!=='Falha ao preparar'){
+     watchInstalling(r.installing);
+     setStatus('Preparando atualização','Versão '+remoteVersion+' encontrada. O pacote está sendo preparado; Atualizar agora permite solicitar outra tentativa.');
+    }else if(!newer){
+     clearPreparation();
+     setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+    }
     if(interactive&&!newer&&!ready)showToast('Clara atualizado. Versão '+INSTALLED_VERSION+'.');
     return newer||ready;
    }catch(e){
-    setStatus('Sem confirmação','A verificação não foi concluída. Seus dados permanecem disponíveis neste dispositivo.');
+    clearPreparation();
+    ready=!!registration?.waiting;
+    setStatus('Sem confirmação','A verificação falhou: '+(e?.message||'erro de conexão')+'. O cofre permanece intacto.');
     if(interactive)showToast(e.message,true);
     return false;
    }finally{checking=null;paint();}
@@ -4939,10 +4972,10 @@ const ClaraUpdate=(()=>{
   setStatus('Preparando atualização','Atualização solicitada. Preparando o pacote offline antes de confirmar a instalação.');
   await check(false);
   if(r.waiting){
-   installRequested=false;
+   clearPreparation();
    return installReady(r);
   }
-  if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'){
+  if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'||status==='Falha ao preparar'){
    clearPreparation();
    paint();
    showToast('O pacote ainda não pôde ser preparado. Verifique a conexão e tente novamente.',true);
