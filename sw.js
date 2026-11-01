@@ -1,4 +1,4 @@
-/* Clara 4.0.4: Service Worker versionado por pacote + HTML + CSS + JS + código do próprio SW. */
+/* Clara 4.0.5: Service Worker versionado por pacote + HTML + CSS + JS + código do próprio SW. */
 const CACHE_NAME = '__CLARA_CACHE_NAME__';
 const APP_FILES = ['./','./index.html','./clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js','./manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png'];
 const scopedURL = relative => new URL(relative, self.registration.scope);
