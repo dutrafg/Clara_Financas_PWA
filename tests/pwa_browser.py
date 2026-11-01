@@ -92,7 +92,7 @@ async def run():
             assert await page.locator('#view-mais .clara-more-item').count()==7
             await page.locator('#view-mais [data-config-jump="dados"]').click()
             assert await page.locator('#pageTitle').inner_text()=='Configurações'
-            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.1.0-rc'
+            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.1.1-rc'
             assert await page.locator('#exportJson').is_visible()
             assert await page.locator('#importClara').count()==1
             assert await page.locator('#claraAdvancedSettings').count()==1
