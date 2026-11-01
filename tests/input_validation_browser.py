@@ -39,11 +39,18 @@ async def main():
 
         await page.evaluate("window.__qaXss=0;modal('transaction')")
         await page.locator('#m_description').fill(XSS_DESCRIPTION)
+        await page.locator('#m_date').fill('2026-11-01')
+        await page.locator('#m_account').select_option('principal')
+        await page.locator('#m_category').select_option('Alimentação')
         await page.locator('#m_amount').fill('1.234,56')
         await page.locator('#m_kind').select_option('Despesa')
         await page.locator('#m_status').select_option('Pendente')
         await page.locator('#modalForm button[type=submit]').click()
-        assert await page.evaluate('state.transactions.length') == initial_count + 1
+        try:
+            await page.wait_for_function('state.transactions.length === initialCount + 1', arg=initial_count, timeout=5000)
+        except Exception as error:
+            fields = await page.locator('#modalForm .field-error').all_inner_texts()
+            raise AssertionError(f'Lançamento válido não foi salvo; erros={fields!r}') from error
         assert await page.evaluate("state.transactions.at(-1).amountCents") == 123456
         await page.evaluate("go('mov')")
         await page.wait_for_function("document.querySelector('#view-mov')?.textContent.includes('1.234,56')")
