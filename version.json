@@ -1,13 +1,14 @@
 {
   "name": "Clara Finanças",
-  "version": "4.0.0-rc",
-  "build": "2026-10-31",
+  "version": "4.0.1-rc",
+  "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "A Clara agora mostra somente quatro áreas: Início, Lançar, Planejar e Mais.",
-    "A tela inicial destaca saldo, entradas, saídas, próximos vencimentos e registros.",
-    "Cadastro de gastos, receitas e transferências direto, com menos etapas.",
-    "Os 15 miniaplicativos e as ferramentas completas ficam no modo avançado.",
-    "Cofre criptografado, backups, dados existentes e atualização confirmada preservados."
+    "Abertura opcional por biometria ou chave de acesso do dispositivo, mantendo a senha do cofre.",
+    "A biometria pode ser ativada e desativada em Segurança e backup.",
+    "Botão sempre visível para sair do modo avançado e voltar ao modo simples.",
+    "Pílula de navegação maior no celular, com margens laterais.",
+    "Fotos de perfil de até 10 MB, otimizadas antes da gravação criptografada.",
+    "Service Worker e cache atualizados para a nova versão."
   ]
 }
