@@ -1329,6 +1329,46 @@ a { color: inherit; }
 .clw-item{min-width:0}
 .clw-item{display:flex;flex-direction:column;min-width:0}
 .clw-item>.panel{height:auto;flex:1 1 auto;min-width:0}
+ /* Miniaplicativos independentes: a linha da grade não estica os vizinhos. */
+ .clw-grid{align-items:start}
+ .clw-item{align-self:start;min-width:0}
+ .clw-item>.clw-panel{
+   display:flex;flex-direction:column;flex:0 1 auto;height:auto;
+   max-height:min(416px,62dvh);overflow:hidden;min-height:0;
+ }
+ .clw-item>.clw-panel>.panel-head{flex:0 0 auto;min-width:0}
+ .clw-item .clw-scroll-area{
+   flex:0 1 auto;min-width:0;min-height:0;max-width:100%;
+   overflow-x:auto;overflow-y:auto;overscroll-behavior:contain;
+   scrollbar-width:thin;
+   scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent;
+   -webkit-overflow-scrolling:touch;
+ }
+ .clw-item .clw-scroll-area:focus-visible{
+   outline:2px solid var(--teal);outline-offset:-2px;border-radius:8px;
+ }
+ .clw-item .clw-scroll-area::-webkit-scrollbar{width:7px;height:7px}
+ .clw-item .clw-scroll-area::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 45%,transparent);border-radius:99px}
+ .clw-item .clw-scroll-area::-webkit-scrollbar-track{background:transparent}
+ /* Cards longos do Início simples: cabeçalho sempre acessível. */
+ :root[data-simple="true"] #view-painel .clara-simple-home>.clara-simple-card{
+   max-height:min(416px,62dvh);overflow-y:auto;overscroll-behavior:contain;
+   scrollbar-width:thin;
+ }
+ :root[data-simple="true"] #view-painel .clara-simple-card>header{
+   position:sticky;top:0;z-index:1;
+   background:var(--panel);border-radius:12px;padding:3px 0;
+ }
+ @media(max-width:760px){
+   .clw-item>.clw-panel{max-height:min(390px,58dvh)}
+ }
+ @media print{
+   .clw-item>.clw-panel,
+   :root[data-simple="true"] #view-painel .clara-simple-home>.clara-simple-card{
+      max-height:none!important;overflow:visible!important;
+   }
+   .clw-item .clw-scroll-area{max-height:none!important;overflow:visible!important}
+ }
 .clw-item>.clw-toolstrip{flex:0 0 auto;position:relative;z-index:1}
 .clw-item .panel-head{flex-wrap:wrap;gap:8px}
 .clw-item .panel-head .btn{max-width:100%;white-space:normal}
@@ -1719,9 +1759,17 @@ function recurringItems(kind='Todos'){
  }).filter(r=>kind==='Todos'||r.kind===kind).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
 }
 
+/* Somente a Dashboard usa painéis com área de rolagem própria.
+   O cabeçalho e as ferramentas ficam fora do scroll para permanecerem operáveis. */
+function claraWidgetPanel(title,subtitle,body,action=''){
+ return `<section class="panel clw-panel">
+  <div class="panel-head"><div><h3>${title}</h3><p>${subtitle}</p></div>${action}</div>
+  <div class="clw-scroll-area" tabindex="0" role="region" aria-label="Conteúdo de ${esc(title)}">${body}</div>
+ </section>`;
+}
 function renderRecurring(action,line,empty){
  const rows=recurringItems(claraWidgetUI.recurringKind);
- return panel('Recorrências identificadas','Padrões em pelo menos dois meses distintos',`
+ return claraWidgetPanel('Recorrências identificadas','Padrões em pelo menos dois meses distintos',`
  <div class="clw-list">${rows.slice(0,7).map(r=>line(r.name,
  `${r.kind} · ${r.months} meses · último ${brl(r.amount)} · próxima referência estimada ${fmtDay(r.next)}`,
  action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir no próximo mês',`data-clw-action="duplicate" data-clw-next="true" data-clw-id="${esc(r.id)}"`))).join('')}
@@ -1731,7 +1779,7 @@ function renderRecurring(action,line,empty){
 }
 
 function renderSimulator(action){
- return panel('Simulador financeiro','Simule alterações no orçamento sem salvar dados',`
+ return claraWidgetPanel('Simulador financeiro','Simule alterações no orçamento sem salvar dados',`
  <div class="clw-sim-fields">
  <label class="field"><span>Receita extra/mês (R$)</span><input id="clw-sim-income" inputmode="decimal" value="0,00"></label>
  <label class="field"><span>Despesa extra/mês (R$)</span><input id="clw-sim-expense" inputmode="decimal" value="0,00"></label>
@@ -1959,7 +2007,7 @@ function renderClaraMiniapps(p) {
  const allPending=overdue.length+alerts.length+goalAlerts.length;
  const showAttention=kind=>claraWidgetUI.attention==='Todos'||claraWidgetUI.attention===kind;
  const cards={
- attention:()=>panel('Central de atenção',`${allPending} sinal(is) que exigem revisão`,`
+ attention:()=>claraWidgetPanel('Central de atenção',`${allPending} sinal(is) que exigem revisão`,`
    <div class="clw-list">
     ${showAttention('Atrasos')?overdue.slice(0,3).map(t=>line(t.description,`<span class="negative">${fmtDay(t.date)} · ${brl(t.amountCents)} · vencido</span>`,
       action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Quitar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join(''):''}
@@ -1969,7 +2017,7 @@ function renderClaraMiniapps(p) {
       action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join(''):''}
     ${(claraWidgetUI.attention==='Atrasos'?overdue.length:claraWidgetUI.attention==='Limites'?alerts.length:claraWidgetUI.attention==='Metas'?goalAlerts.length:allPending)===0?empty('Nenhuma pendência para este filtro.'):''}
    </div>`,action('Ver registros','data-view="mov"')),
- agenda:()=>panel('Agenda financeira','Contas e recebimentos a vencer em até '+claraWidgetUI.agendaDays+' dias',`
+ agenda:()=>claraWidgetPanel('Agenda financeira','Contas e recebimentos a vencer em até '+claraWidgetUI.agendaDays+' dias',`
    <div class="clw-list">
     ${upcoming.slice(0,6).map(t=>line(t.description,`${fmtDay(t.date)} · ${t.kind==='Receita'?'Receber':'Pagar'} · ${brl(t.amountCents)}`,
       action('Editar',`data-edit-tx="${esc(t.id)}"`)+action(t.kind==='Receita'?'Recebido':'Pagar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join('')}
@@ -1977,7 +2025,7 @@ function renderClaraMiniapps(p) {
    </div>
    <p class="helper">As datas de pagamento permanecem registradas separadamente das datas de vencimento.</p>`,
    action('Novo vencimento','data-open="transaction"')),
- quick:()=>panel('Lançamentos rápidos','Cadastre operações com o tipo já selecionado',`
+ quick:()=>claraWidgetPanel('Lançamentos rápidos','Cadastre operações com o tipo já selecionado',`
    <div class="clw-quick">
      ${action('Nova despesa','data-clw-action="new" data-clw-kind="Despesa"','primary')}
      ${action('Nova receita','data-clw-action="new" data-clw-kind="Receita"')}
@@ -1985,14 +2033,14 @@ function renderClaraMiniapps(p) {
    </div>
    <p class="helper">Nenhum valor é incluído sem confirmação no formulário.</p>`,
    action('Consultar registros','data-view="mov"')),
- budgets:()=>panel('Orçamentos por categoria','Previsto = realizado + pendente',`
+ budgets:()=>claraWidgetPanel('Orçamentos por categoria','Previsto = realizado + pendente',`
    <div class="clw-list">${claraWidgetBudgets(p).slice(0,7).map(r=>`
     <div class="clw-budget">${line(r.name,`Realizado ${brl(r.done)} · Previsto ${brl(r.planned)} · Limite ${brl(r.limitCents)}`,
      action('Ajustar','data-config-jump="contas"'))}
     <div class="pbar"><span class="${budgetSemanticClass(r.ratio)}" style="width:${Math.max(0,Math.min(100,r.ratio*100))}%"></span></div>
     <small class="muted">${esc(budgetSemanticLabel(r))}</small></div>`).join('')}
    </div>`,action('Planejamento','data-view="plan"')),
- goals:()=>panel('Metas financeiras',`${state.goals.length} meta(s) cadastrada(s)`,`
+ goals:()=>claraWidgetPanel('Metas financeiras',`${state.goals.length} meta(s) cadastrada(s)`,`
    <div class="clw-list">
     ${claraWidgetGoals().slice(0,5).map(g=>`<div class="clw-goal">
      ${line(g.name,`${brl(g.savedCents)} de ${brl(g.targetCents)} · ${fmtDay(g.dueDate)}`,
@@ -2001,38 +2049,38 @@ function renderClaraMiniapps(p) {
     </div>`).join('')}
     ${!claraWidgetGoals().length?empty('Nenhuma meta encontrada para este filtro.'):''}
    </div>`,action('Nova meta','data-open="goal"')),
- accounts:()=>panel('Contas e cartões','Posição até a data de corte e pendências por cartão',`
+ accounts:()=>claraWidgetPanel('Contas e cartões','Posição até a data de corte e pendências por cartão',`
    <div class="clw-list">${claraWidgetAccounts().slice(0,7).map(a=>line(a.name,
     `${esc(a.type)} · ${brl(accountBalance(a.id,state.settings.cutoff))}${a.type==='Cartão'?' · Fatura pendente '+brl(accountPendingCard(a.id)):''}`,
     action('Editar',`data-edit-account="${esc(a.id)}"`)+action('Conferir','data-view="conf"'))).join('')}</div>`,
    action('Nova conta','data-open="account"')),
- comparison:()=>panel('Comparativo mensal',`${monthLabel(p)} × ${monthLabel(previousPeriod)} · valores realizados`,`
+ comparison:()=>claraWidgetPanel('Comparativo mensal',`${monthLabel(p)} × ${monthLabel(previousPeriod)} · valores realizados`,`
    <div class="clw-list">
     ${line('Receitas',`${brl(current.income)} · ${claraWidgetDifference(current.income,previous.income)}`)}
     ${line('Despesas',`${brl(current.expense)} · ${claraWidgetDifference(current.expense,previous.expense)}`)}
     ${line('Resultado',`${brl(current.net)} · ${claraWidgetDifference(current.net,previous.net)}`)}
    </div><p class="helper">A comparação não conta transferências internas como receitas ou despesas.</p>`,
    action('Movimentações','data-view="mov"')),
- recent:()=>panel('Movimentações recentes','Ações de edição, duplicação e exclusão',`
+ recent:()=>claraWidgetPanel('Movimentações recentes','Ações de edição, duplicação e exclusão',`
    <div class="clw-list">
     ${recent.map(t=>line(t.description,`${fmtDay(effective(t))} · ${t.kind} · ${brl(t.amountCents)} · ${t.status}`,
      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Duplicar',`data-clw-action="duplicate" data-clw-id="${esc(t.id)}"`)+action('Excluir',`data-del-tx="${esc(t.id)}"`))).join('')}
     ${!recent.length?empty('Nenhuma movimentação cadastrada.'):''}
    </div>`,action('Novo lançamento','data-open="transaction"')),
  insights:()=>{const notes=claraWidgetInsights(p);
-    return panel('Insights automáticos','Análises descritivas locais, sem IA externa',`
+    return claraWidgetPanel('Insights automáticos','Análises descritivas locais, sem IA externa',`
       <div class="clw-list">${notes.slice(0,5).map((n,i)=>line('Observação '+(i+1),esc(n.text))).join('')}
       ${!notes.length?empty('Cadastre movimentações para obter indicadores úteis.'):''}</div>
       <p class="helper">Não são previsões garantidas nem recomendações de investimento.</p>`,
       action('Revisar orçamento','data-view="plan"'));},
- forecast:()=>panel('Fluxo de caixa projetado','Baseado nos lançamentos pendentes conhecidos',`
+ forecast:()=>claraWidgetPanel('Fluxo de caixa projetado','Baseado nos lançamentos pendentes conhecidos',`
    <div class="clw-list">${claraWidgetForecast().slice(0,12).map(f=>line(monthLabel(f.p),
      `Saldo ${brl(f.balance)} · Entradas ${brl(f.incomes)} · Saídas ${brl(f.outcomes)}`,
      action('Registros','data-view="mov"'))).join('')}</div>
    ${claraWidgetForecast().length===0?empty('Nenhum mês com saldo negativo no horizonte selecionado.'):''}
     <p class="helper">Projeção condicionada aos lançamentos cadastrados; não representa saldo garantido.</p>`,
    action('Horizonte','data-config-jump="painel"')),
- audit:()=>panel('Conferências e auditoria',`${state.reconciliations.length} conferência(s) registrada(s)`,`
+ audit:()=>claraWidgetPanel('Conferências e auditoria',`${state.reconciliations.length} conferência(s) registrada(s)`,`
    <div class="clw-list">
    ${claraWidgetAudits().slice(-5).reverse().map(r=>{
     const a=state.accounts.find(a=>a.id===r.accountId);
@@ -2042,12 +2090,12 @@ function renderClaraMiniapps(p) {
    ${!claraWidgetAudits().length?empty('Nenhuma conciliação encontrada para este filtro.'):''}
    </div>`,
    action('Abrir auditoria','data-view="conf"')+action('Exportar CSV','data-clw-action="export"')),
- categories:()=>panel('Onde estou gastando?',claraWidgetUI.categoryMetric==='Previsto'?'Realizado + pendências cadastradas':'Distribuição das despesas realizadas',`
+ categories:()=>claraWidgetPanel('Onde estou gastando?',claraWidgetUI.categoryMetric==='Previsto'?'Realizado + pendências cadastradas':'Distribuição das despesas realizadas',`
    ${donut(claraWidgetCategoryRows(p),claraWidgetCategoryRows(p).reduce((sum,r)=>sum+r.done,0))}
    <p class="helper">${claraWidgetUI.categoryMetric==='Previsto'?'Inclui despesas pendentes cadastradas, sem presumir despesas futuras.':'A distribuição usa apenas despesas realizadas.'}</p>`,
    action('Ver categorias','data-config-jump="contas"')),
  history:()=>{const months=claraWidgetHistory();
-    return panel('Histórico mensal','Auditoria resumida de meses anteriores',`
+    return claraWidgetPanel('Histórico mensal','Auditoria resumida de meses anteriores',`
     <div class="clw-list">${months.map(m=>{const x=stat(m);return line(monthLabel(m),
       `Receitas ${brl(x.income)} · Despesas ${brl(x.expense)} · Resultado ${brl(x.net)}`,
       action('Examinar',`data-clw-action="month" data-clw-month="${m}"`));}).join('')}
