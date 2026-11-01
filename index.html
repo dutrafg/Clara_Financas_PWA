@@ -1833,20 +1833,21 @@ function renderClaraMiniapps(p) {
  const budgets=budgetRows(p), alerts=budgets.filter(r=>r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100).sort((a,b)=>b.ratio-a.ratio);
  const goalAlerts=state.goals.filter(g=>g.dueDate && g.dueDate<today && g.savedCents<g.targetCents);
  const current=stat(p), previousPeriod=plusMonth(p+'-01',-claraWidgetUI.compareOffset).slice(0,7), previous=stat(previousPeriod);
- const recent=state.transactions.filter(t=>claraWidgetUI.recentStatus==='Todos'||t.status===claraWidgetUI.recentStatus).slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,5);
+ const recent=claraWidgetRecent().slice(0,5);
  const action=(label,attributes,kind='ghost')=>claraWidgetButton(label,attributes,kind);
  const line=claraWidgetLine, empty=claraWidgetEmpty;
  const allPending=overdue.length+alerts.length+goalAlerts.length;
+ const showAttention=kind=>claraWidgetUI.attention==='Todos'||claraWidgetUI.attention===kind;
  const cards={
  attention:()=>panel('Central de atenção',`${allPending} sinal(is) que exigem revisão`,`
    <div class="clw-list">
-    ${overdue.slice(0,3).map(t=>line(t.description,`<span class="negative">${fmtDay(t.date)} · ${brl(t.amountCents)} · vencido</span>`,
-      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Quitar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join('')}
-    ${alerts.slice(0,2).map(r=>line(`Orçamento: ${r.name}`,`Utilização: ${pref('hideValues')?'oculta':pct(r.ratio)}`,
-      action('Ver limite','data-config-jump="contas"'))).join('')}
-    ${goalAlerts.slice(0,2).map(g=>line(`Meta: ${g.name}`,`Prazo vencido em ${fmtDay(g.dueDate)}`,
-      action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join('')}
-    ${allPending===0?empty('Nenhum prazo vencido ou orçamento crítico identificado.'):''}
+    ${showAttention('Atrasos')?overdue.slice(0,3).map(t=>line(t.description,`<span class="negative">${fmtDay(t.date)} · ${brl(t.amountCents)} · vencido</span>`,
+      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Quitar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join(''):''}
+    ${showAttention('Limites')?alerts.slice(0,2).map(r=>line(`Orçamento: ${r.name}`,`Utilização: ${pref('hideValues')?'oculta':pct(r.ratio)}`,
+      action('Ver limite','data-config-jump="contas"'))).join(''):''}
+    ${showAttention('Metas')?goalAlerts.slice(0,2).map(g=>line(`Meta: ${g.name}`,`Prazo vencido em ${fmtDay(g.dueDate)}`,
+      action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join(''):''}
+    ${(claraWidgetUI.attention==='Atrasos'?overdue.length:claraWidgetUI.attention==='Limites'?alerts.length:claraWidgetUI.attention==='Metas'?goalAlerts.length:allPending)===0?empty('Nenhuma pendência para este filtro.'):''}
    </div>`,action('Ver registros','data-view="mov"')),
  agenda:()=>panel('Agenda financeira','Contas e recebimentos a vencer em até '+claraWidgetUI.agendaDays+' dias',`
    <div class="clw-list">
@@ -1865,7 +1866,7 @@ function renderClaraMiniapps(p) {
    <p class="helper">Nenhum valor é incluído sem confirmação no formulário.</p>`,
    action('Consultar registros','data-view="mov"')),
  budgets:()=>panel('Orçamentos por categoria','Previsto = realizado + pendente',`
-   <div class="clw-list">${budgets.filter(r=>!claraWidgetUI.onlyRisk||(r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100)).slice().sort((a,b)=>b.ratio-a.ratio).slice(0,7).map(r=>`
+   <div class="clw-list">${claraWidgetBudgets(p).slice(0,7).map(r=>`
     <div class="clw-budget">${line(r.name,`Realizado ${brl(r.done)} · Previsto ${brl(r.planned)} · Limite ${brl(r.limitCents)}`,
      action('Ajustar','data-config-jump="contas"'))}
     <div class="pbar"><span class="${budgetSemanticClass(r.ratio)}" style="width:${Math.max(0,Math.min(100,r.ratio*100))}%"></span></div>
@@ -1873,15 +1874,15 @@ function renderClaraMiniapps(p) {
    </div>`,action('Planejamento','data-view="plan"')),
  goals:()=>panel('Metas financeiras',`${state.goals.length} meta(s) cadastrada(s)`,`
    <div class="clw-list">
-    ${state.goals.slice(0,5).map(g=>`<div class="clw-goal">
+    ${claraWidgetGoals().slice(0,5).map(g=>`<div class="clw-goal">
      ${line(g.name,`${brl(g.savedCents)} de ${brl(g.targetCents)} · ${fmtDay(g.dueDate)}`,
        action('Atualizar',`data-goal-edit="${esc(g.id)}"`)+action('Editar',`data-edit-goal-full="${esc(g.id)}"`)+action('Excluir',`data-del-goal="${esc(g.id)}"`))}
      <div class="pbar"><span style="width:${Math.max(0,Math.min(100,(g.savedCents/g.targetCents)*100))}%"></span></div>
     </div>`).join('')}
-    ${!state.goals.length?empty('Crie uma meta para começar seu planejamento.'):''}
+    ${!claraWidgetGoals().length?empty('Nenhuma meta encontrada para este filtro.'):''}
    </div>`,action('Nova meta','data-open="goal"')),
  accounts:()=>panel('Contas e cartões','Posição até a data de corte e pendências por cartão',`
-   <div class="clw-list">${state.accounts.filter(a=>!claraWidgetUI.onlyCards||a.type==='Cartão').slice(0,7).map(a=>line(a.name,
+   <div class="clw-list">${claraWidgetAccounts().slice(0,7).map(a=>line(a.name,
     `${esc(a.type)} · ${brl(accountBalance(a.id,state.settings.cutoff))}${a.type==='Cartão'?' · Fatura pendente '+brl(accountPendingCard(a.id)):''}`,
     action('Editar',`data-edit-account="${esc(a.id)}"`)+action('Conferir','data-view="conf"'))).join('')}</div>`,
    action('Nova conta','data-open="account"')),
@@ -1898,45 +1899,39 @@ function renderClaraMiniapps(p) {
      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Duplicar',`data-clw-action="duplicate" data-clw-id="${esc(t.id)}"`)+action('Excluir',`data-del-tx="${esc(t.id)}"`))).join('')}
     ${!recent.length?empty('Nenhuma movimentação cadastrada.'):''}
    </div>`,action('Novo lançamento','data-open="transaction"')),
- insights:()=>{const notes=[];
-    if(previous.expense>0 && current.expense>previous.expense*1.05) notes.push('Os gastos realizados estão acima dos gastos do mês anterior.');
-    if(previous.expense>0 && current.expense<previous.expense*.95) notes.push('Os gastos realizados estão abaixo dos gastos do mês anterior.');
-    if(current.income+current.expense>0 && current.net<0) notes.push('O resultado realizado do mês está negativo.');
-    if(future30()>totalBalance(state.settings.cutoff)) notes.push('Despesas pendentes até 30 dias ultrapassam o saldo realizado, sem considerar recebimentos futuros.');
-    if(alerts.length) notes.push(`${alerts.length} categoria(s) atingiram o nível configurado para alerta de orçamento.`);
-    const biggest=budgets.filter(r=>r.done>0).sort((a,b)=>b.done-a.done)[0];
-    if(biggest) notes.push('Categoria com maior gasto realizado: '+biggest.name+'.');
+ insights:()=>{const notes=claraWidgetInsights(p);
     return panel('Insights automáticos','Análises descritivas locais, sem IA externa',`
-      <div class="clw-list">${notes.slice(0,5).map((n,i)=>line('Observação '+(i+1),esc(n))).join('')}
+      <div class="clw-list">${notes.slice(0,5).map((n,i)=>line('Observação '+(i+1),esc(n.text))).join('')}
       ${!notes.length?empty('Cadastre movimentações para obter indicadores úteis.'):''}</div>
       <p class="helper">Não são previsões garantidas nem recomendações de investimento.</p>`,
       action('Revisar orçamento','data-view="plan"'));},
  forecast:()=>panel('Fluxo de caixa projetado','Baseado nos lançamentos pendentes conhecidos',`
-   <div class="clw-list">${forecast(pref('forecastMonths')).slice(0,6).map(f=>line(monthLabel(f.p),
+   <div class="clw-list">${claraWidgetForecast().slice(0,12).map(f=>line(monthLabel(f.p),
      `Saldo ${brl(f.balance)} · Entradas ${brl(f.incomes)} · Saídas ${brl(f.outcomes)}`,
      action('Registros','data-view="mov"'))).join('')}</div>
-   <p class="helper">Projeção condicionada aos lançamentos cadastrados; não representa saldo garantido.</p>`,
+   ${claraWidgetForecast().length===0?empty('Nenhum mês com saldo negativo no horizonte selecionado.'):''}
+    <p class="helper">Projeção condicionada aos lançamentos cadastrados; não representa saldo garantido.</p>`,
    action('Horizonte','data-config-jump="painel"')),
  audit:()=>panel('Conferências e auditoria',`${state.reconciliations.length} conferência(s) registrada(s)`,`
    <div class="clw-list">
-   ${state.reconciliations.slice(-5).reverse().map(r=>{
+   ${claraWidgetAudits().slice(-5).reverse().map(r=>{
     const a=state.accounts.find(a=>a.id===r.accountId);
     return line(a?.name||'Conta',`${fmtDay(r.date)} · Extrato ${brl(r.statementCents)}`,
       action('Editar',`data-edit-recon="${esc(r.id)}"`)+action('Conferir','data-view="conf"'));
    }).join('')}
-   ${!state.reconciliations.length?empty('Ainda não existem conciliações de extrato.'):''}
+   ${!claraWidgetAudits().length?empty('Nenhuma conciliação encontrada para este filtro.'):''}
    </div>`,
    action('Abrir auditoria','data-view="conf"')+action('Exportar CSV','data-clw-action="export"')),
- categories:()=>panel('Onde estou gastando?','Distribuição das despesas realizadas',`
-   ${donut(budgets,current.expense)}
-   <p class="helper">A distribuição usa apenas despesas realizadas.</p>`,
+ categories:()=>panel('Onde estou gastando?',claraWidgetUI.categoryMetric==='Previsto'?'Realizado + pendências cadastradas':'Distribuição das despesas realizadas',`
+   ${donut(claraWidgetCategoryRows(p),claraWidgetCategoryRows(p).reduce((sum,r)=>sum+r.done,0))}
+   <p class="helper">${claraWidgetUI.categoryMetric==='Previsto'?'Inclui despesas pendentes cadastradas, sem presumir despesas futuras.':'A distribuição usa apenas despesas realizadas.'}</p>`,
    action('Ver categorias','data-config-jump="contas"')),
- history:()=>{const months=[...new Set(state.transactions.map(t=>effective(t).slice(0,7)).filter(Boolean))].sort().reverse().slice(0,10);
+ history:()=>{const months=claraWidgetHistory();
     return panel('Histórico mensal','Auditoria resumida de meses anteriores',`
     <div class="clw-list">${months.map(m=>{const x=stat(m);return line(monthLabel(m),
       `Receitas ${brl(x.income)} · Despesas ${brl(x.expense)} · Resultado ${brl(x.net)}`,
       action('Examinar',`data-clw-action="month" data-clw-month="${m}"`));}).join('')}
-    ${!months.length?empty('O histórico aparece quando houver lançamentos cadastrados.'):''}</div>
+    ${!months.length?empty('Nenhum mês encontrado para este filtro.'):''}</div>
     <p class="helper">Examinar altera apenas o mês consultado; os registros originais permanecem preservados.</p>`,
     action('CSV anual','data-clw-action="export"'));}
  };
