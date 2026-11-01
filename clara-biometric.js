@@ -154,5 +154,9 @@ document.addEventListener('click',event=>{
 const originalRenderSettings=renderAjustes;
 renderAjustes=function(){const v=originalRenderSettings();paint();return v;};
 window.ClaraBiometric={paint,setup,unlock,disable,get enabled(){return !!compatibleRecord();}};
+// O bloqueio por segundo plano altera a tela de login sem recarregar a página.
+const watcher=new MutationObserver(paint);
+watcher.observe($('securityCover'),{attributes:true,attributeFilter:['hidden']});
+watcher.observe($('securityConfirmWrap'),{attributes:true,attributeFilter:['hidden']});
 paint();
 })();
