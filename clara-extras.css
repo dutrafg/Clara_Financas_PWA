@@ -63,14 +63,14 @@
   background-clip:padding-box;
 }
 /* Superfícies com preenchimento: respeitar a linguagem de cada módulo. */
-:where(.btn:not(.ghost):not(.primary),.clara-simple-action:not(.primary),
+:is(.btn:not(.ghost):not(.primary),.clara-simple-action:not(.primary),
  .clara-more-item,.clx-add,.clx-dialog button:not(.primary),
  .ca-header button,.ca-compact-row button,.ca-dialog button:not(.ca-primary),
  .secure-card button:not(.secure-button),.clara-update-notice button:not(.primary)){
   background:var(--clara-button-glass);
   box-shadow:inset 0 1px 0 #ffffff15,0 3px 10px #050b1510;
 }
-:where(.btn.primary,.ca-primary,.clara-simple-action.primary,.clx-dialog button.primary,
+:is(.btn.primary,.ca-primary,.clara-simple-action.primary,.clx-dialog button.primary,
  .secure-button,.ca-dialog .ca-primary,.clara-update-notice .btn.primary){
   background:var(--clara-primary-glass);
   box-shadow:inset 0 1px 0 #ffffff27,0 4px 13px #050b151c;
