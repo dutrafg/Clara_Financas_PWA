@@ -35,7 +35,11 @@ async def main():
               };
               navigator.serviceWorker?.addEventListener('controllerchange',()=>add('controllerchange',navigator.serviceWorker.controller?.state));
               navigator.serviceWorker?.addEventListener('message',event=>add('message',event.data));
-              window.addEventListener('load',()=>add('load',{updater:window.ClaraUpdate?.status||null,bootCache:document.querySelector('#clara-update-boot-guard')?.textContent.match(/CLARA_BOOT_CACHE='([^']+)'/)?.[1]||null}));
+              window.addEventListener('load',()=>{
+                const loads=Number(sessionStorage.getItem('__claraRollbackQaLoads')||0)+1;
+                sessionStorage.setItem('__claraRollbackQaLoads',String(loads));
+                add('load',{loads,updater:window.ClaraUpdate?.status||null,bootCache:document.querySelector('#clara-update-boot-guard')?.textContent.match(/CLARA_BOOT_CACHE='([^']+)'/)?.[1]||null});
+              });
             })();""")
             await page.goto(BASE, wait_until='load')
             if await page.locator('#securityCover').is_visible():
@@ -46,6 +50,7 @@ async def main():
                 await page.wait_for_function("document.documentElement.dataset.unlocked==='true'", timeout=30000)
             await page.wait_for_function('navigator.serviceWorker.controller !== null', timeout=30000)
             await page.wait_for_function("window.ClaraUpdate.status==='Atualizado'", timeout=30000)
+            baseline_loads = int(await page.evaluate("sessionStorage.getItem('__claraRollbackQaLoads')||'0'"))
 
             metadata = json.loads(originals[FILES[1]])
             metadata['version'] = '99.9.9-rc'
@@ -86,12 +91,19 @@ async def main():
             apply_result = await page.evaluate('window.__qaApplyPromise')
             assert apply_result is True, f'Instalação não foi aceita: status={await page.evaluate("ClaraUpdate.status")!r}; dialogs={dialog_messages!r}'
 
+            # Aguarda a navegação para a shell candidata e o reload para a shell recuperada.
+            await page.wait_for_function(
+                "baseline => Number(sessionStorage.getItem('__claraRollbackQaLoads')||0) >= baseline + 2",
+                arg=baseline_loads,
+                timeout=45000,
+            )
+
             await page.wait_for_function("""async () => {
               const stateCache = await caches.open('clara-update-system-v1');
               const stateResponse = await stateCache.match(new URL('./__clara_update_state__', location.href));
               if (!stateResponse) return false;
               const state = await stateResponse.json();
-              if (!state.rolledBack) return false;
+              if (!state.rolledBack || !state.previous) return false;
               const source = await (await fetch('./clara-updater.js')).text();
               return !source.includes('Simulated critical updater module failure') && !!window.ClaraUpdate;
             }""", timeout=45000)
