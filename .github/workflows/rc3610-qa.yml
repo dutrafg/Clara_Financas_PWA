@@ -1,4 +1,4 @@
-name: Clara Finanças 4.0.4 — QA
+name: Clara Finanças 4.0.5 — QA
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - feature/clara-biometria-prf
       - feature/clara-reload-lock
       - feature/clara-notificacoes-agenda
+      - feature/clara-sino-macos-fixo
   pull_request:
     branches:
       - main
