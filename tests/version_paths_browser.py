@@ -40,11 +40,11 @@ async def run():
     assert await page.locator('#dashboardMiniapps').count()==1
 
     meta=json.loads((site/'version.json').read_text())
-    meta['version']='3.6.11-rc'
+    meta['version']='99.9.9-rc'
     meta['notes']=['Melhorias de atualização validadas no teste.']
     (site/'version.json').write_text(json.dumps(meta))
     online=await page.evaluate("""async () => (await (await fetch('./version.json',{cache:'no-store'})).json()).version""")
-    assert online=='3.6.11-rc',online
+    assert online=='99.9.9-rc',online
     original=(site/'index.html').read_text()
     (site/'index.html').write_text(original.replace('</head>','<!-- qa-version-two -->\n</head>',1))
     fresh=await page.evaluate("""async () => {
@@ -52,6 +52,13 @@ async def run():
       return (await response.text()).includes('qa-version-two');
     }""")
     assert fresh,'Solicitação no-store foi atendida pelo conteúdo obsoleto do Service Worker'
+
+    # Antes de chegar o novo Service Worker, há versão remota detectada.
+    # A ação precisa existir também em Configurações, não apenas no banner.
+    await page.evaluate("configTab='dados';go('ajustes')")
+    assert await page.locator('#applyClaraUpdate').is_visible()
+    assert await page.locator('#applyClaraUpdate').inner_text()=='Atualizar agora'
+    await page.evaluate("go('painel')")
 
     old_sw=(site/'sw.js').read_text()
     old_name=re.search(r"const CACHE_NAME = '([^']+)';",old_sw).group(1)
@@ -67,14 +74,16 @@ async def run():
     assert await page.locator('#claraUpdateNotice').is_visible()
     assert await page.locator('#claraUpdateNoticeInstall').is_visible()
     assert await page.locator('#claraUpdateNoticeText').inner_text()
-    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='3.6.11-rc'")
+    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='99.9.9-rc'")
     await page.locator('#claraUpdateNoticeLater').click()
     assert not await page.locator('#claraUpdateNotice').is_visible()
     await page.evaluate("window.ClaraUpdate.check(false)")
     assert not await page.locator('#claraUpdateNotice').is_visible()
     await page.evaluate("localStorage.removeItem('clara-update-dismissed-v1');window.ClaraUpdate.paint()")
     assert await page.locator('#claraUpdateNotice').is_visible()
-    page.once('dialog',lambda dialog: asyncio.create_task(dialog.accept()))
+    # A atualização confirma a instalação e, sem pasta externa, avisa sobre
+    # o backup local. Aceitar ambos no teste sem tocar nos dados reais.
+    page.on('dialog',lambda dialog: asyncio.create_task(dialog.accept()))
     await page.locator('#claraUpdateNoticeInstall').click()
     # A ativação é feita pela interface após confirmação. Nunca chamar
     # SKIP_WAITING diretamente no teste do fluxo de atualização.
