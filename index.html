@@ -4765,6 +4765,7 @@ const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const HOUR=60*60*1000, RESUME=15*60*1000, DISMISS_KEY='clara-update-dismissed-v1';
  let registration=null, initialPromise=null, checking=null, applying=false, observed=false;
+ const observedWorkers=new WeakSet();
  let installRequested=false, installPromise=null, prepareTimer=null;
  const PREPARE_TIMEOUT=25000;
  let status='Aguardando', message='Verificação automática ao desbloquear.', lastCheck=0;
@@ -4842,8 +4843,8 @@ const ClaraUpdate=(()=>{
   }else paint();
  }
  function watchInstalling(worker){
-  if(!worker||worker.__claraObserved)return;
-  worker.__claraObserved=true;
+  if(!worker||observedWorkers.has(worker))return;
+  observedWorkers.add(worker);
   const sync=()=>{
    if(worker.state==='installed')handleWaiting();
    else if(worker.state==='redundant'&&compare(remoteVersion,INSTALLED_VERSION)>0&&!registration?.waiting){
