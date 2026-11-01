@@ -4598,6 +4598,9 @@ async function secureSaveSnapshot(snapshot) {
   if(claraFSDirectory)await claraFSWrite(raw);
   if(!safeStorageSet(CLARA_VAULT_KEY,raw)) throw Error('Não foi possível manter a cópia criptografada de compatibilidade.');
   claraVaultRaw=raw;
+  // Depois de confirmar o cofre, registra um ponto cifrado de recuperação.
+  // O microbackup não substitui nem altera a transação original.
+  void window.ClaraBackups?.onVaultSaved?.(raw);
 }
 function secureQueue(snapshot) {
   claraSaving=claraSaving.then(()=>secureSaveSnapshot(snapshot)).catch(e=>{
@@ -4667,17 +4670,21 @@ async function secureEnter(password,confirm) {
   secureHide();
   if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
 }
+let claraLocking=false;
 async function secureLock() {
-  if(!claraUnlocked)return;
-  claraUnlocked=false;
+  if(!claraUnlocked||claraLocking)return;
+  claraLocking=true;
   document.documentElement.removeAttribute('data-unlocked');
   secureDom('securityCover').hidden=false;
   secureDom('securityTitle').textContent='Bloqueando Clara…';
   secureDom('securityMessage').textContent='Concluindo a proteção dos lançamentos.';
+  // Não invalidar a chave criptográfica enquanto há gravações na fila.
   await claraSaving.catch(()=>{});
-  claraKey=null;auditBaseline=null;state=fresh();
+  await window.ClaraBackups?.flush?.().catch(()=>{});
+  claraUnlocked=false;claraKey=null;auditBaseline=null;state=fresh();
   active='painel';render();
   secureShow(claraError?.message);
+  claraLocking=false;
 }
 async function secureExport() {
   if(!claraUnlocked||!claraKey)throw Error('Desbloqueie o cofre para exportar.');
@@ -4729,7 +4736,7 @@ async function secureRestoreLocalEncrypted(raw,password){
   try{persistSuccess('Backup local restaurado com segurança.');await claraSaving;}
   catch(error){state=old;render();throw error;}
 }
-window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,restoreLocalEncrypted:secureRestoreLocalEncrypted,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,restoreLocalEncrypted:secureRestoreLocalEncrypted,flush:async()=>{await claraSaving;await window.ClaraBackups?.flush?.();},get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
 window.ClaraPrivateFolder={get folder(){return CLARA_FS_FOLDER;},get active(){return claraFSAvailable;},get revision(){return claraFSRevision;},get warning(){return claraFSWarning;}};
 (async()=>{
   try {
@@ -4902,6 +4909,11 @@ const ClaraUpdate=(()=>{
    if(!canInstall())return false;
    if(!window.confirm('Instalar a atualização '+(remoteVersion||'disponível')+'? O Clara será reaberto, sem apagar o cofre nem os seus registros.'))return false;
    await window.ClaraSecurity.flush();
+   // O ponto de segurança deve ser concluído ANTES da troca do Service Worker.
+   // Nada do cache de código é usado como armazenamento da base financeira.
+   const protection=await window.ClaraBackups?.beforeUpdate?.();
+   if(!protection?.local)throw Error('O ponto de segurança pré-atualização não foi concluído. A instalação foi cancelada.');
+   if(!protection.external&&!window.confirm('O cofre está salvo e foi criado um ponto local, mas ainda não há backup externo confirmado. Limpar os dados do navegador pode apagar esses registros. Deseja atualizar mesmo assim?'))return false;
    // Se outro processo ativou o worker durante o salvamento, não aplicar um pacote desconhecido.
    const waiting=r.waiting;
    if(!waiting){setStatus('Verificando','O pacote mudou durante o salvamento. Verifique novamente.');return false;}
