@@ -33,7 +33,12 @@ async def main():
             await page.locator('#m_description').fill('Entrada inválida QA')
             await page.locator('#m_amount').fill(amount)
             await page.locator('#modalForm button[type=submit]').click()
-            assert await page.locator('#err_amount').inner_text(), f'Valor inválido aceito: {amount!r}'
+            try:
+                await page.wait_for_function("document.querySelector('#err_amount')?.textContent.trim()", timeout=3000)
+            except Exception as error:
+                actual = await page.locator('#m_amount').input_value()
+                modal_kind = await page.locator('#modalBg').get_attribute('data-kind')
+                raise AssertionError(f'Valor inválido sem erro de campo: {amount!r}; valor={actual!r}; modal={modal_kind!r}') from error
             assert await page.evaluate('state.transactions.length') == initial_count
             await page.locator('#closeModal').click()
 
