@@ -2264,6 +2264,8 @@ function fresh() {
     transactions: structuredClone(SOURCE_DATA.transactions),
     reconciliations: [],
     calendarEvents: [],
+    reminders: [],
+    quickNotes: [],
     notificationsRead: [],
     auditLog: [],
     profile: {...PROFILE_DEFAULTS},
@@ -2277,7 +2279,7 @@ function cleanData() {
     version: 2,
     accounts: [{ id: 'principal', name: 'Conta principal', type: 'Conta', openingCents: 0 }],
     categories: structuredClone(SOURCE_DATA.categories),
-    goals: [], transactions: [], reconciliations: [],calendarEvents: [],notificationsRead: [],auditLog: [],
+    goals: [], transactions: [], reconciliations: [],calendarEvents: [],reminders: [],quickNotes: [],notificationsRead: [],auditLog: [],
     profile: {...safeProfile()},
     settings: { ...PREF_DEFAULTS, ...(state?.settings || {}), period: date.slice(0, 7), cutoff: date, theme: state?.settings?.theme === 'light' ? 'light' : 'dark' }
   };
@@ -2295,6 +2297,31 @@ function validateData(data) {
         typeof ev.notes!=='string'||ev.notes.length>500||typeof ev.done!=='boolean'||
         !['none','day','hour','both'].includes(ev.reminder))throw Error('Compromisso inválido na agenda.');
       seenEvents.add(ev.id);
+    }
+  }
+  // Miniaplicativos independentes do calendário, no mesmo cofre AES-GCM.
+  if(data.reminders!==undefined){
+    if(!Array.isArray(data.reminders)||data.reminders.length>1000)throw Error('Quantidade de lembretes inválida.');
+    const ids=new Set();
+    for(const r of data.reminders){
+      if(!r||typeof r!=='object'||typeof r.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(r.id)||ids.has(r.id)||
+        typeof r.title!=='string'||!r.title.trim()||r.title.length>120||!dateValid(r.dueDate)||
+        typeof r.time!=='string'||(r.time!==''&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(r.time))||
+        typeof r.detail!=='string'||r.detail.length>700||
+        !['low','normal','high'].includes(r.priority)||typeof r.done!=='boolean'||
+        !['none','day','hour','both'].includes(r.reminder))throw Error('Lembrete inválido no cofre.');
+      ids.add(r.id);
+    }
+  }
+  if(data.quickNotes!==undefined){
+    if(!Array.isArray(data.quickNotes)||data.quickNotes.length>500)throw Error('Quantidade de notas inválida.');
+    const ids=new Set();
+    for(const n of data.quickNotes){
+      if(!n||typeof n!=='object'||typeof n.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(n.id)||ids.has(n.id)||
+        typeof n.title!=='string'||!n.title.trim()||n.title.length>120||
+        typeof n.content!=='string'||n.content.length>6000||
+        typeof n.pinned!=='boolean'||typeof n.updatedAt!=='string'||!Number.isFinite(Date.parse(n.updatedAt)))throw Error('Nota inválida no cofre.');
+      ids.add(n.id);
     }
   }
   if(data.notificationsRead!==undefined){
@@ -2397,6 +2424,8 @@ function parseImportedJSON(raw) {
   obj.profile={...PROFILE_DEFAULTS,...(obj.profile||{})};
   obj.auditLog=obj.auditLog||[];
   obj.calendarEvents=obj.calendarEvents||[];
+  obj.reminders=obj.reminders||[];
+  obj.quickNotes=obj.quickNotes||[];
   obj.notificationsRead=obj.notificationsRead||[];
   return withDefaultPreferences(obj);
 }
