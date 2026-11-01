@@ -16,15 +16,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  homologar-publicar:
-    name: Validar e publicar somente homologação
+  validar:
+    name: Verificar Clara antes da homologação
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout de homologação
+      - name: Checkout da branch de homologação
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -38,15 +35,15 @@ jobs:
           python-version: '3.12'
       - name: Regressão estática
         run: npm test
-      - name: Construir PWA de homologação
+      - name: Construir PWA
         run: npm run build
-      - name: Verificar caminhos e Service Worker
+      - name: Verificar Service Worker e caminhos
         run: npm run verify:paths
       - name: Preparar Playwright
         run: |
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Validar navegação, cofre, modos e offline
+      - name: Validar interface, cofre e offline
         shell: bash
         run: |
           set -euo pipefail
@@ -54,12 +51,18 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py
-      - name: Configurar GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Publicar artefato compilado (nunca o código-fonte cru)
+      - name: Guardar build validado
         uses: actions/upload-pages-artifact@v4
         with:
           path: dist
-      - name: Enviar homologação para GitHub Pages
+  publicar:
+    name: Enviar somente homologação ao GitHub Pages
+    needs: validar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar build validado
         id: deployment
         uses: actions/deploy-pages@v4
