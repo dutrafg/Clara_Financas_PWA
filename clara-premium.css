@@ -1,0 +1,260 @@
+/*
+ * CLARA DESIGN SYSTEM 4.1 — premium, preciso, acessível e independente de rede.
+ * Camada puramente visual: não altera modelos financeiros, roteamento, segurança ou cache.
+ * Paletas existentes continuam funcionando pelas variáveis funcionais --teal, --panel etc.
+ */
+:root{
+ --premium-ink:var(--text);
+ --premium-highlight:color-mix(in srgb,var(--teal) 19%,transparent);
+ --premium-edge:color-mix(in srgb,var(--stroke-strong) 66%,transparent);
+ --premium-edge-soft:color-mix(in srgb,var(--stroke) 76%,transparent);
+ --premium-glow:color-mix(in srgb,var(--teal) 8%,transparent);
+ --premium-elev:0 18px 50px #00000026,0 2px 7px #00000015,inset 0 1px 0 #ffffff16;
+ --premium-elev-low:0 10px 28px #0000001c,0 2px 5px #0000000d,inset 0 1px 0 #ffffff13;
+ --premium-inner:inset 0 1px 0 #ffffff12;
+ --premium-glass:color-mix(in srgb,var(--panel) 92%,transparent);
+ --premium-radius:24px;
+ --premium-radius-small:17px;
+ --premium-ease:cubic-bezier(.2,.75,.2,1);
+ --premium-duration:260ms;
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;
+ font-synthesis:none;
+ text-rendering:optimizeLegibility;
+ -webkit-font-smoothing:antialiased;
+}
+:root[data-theme=light]{
+ --premium-elev:0 20px 56px #27374f16,0 3px 10px #172d4910,inset 0 1px 0 #ffffff;
+ --premium-elev-low:0 10px 27px #1e304710,0 2px 6px #182a3d0a,inset 0 1px 0 #fff;
+ --premium-inner:inset 0 1px 0 #fff;
+ --premium-glass:color-mix(in srgb,var(--panel) 90%,transparent);
+}
+html{scroll-padding-top:84px;overflow-x:clip}
+body{
+ min-height:100vh;
+ background-color:var(--bg);
+ background-image:
+  radial-gradient(ellipse 75% 40% at 12% -16%,color-mix(in srgb,var(--blue) 9%,transparent),transparent 80%),
+  radial-gradient(ellipse 55% 40% at 96% 4%,color-mix(in srgb,var(--teal) 7%,transparent),transparent 82%);
+ background-attachment:fixed;
+ letter-spacing:-.005em;
+}
+body::selection{background:var(--premium-highlight);color:var(--text)}
+.main{
+ width:min(100%,1600px);
+ padding:clamp(22px,3.2vw,54px) clamp(15px,3.5vw,60px) calc(130px + env(safe-area-inset-bottom,0px));
+}
+.topbar{
+ min-height:100px;
+ align-items:center;
+ padding:clamp(8px,1.5vw,17px) 0 25px;
+ margin-bottom:clamp(15px,2.1vw,30px);
+ border-bottom:1px solid var(--premium-edge-soft);
+}
+.topbar>div:first-child{min-width:0;max-width:850px}
+.topbar-head{align-items:baseline;gap:12px}
+.eyebrow{
+ display:inline-flex;align-items:center;gap:9px;
+ color:var(--muted);text-transform:uppercase;
+ font-size:10.5px;letter-spacing:.17em;font-weight:780;
+}
+.eyebrow::before{
+ content:"";display:inline-block;width:7px;height:7px;
+ border-radius:99px;background:var(--teal);
+ box-shadow:0 0 0 4px var(--premium-highlight);
+}
+.title{
+ font-size:clamp(29px,4vw,53px);
+ font-weight:760;
+ letter-spacing:-.053em;
+ line-height:1.05;
+ margin:10px 0 8px;
+}
+.sub{font-size:clamp(12px,1.15vw,14px);line-height:1.7;max-width:65ch}
+.view.active{animation:clara-content-enter 270ms var(--premium-ease) both}
+@keyframes clara-content-enter{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+:where(.panel,.clara-simple-card,.ca-calendar,.clara-biometric-settings,.clara-private-folder){
+ border:1px solid var(--premium-edge-soft);
+ border-radius:var(--premium-radius);
+ background:linear-gradient(155deg,color-mix(in srgb,var(--panel) 99%,#fff 1%),var(--panel));
+ box-shadow:var(--premium-elev-low);
+}
+.panel{padding:clamp(17px,2.2vw,27px)}
+:where(.panel,.clara-simple-card,.ca-calendar) h3{letter-spacing:-.028em;font-weight:750}
+.panel-head{margin-bottom:18px}
+.panel-head h3{font-size:clamp(15px,1.5vw,19px)}
+.panel-head p{line-height:1.65}
+.question-section{margin-bottom:clamp(20px,2.7vw,36px)}
+.question-title{font-size:clamp(16px,1.55vw,20px);font-weight:740;letter-spacing:-.035em}
+.question-sub{line-height:1.7}
+.hero{
+ border-radius:clamp(22px,2.9vw,32px);
+ padding:clamp(23px,3.1vw,42px);
+ background:
+  radial-gradient(circle at 84% 12%,#ffffff16 0,transparent 32%),
+  linear-gradient(140deg,var(--hero-start,#153e46),var(--hero-end,#176a66));
+ border-color:color-mix(in srgb,var(--teal) 32%,transparent);
+ box-shadow:0 21px 53px #06121a29,inset 0 1px 0 #ffffff26;
+ overflow:hidden;
+}
+.hero strong.hero-amount{
+ font-size:clamp(39px,4.7vw,68px);
+ font-weight:760;
+ letter-spacing:-.065em;
+ line-height:1.04;
+}
+.sparkline-box{border-radius:20px;background:#07172235;box-shadow:inset 0 1px 0 #ffffff13}
+.btn,.clara-simple-action,.ca-primary{
+ min-height:41px;
+ border-radius:13px;
+ font-weight:680;
+ transition:
+  transform var(--premium-duration) var(--premium-ease),
+  box-shadow var(--premium-duration) var(--premium-ease),
+  background-color 180ms ease,
+  border-color 180ms ease;
+}
+.btn.primary,.clara-simple-action.primary,.ca-primary{
+ box-shadow:0 5px 17px color-mix(in srgb,var(--teal) 20%,transparent),inset 0 1px 0 #ffffff25;
+}
+@media (hover:hover){
+ .btn:not(:disabled):hover,.clara-simple-action:not(:disabled):hover,.ca-primary:not(:disabled):hover{transform:translateY(-1px)}
+ .btn.primary:not(:disabled):hover,.clara-simple-action.primary:not(:disabled):hover,.ca-primary:not(:disabled):hover{box-shadow:0 9px 23px color-mix(in srgb,var(--teal) 25%,transparent)}
+}
+.btn:active,.clara-simple-action:active,.ca-primary:active{transform:scale(.985)}
+:where(input,select,textarea,.form-compact){
+ border-radius:12px;
+}
+:where(input:not([type=checkbox]):not([type=radio]),select,textarea):focus-visible{
+ outline:2px solid color-mix(in srgb,var(--teal) 68%,transparent);
+ outline-offset:2px;
+}
+:where(.clara-simple-home,.clara-simple-card) {min-width:0}
+.clara-simple-home{gap:clamp(14px,2.2vw,26px)}
+.clara-simple-intro h3{font-size:clamp(20px,2.6vw,31px);font-weight:750;letter-spacing:-.047em}
+.clara-simple-intro p{line-height:1.7}
+.clara-balance{
+ border-radius:clamp(24px,3vw,34px);
+ padding:clamp(24px,3.3vw,46px);
+ background:
+  radial-gradient(ellipse 60% 70% at 95% 0%,#ffffff18,transparent 82%),
+  linear-gradient(138deg,var(--hero-start,#113b44),var(--hero-end,#17736c));
+ color:#f7fcff;
+ border:1px solid #ffffff2a;
+ box-shadow:0 20px 52px #071a2730,inset 0 1px 0 #ffffff34;
+}
+.clara-balance>strong{
+ font-size:clamp(38px,5.2vw,76px);
+ letter-spacing:-.07em;
+ font-weight:760;
+ line-height:1.04;
+ overflow-wrap:anywhere;
+}
+.clara-balance-head{letter-spacing:.06em;font-size:12px;font-weight:690}
+.clara-balance>p{line-height:1.65}
+.clara-simple-stats{gap:clamp(10px,1.4vw,17px)}
+.clara-simple-stats article{
+ border:1px solid var(--premium-edge-soft);
+ border-radius:var(--premium-radius-small);
+ box-shadow:var(--premium-inner);
+ padding:clamp(13px,1.7vw,23px);
+}
+.clara-simple-stats article strong{
+ font-size:clamp(18px,2.15vw,29px);
+ font-weight:760;
+ letter-spacing:-.04em;
+}
+.clara-simple-card{padding:clamp(18px,2.1vw,27px)}
+.clara-simple-line{padding-block:clamp(12px,1.6vw,18px)}
+.clara-more-item{
+ border-radius:16px;
+ transition:background-color 180ms ease,transform var(--premium-duration) var(--premium-ease);
+}
+@media(hover:hover){.clara-more-item:hover{transform:translateX(2px)}}
+:root:not([data-motion=reduced]) .ca-calendar,.clara-biometric-settings,.clara-private-folder{
+ transition:box-shadow var(--premium-duration) var(--premium-ease),border-color var(--premium-duration) var(--premium-ease);
+}
+.ca-calendar{padding:clamp(18px,2.1vw,30px)}
+.ca-top h3{font-size:clamp(19px,2vw,25px);letter-spacing:-.042em}
+.ca-day{border-radius:12px;transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease}
+@media(hover:hover){.ca-day:hover{transform:translateY(-1px)}}
+.ca-bell{
+ border-color:var(--premium-edge-soft);
+ background:var(--premium-glass);
+ border-radius:15px;
+ box-shadow:var(--premium-elev-low);
+}
+.ca-popover,.ca-dialog{
+ border:1px solid var(--premium-edge-soft);
+ border-radius:24px;
+ box-shadow:var(--premium-elev);
+ background:var(--premium-glass);
+ backdrop-filter:blur(22px);
+ -webkit-backdrop-filter:blur(22px);
+}
+.ca-notification{transition:background-color 160ms ease}
+.ca-notification:focus-visible{outline-offset:-3px}
+.clara-desktop-dock,.mobile-dock,.mobile-dock-wrap>.profile-fab{
+ box-shadow:var(--premium-elev);
+}
+.clara-desktop-dock,.mobile-dock{
+ background:var(--premium-glass);
+ border-color:var(--premium-edge);
+ border-radius:26px;
+ backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+}
+.clara-desktop-link,.mobile-dock .dock-link,.mobile-dock .float-trigger{
+ transition:background-color 170ms ease,color 170ms ease,transform 200ms var(--premium-ease);
+}
+@media(hover:hover){
+ .clara-desktop-link:hover,.mobile-dock .dock-link:hover{transform:translateY(-2px)}
+}
+.clara-desktop-link.active,.mobile-dock .dock-link.active{
+ color:var(--teal);
+ background:var(--premium-highlight);
+}
+#claraExitAdvanced{
+ border-color:var(--premium-edge-soft);
+ background:var(--premium-glass);
+ box-shadow:var(--premium-elev-low);
+}
+:root[data-theme=light] .ca-badge{color:white}
+:root[data-theme=light] :is(.clara-balance,.hero) .btn.hero-secondary{color:white}
+@media(max-width:760px){
+ .main{padding:24px 15px calc(122px + env(safe-area-inset-bottom,0px))}
+ .topbar{min-height:92px;padding:8px 0 20px;margin-bottom:21px}
+ .title{font-size:clamp(27px,8vw,38px);letter-spacing:-.047em}
+ .sub{font-size:12.5px;line-height:1.6}
+ .eyebrow{font-size:10px;letter-spacing:.1em}
+ .panel,.clara-simple-card,.ca-calendar{border-radius:21px}
+ .clara-simple-intro h3{font-size:24px}
+ .clara-simple-stats article{min-width:0}
+ .clara-balance{padding:25px 20px}
+ .clara-balance>strong{font-size:clamp(34px,9vw,51px)}
+ .mobile-dock-wrap{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+ .mobile-dock{border-radius:24px}
+ .ca-popover{max-height:72dvh}
+}
+@media(max-width:350px){
+ .main{padding-inline:11px}
+ .topbar{padding-inline:1px}
+ .title{font-size:26px}
+ .clara-simple-card,.panel,.ca-calendar{padding:15px}
+}
+@media(prefers-reduced-motion:reduce){
+ :root{--premium-duration:0ms;--premium-ease:linear}
+ html{scroll-behavior:auto!important}
+ .view.active{animation:none!important}
+ .btn,.clara-simple-action,.ca-primary,.clara-more-item,.ca-day,.clara-desktop-link,.dock-link{
+  transition:none!important;transform:none!important;
+ }
+}
+:root[data-motion=reduced] .view.active{animation:none!important}
+:root[data-motion=reduced] .btn,:root[data-motion=reduced] .ca-day,
+:root[data-motion=reduced] .clara-desktop-link,:root[data-motion=reduced] .clara-more-item{
+ transition:none!important;transform:none!important;
+}
+@media print{
+ body{background:white!important}
+ .panel,.clara-simple-card,.ca-calendar{box-shadow:none!important;background:white!important}
+ .view.active{animation:none!important}
+}
