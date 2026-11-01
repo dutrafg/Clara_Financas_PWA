@@ -70,3 +70,10 @@
 .ca-form-actions .ca-delete{margin-right:auto;color:var(--red)!important;}
 @media(max-width:760px){.ca-calendar{padding:15px;margin-bottom:14px;border-radius:16px}.ca-day{min-height:45px}.ca-grid{gap:2px}.ca-top{align-items:flex-start}.ca-top .ca-primary{width:auto}.ca-item{align-items:flex-start}.ca-item-actions{justify-content:flex-end;max-width:105px}.ca-popover{right:calc(12px + env(safe-area-inset-right,0px));top:calc(64px + env(safe-area-inset-top,0px))}.ca-row{grid-template-columns:1fr 1fr}.ca-dialog{padding:18px}}
 @media(max-width:350px){.ca-grid{gap:1px}.ca-day{min-height:40px}.ca-calendar{padding:11px}.ca-item{display:grid}.ca-item-actions{max-width:none;justify-content:flex-start}.ca-top h3{font-size:17px}}
+
+/* Resumo compacto: mantém a agenda completa acessível e reduz rolagem da Dashboard móvel. */
+.ca-compact-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;margin:0 0 11px}
+.ca-compact-row button{border:1px solid var(--stroke);border-radius:10px;padding:8px 11px;background:var(--panel2);color:var(--teal);font-size:12px;font-weight:730;cursor:pointer}
+.ca-calendar[data-compact="true"] .ca-header,.ca-calendar[data-compact="true"] .ca-grid,.ca-calendar[data-compact="true"] .ca-agenda{display:none}
+.ca-calendar[data-compact="true"]{padding-bottom:13px}
+@media(max-width:760px){.ca-compact-row{flex-wrap:wrap}.ca-compact-row button{min-height:38px}}
