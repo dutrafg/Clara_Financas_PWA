@@ -98,10 +98,30 @@
        <p class="clara-muted">As opções detalhadas continuam disponíveis no modo avançado.</p></section>`;
    }
  };
+ // A pílula em tablet/desktop concentra todos os módulos, sem painel lateral.
+ const dockModules=[
+  ...NAV.map(([id,icon,label])=>[id,icon,label]),
+  ['mais',mainNav.find(([id])=>id==='mais')[1],'Mais']
+ ];
+ const dockWrap=document.querySelector('.mobile-dock-wrap');
+ const desktopDock=document.createElement('nav');
+ desktopDock.id='claraDesktopDock';
+ desktopDock.className='clara-desktop-dock';
+ desktopDock.setAttribute('aria-label','Todos os módulos da Clara');
+ desktopDock.innerHTML=dockModules.map(([id,icon,label])=>
+  `<button type="button" class="clara-desktop-link" data-view="${id}" title="${label}" aria-label="${label}">
+    <span class="ico">${icon}</span><span>${label}</span></button>`).join('');
+ dockWrap?.insertBefore(desktopDock,dockWrap.firstChild);
  renderNav=function(){
    native.nav();
    const current=['painel','mov','plan'].includes(active)?active:'mais';
    $('sideNav').innerHTML=mainNav.map(([id,icon,label])=>`<button type="button" class="navlink ${current===id?'active':''}" data-view="${id}" title="${label}" aria-label="${label}" ${current===id?'aria-current="page"':''}><span class="ico">${icon}</span><span>${label}</span></button>`).join('');
+   desktopDock.querySelectorAll('[data-view]').forEach(btn=>{
+     const selected=btn.dataset.view===active;
+     btn.classList.toggle('active',selected);
+     if(selected)btn.setAttribute('aria-current','page');
+     else btn.removeAttribute('aria-current');
+   });
    const f=$('floatTrigger');
    if(f){f.classList.toggle('active',current==='mais');if(mode()){f.setAttribute('aria-label','Mais opções');f.setAttribute('aria-expanded','false');}}
  };
