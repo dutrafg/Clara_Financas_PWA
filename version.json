@@ -1,9 +1,10 @@
 {
   "name": "Clara Finanças",
-  "version": "4.1.3-rc",
+  "version": "4.1.4-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Após escolher a pasta de backup, o card de configuração desaparece da Dashboard; o gerenciamento permanece em Configurações, inclusive após recarregar.",
     "Backups externos na pasta local selecionada, com criptografia AES-256-GCM de todas as informações, prevenção de sobrescrita e histórico privado complementar.",
     "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
     "Backup offline do cofre criptografado com histórico local, exportação, restauração autenticada e verificação automática às 02:00.",
