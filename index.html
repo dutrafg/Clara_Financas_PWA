@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.0.5 • Instalação PWA</title>
+<title>Clara Finanças RC4.0.6 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2192,12 +2192,13 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.0.5-rc';
+const CLARA_APP_VERSION='4.0.6-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
-  "Sino discreto inspirado no macOS, fixo no canto superior direito durante toda a navegação.",
-  "Tablet e desktop: pílula flutuante com todos os módulos e perfil, sem painel lateral.",
-  "Modo simples e avançado compartilham agenda, compromissos, alertas de vencimento e atualizações.",
-  "Proteção contra recarregamento, biometria, cofre e backups criptografados preservados."
+  "Avisos da agenda corrigidos: lembrete de 1 hora antes tem prioridade sobre a notificação do dia; horário local validado.",
+  "QA de produção unificado para modos simples e avançado, miniaplicativos, cofre e uso offline.",
+  "Preparação da homologação no GitHub Pages em branch separada, mantendo Vercel vinculada à main.",
+  "Sino fixo, dock completa em tablet e desktop, banco privado, biometria e backups preservados.",
+  "Atualização segura com Service Worker e cache renovados para a Clara 4.0.6."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
