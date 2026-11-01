@@ -22,6 +22,8 @@ if(!html.includes('href="./manifest.webmanifest"') || !html.includes('src="./cla
   throw Error('Referências canônicas de manifesto e Service Worker ausentes');
 if(!serviceWorker.includes("const CACHE_NAME = '__CLARA_CACHE_NAME__';"))
   throw Error('Service Worker não contém marcador de cache versionado');
+if((html.match(/__CLARA_CACHE_NAME__/g)||[]).length!==1)
+  throw Error('HTML precisa conter exatamente um marcador de pacote para a confirmação de boot');
 if(!serviceWorker.includes('const APP_FILES = ')) throw Error('Pré-cache PWA ausente');
 
 const localRef = path => {
@@ -52,6 +54,11 @@ const cacheName='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+rev
 
 await rm(dist,{recursive:true,force:true});
 await mkdir(new URL('./assets/',dist),{recursive:true});
-for(const name of files) await writeFile(new URL(name,dist),await load(name));
+for(const name of files) {
+  const content=name==='index.html'
+    ?Buffer.from(html.replace('__CLARA_CACHE_NAME__',cacheName))
+    :await load(name);
+  await writeFile(new URL(name,dist),content);
+}
 await writeFile(new URL('sw.js',dist),serviceWorker.replace('__CLARA_CACHE_NAME__',cacheName));
 console.log('Clara Finanças '+pkg.version+' | cache '+cacheName+' | arquivos verificados: '+files.length+' | referências: '+referenced.length+' | saída: '+fileURLToPath(dist));

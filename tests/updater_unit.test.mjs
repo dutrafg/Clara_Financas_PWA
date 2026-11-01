@@ -140,7 +140,7 @@ function createWorkerHarness({failPath=null}={}){
   let pending;const e={...event,waitUntil(value){pending=value;}};
   handler(e);if(pending)await pending;return e;
  };
- const message=async(type)=>fire('message',{data:{type},source:{postMessage:m=>clientMessages.push(m)}});
+ const message=async(type,cacheName=candidateCacheName)=>fire('message',{data:{type,cacheName},source:{postMessage:m=>clientMessages.push(m)}});
  const readState=async()=>{
   const cache=await caches.open('clara-update-system-v1');
   const response=await cache.match(new URL('./__clara_update_state__',scope));
@@ -169,6 +169,9 @@ test('Service Worker só ativa um pacote completo e informa progresso',async()=>
  assert.equal(state.previous,'clara-financas-4-2-4-old');
  assert.equal(state.confirmed,false);
  assert.ok(h.stores.has('clara-update-system-v1'),'metadata precisa sobreviver à limpeza de caches antigos');
+ await h.message('CLARA_BOOT_OK','clara-financas-4-2-4-old');
+ assert.equal((await h.readState()).confirmed,false,'pacote anterior não pode confirmar o candidato');
+ assert.ok(await h.caches.has('clara-financas-4-2-4-old'),'cache de recuperação permanece até o boot do candidato');
  await h.message('CLARA_BOOT_OK');
  assert.equal((await h.readState()).confirmed,true);
  assert.equal(await h.caches.has('clara-financas-4-2-4-old'),false);
@@ -180,6 +183,8 @@ test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato
  const old=await h.caches.open('clara-financas-4-2-4-old');
  await old.put(new URL('./index.html',h.scope),new Response('stable shell'));
  await h.fire('install');await h.fire('activate');
+ await h.message('CLARA_BOOT_FAILED','clara-financas-4-2-4-old');
+ assert.equal((await h.readState()).rolledBack,false,'pacote antigo não pode reprovar o candidato');
  await h.message('CLARA_BOOT_FAILED');
  assert.equal((await h.readState()).rolledBack,true);
  assert.ok(h.clientMessages.some(m=>m.type==='CLARA_ROLLBACK_SELECTED'));

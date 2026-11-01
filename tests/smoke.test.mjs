@@ -64,6 +64,17 @@ test('PWA só apresenta novo HTML após troca autorizada do SW',()=>{
  assert.doesNotMatch(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
 });
 
+test('Confirmação de boot só aceita a shell vinculada ao cache candidato',async()=>{
+ const worker=await readFile('sw.js','utf8');
+ const build=await readFile('tools/build.mjs','utf8');
+ const verify=await readFile('tools/verify-paths.mjs','utf8');
+ assert.match(html,/const CLARA_BOOT_CACHE='__CLARA_CACHE_NAME__'/);
+ assert.match(html,/cacheName:CLARA_BOOT_CACHE/);
+ assert.match(worker,/event\.data\.cacheName!==CACHE_NAME/);
+ assert.match(build,/html\.replace\('__CLARA_CACHE_NAME__',cacheName\)/);
+ assert.match(verify,/HTML deve conter o identificador imutável do pacote/);
+});
+
 test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
  assert.match(html,/id="securityCover"/);
  assert.match(html,/CLARA_ROUNDS = 310000/);

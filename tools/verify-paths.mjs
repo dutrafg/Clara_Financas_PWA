@@ -18,10 +18,6 @@ assert.ok(html.includes('Clara Finanças RC'+pkg.version.split('.').slice(0,2).j
 assert.ok(html.includes('href="./manifest.webmanifest"'),'Manifesto não referenciado');
 assert.ok(html.includes('src="./clara-updater.js"'),'Atualizador fora do pacote principal');
 assert.ok((await text(root,'clara-updater.js')).includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
-for (const path of files) {
-  assert.deepEqual(await get(root,path),await get(dist,path),'Arquivo divergente: '+path);
-  assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
-}
 const hash=createHash('sha256');
 hash.update(pkg.version+'\n');
 for (const path of files){hash.update(path+'\n');hash.update(await get(root,path));}
@@ -29,6 +25,18 @@ hash.update('sw.js\n');hash.update(await get(root,'sw.js'));
 
 const revision=hash.digest('hex').slice(0,16);
 const expected='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
+assert.equal((await text(root,'index.html')).split('__CLARA_CACHE_NAME__').length-1,1,
+  'HTML precisa vincular a confirmação ao cache do pacote');
+for (const path of files) {
+  const source=await get(root,path),output=await get(dist,path);
+  const expectedOutput=path==='index.html'
+    ?Buffer.from(source.toString('utf8').replace('__CLARA_CACHE_NAME__',expected))
+    :source;
+  assert.deepEqual(output,expectedOutput,'Arquivo divergente: '+path);
+  assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
+}
+assert.ok(html.includes(expected),'HTML deve conter o identificador imutável do pacote');
+assert.ok(!html.includes('__CLARA_CACHE_NAME__'),'Marcador de pacote não pode ir para produção');
 const found=sw.match(/const CACHE_NAME = '([^']+)';/);
 assert.equal(found?.[1],expected,'Cache não corresponde à versão e ao hash do build');
 assert.ok(!sw.includes('__CLARA_CACHE_NAME__'),'Marcador de template não pode ir para produção');

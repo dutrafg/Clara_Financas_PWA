@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 
 BASE = 'http://127.0.0.1:8765/'
 PASSWORD = 'Clara-QA-Senha-2026!'
-FILES = [Path('dist/sw.js'), Path('dist/version.json'), Path('dist/clara-updater.js')]
+FILES = [Path('dist/sw.js'), Path('dist/version.json'), Path('dist/clara-updater.js'), Path('dist/index.html')]
 
 
 async def main():
@@ -37,6 +37,7 @@ async def main():
             current_name = re.search(r"const CACHE_NAME = '([^']+)'", worker).group(1)
             candidate_name = 'clara-financas-4-2-5-rc-qa-rollback'
             FILES[0].write_text(worker.replace(current_name, candidate_name, 1), encoding='utf-8')
+            FILES[3].write_text(originals[FILES[3]].replace(current_name, candidate_name, 1), encoding='utf-8')
 
             page.on('dialog', lambda dialog: asyncio.create_task(dialog.accept()))
             await page.evaluate('window.ClaraUpdate.check(true)')
