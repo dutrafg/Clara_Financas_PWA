@@ -188,8 +188,9 @@ async def run():
                        ('compare','3'),('compare','12'),('compare','1'),('forecast-months','6')]:
       await page.locator(f'[data-clw-action="{name}"][data-clw-value="{value}"]').click()
     for name in ['budget-risk','account-cards']:
-      await page.locator(f'[data-clw-action="{name}"]').click()
-      await page.locator(f'[data-clw-action="{name}"]').click()
+      button=page.locator(f'[data-clw-action="{name}"][data-clw-value="toggle"]')
+      await button.click()
+      await button.click()
     checked.append('filtros-dos-miniaplicativos')
     # Débito manual com data de quitação real preserva vencimento.
     due=await page.evaluate("() => state.transactions.find(t=>t.id==='qa3').date")
@@ -205,7 +206,7 @@ async def run():
     await page.locator('#closeModal').click()
     checked.append('duplicacao-sem-salvar')
     # CSV gerado a partir do banco local, sem caracteres malformados.
-    for widget,act in [('recurring','recurring-export'),('budgets','budget-export'),('recent','export-tx')]:
+    for widget,act in [('recurring','recurring-export'),('budgets','widget-export'),('recent','widget-export')]:
       async with page.expect_download() as d:
         await page.locator(f'[data-widget="{widget}"] [data-clw-action="{act}"]').click()
       download=await d.value
