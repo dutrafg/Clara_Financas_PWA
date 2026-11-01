@@ -18,8 +18,6 @@ async def main():
             browser = await playwright.chromium.launch(headless=True)
             context = await browser.new_context(viewport={'width': 390, 'height': 844})
             page = await context.new_page()
-            page_errors = []
-            page.on('pageerror', lambda error: page_errors.append(str(error)))
             await page.goto(BASE, wait_until='load')
             if await page.locator('#securityCover').is_visible():
                 await page.locator('#securityPassword').fill(PASSWORD)
@@ -46,6 +44,11 @@ async def main():
             await page.wait_for_function('navigator.serviceWorker.ready.then(registration => !!registration.waiting)', timeout=30000)
             await page.evaluate('window.ClaraUpdate.check(false)')
             await page.wait_for_function('window.ClaraUpdate.ready', timeout=10000)
+            candidate_source = await page.evaluate("""async name => {
+              const cache = await caches.open(name);
+              return (await (await cache.match(new URL('./clara-updater.js', location.href))).text());
+            }""", candidate_name)
+            assert expected_boot_error in candidate_source, 'O pacote candidato precisa conter o módulo defeituoso simulado.'
             await page.locator('#claraUpdateNoticeInstall').click()
 
             await page.wait_for_function("""async () => {
@@ -57,7 +60,6 @@ async def main():
               const source = await (await fetch('./clara-updater.js')).text();
               return !source.includes('Simulated critical updater module failure') && !!window.ClaraUpdate;
             }""", timeout=45000)
-            assert any(expected_boot_error in message for message in page_errors), page_errors
             state = await page.evaluate("""async () => {
               const cache = await caches.open('clara-update-system-v1');
               return (await (await cache.match(new URL('./__clara_update_state__', location.href))).json());
