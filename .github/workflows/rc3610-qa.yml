@@ -1,9 +1,10 @@
-name: Clara Finanças RC3.6.10 — QA
+name: Clara Finanças Clara 4.0 — QA
 
 on:
   push:
     branches:
       - release/rc3610-menu-clean
+      - feature/clara-4-simples
   pull_request:
     branches:
       - main
@@ -50,7 +51,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clara-rc3610-qa-logs
+          name: clara-4-qa-logs
           path: |
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
