@@ -43,8 +43,9 @@ function appointmentReminder(ev,instant=new Date()){
  if(diff===1&&(ev.reminder==='day'||ev.reminder==='both'))return 'Compromisso amanhã';
  return '';
 }
+const canViewAlerts=()=>Boolean(window.ClaraSecurity?.unlocked||window.ClaraGuest?.active);
 function listNotifications(){
- if(!window.ClaraSecurity?.unlocked)return [];
+ if(!canViewAlerts())return [];
  const now=new Date(),items=[];
  for(const ev of calendarData()){
   const label=appointmentReminder(ev,now);
@@ -131,8 +132,8 @@ function renderBell(){
  const notifications=listNotifications(),read=new Set(readData()),unread=notifications.filter(x=>!read.has(x.id));
  const badge=$id('claraNotifBadge');badge.hidden=unread.length===0;badge.textContent=unread.length>99?'99+':String(unread.length);
  bell.setAttribute('aria-expanded',String(bellOpen));
- bell.hidden=!window.ClaraSecurity?.unlocked;
- panel.hidden=!bellOpen||!window.ClaraSecurity?.unlocked;
+ bell.hidden=!canViewAlerts();
+ panel.hidden=!bellOpen||!canViewAlerts();
  if(panel.hidden)return;
  panel.innerHTML=`<div class="ca-popover-head"><strong>Notificações <span>(${unread.length})</span></strong><button type="button" data-ca-close-bell aria-label="Fechar notificações">✕</button></div>
  <div class="ca-popover-items">${notifications.length?notifications.map(n=>`<button type="button" class="ca-notification ${read.has(n.id)?'ca-read':''}" data-ca-alert="${safe(n.id)}"><span class="ca-notification-dot" aria-hidden="true"></span><span><strong>${safe(n.title)}</strong><small>${safe(n.detail)}</small></span></button>`).join(''):'<p class="ca-nothing">Nenhum aviso por enquanto.</p>'}</div>
