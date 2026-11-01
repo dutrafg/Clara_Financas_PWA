@@ -28,7 +28,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
  // evitando sobras concorrentes quando um único arquivo falhar.
  const results=await Promise.allSettled(APP_FILES.map(async path=>{
   const {url,response}=await downloadRequired(path);
-  await cache.put(url,response);
+  await cache.put(url, response);
  }));
  const failed=results.find(x=>x.status==='rejected');
  if(failed){
