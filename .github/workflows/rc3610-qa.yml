@@ -65,6 +65,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/studio_browser.py 2>&1 | tee /tmp/clara-studio-browser.log
+      - name: Validar demonstração e dock desktop em cinco resoluções
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist >/tmp/clara-guest-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/guest_desktop_browser.py 2>&1 | tee /tmp/clara-guest-browser.log
       - name: Regressão ampliada dos 15 miniaplicativos
         shell: bash
         run: |
@@ -83,6 +91,7 @@ jobs:
             /tmp/clara-pwa-browser.log
             /tmp/clara-miniapps-extended.log
             /tmp/clara-agenda-browser.log
+            /tmp/clara-guest-browser.log
             /tmp/clara-studio-browser.log
             /tmp/clara-studio-shots/
           if-no-files-found: ignore
