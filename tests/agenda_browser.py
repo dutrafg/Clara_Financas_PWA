@@ -62,8 +62,9 @@ async def main():
                 const e=document.createElement('div');e.id='claraScrollProbe';
                 e.style.height='1700px';e.setAttribute('aria-hidden','true');
                 document.body.appendChild(e);
-                window.scrollTo(0,document.documentElement.scrollHeight);
+                window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'});
             }""")
+            await page.wait_for_function("window.scrollY>100",timeout=6000)
             moved=await page.evaluate("""() => {
                 const e=document.getElementById('claraNotificationButton'),r=e.getBoundingClientRect();
                 return {right:innerWidth-r.right,top:r.top,scroll:scrollY};
@@ -71,7 +72,7 @@ async def main():
             assert moved['scroll']>100 and abs(moved['right']-bell['right'])<2 and abs(moved['top']-bell['top'])<2,(bell,moved)
             await page.evaluate("""() => {
                 document.getElementById('claraScrollProbe').remove();
-                window.scrollTo(0,0);
+                window.scrollTo({top:0,behavior:'instant'});
             }""")
 
             assert await page.locator('#claraCalendar .ca-agenda').is_visible()
