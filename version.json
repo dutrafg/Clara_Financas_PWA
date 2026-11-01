@@ -1,14 +1,12 @@
 {
   "name": "Clara Finanças",
-  "version": "4.0.2-rc",
+  "version": "4.0.3-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "Banco de dados criptografado dentro de uma pasta privada do navegador, com gravação em dois snapshots.",
-    "Seus dados anteriores são preservados e migrados automaticamente para o armazenamento privado quando disponível.",
-    "Biometria opcional via chave de acesso, mantendo a senha e o backup do cofre.",
-    "Um botão visível permite voltar do modo avançado ao modo simples em qualquer módulo.",
-    "Dock flutuante ampliada no celular e fotos de perfil de até 10 MB, reduzidas antes de criptografar.",
-    "Service Worker atualizado e cache offline renovado para esta versão."
+    "Proteção contra recarregamento acidental ativada por padrão em Configurações → Segurança → Atualizações.",
+    "F5, Ctrl+R e Command+R são bloqueados quando o cofre está aberto; o navegador pode solicitar confirmação para recarregar ou sair.",
+    "A atualização oficial da Clara continua funcionando após concluir a gravação criptografada do cofre.",
+    "Banco privado criptografado, biometria opcional, modo simples e avançado e os 15 miniaplicativos preservados."
   ]
 }
