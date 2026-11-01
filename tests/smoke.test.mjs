@@ -149,7 +149,7 @@ test('Atualizador EFI avisa e consulta automaticamente, sem instalação compuls
  assert.match(html,/window\.setInterval\(/);
  assert.match(html,/document\.addEventListener\('visibilitychange'/);
  assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/waiting\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
+ assert.match(html,/worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\);/);
 });
 
@@ -334,7 +334,7 @@ test('Clara 4.1.2: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/event\.returnValue=' '/);
  assert.match(html,/window\.ClaraSecurity\?\.unlocked && pref\('reloadLock'\)/);
  assert.match(html,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\(\);location\.reload\(\)/);
- assert.match(html,/await window\.ClaraSecurity\.flush\(\);/);
+ assert.match(html,/await bounded\(window\.ClaraSecurity\.flush\(\),NETWORK_TIMEOUT/);
  assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
