@@ -83,7 +83,7 @@ const ClaraUpdate=(()=>{
   const checkButton=get('checkClaraUpdate');
   if(checkButton){checkButton.disabled=!!checking;checkButton.textContent=checking?'Verificando…':'Verificar agora';}
   const preparing=status==='Preparando atualização';
-  const label=reopenReady?'Reabrir atualizado':ready?'Instalar atualização':
+  const label=reopenReady?'Reabrir atualizado':ready?'Aplicar atualização':
    ['Falha ao preparar','Sem confirmação'].includes(status)?'Tentar novamente':preparing?'Preparando…':'Atualizar agora';
   const action=get('applyClaraUpdate');
   if(action){
@@ -113,7 +113,7 @@ const ClaraUpdate=(()=>{
   ready=!!registration?.waiting;
   if(ready){
    reopenReady=false;clearPreparation();
-   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Toque em Instalar atualização.');
+   setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Selecione Aplicar atualização.');
    // A confirmação é sempre feita no toque do usuário, nunca em um evento assíncrono.
   }else paint();
  }
@@ -248,7 +248,7 @@ const ClaraUpdate=(()=>{
   if(installPromise)return installPromise;
   installPromise=(async()=>{
    if(!r?.waiting||applying)return false;
-   if(!await protectAndConfirm('Instalar a versão '+(remoteVersion||'disponível')+'? A Clara reabrirá sem limpar o cofre.'))return false;
+   if(!await protectAndConfirm('Aplicar a atualização '+(remoteVersion||'disponível')+'? A Clara reabrirá sem limpar o cofre.'))return false;
    const worker=r.waiting;
    if(!worker){setStatus('Falha ao preparar','O pacote mudou durante o backup. Verifique novamente.');return false;}
    applying=true;setStatus('Aplicando atualização','Backup concluído. Ativando a versão validada…');
