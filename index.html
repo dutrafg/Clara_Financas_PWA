@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.1.0 • Instalação PWA</title>
+<title>Clara Finanças RC4.1.1 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1544,6 +1544,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 <link rel="stylesheet" href="./clara-storage-ui.css">
 <link rel="stylesheet" href="./clara-agenda.css">
 <link rel="stylesheet" href="./clara-premium.css">
+<link rel="stylesheet" href="./clara-guest.css">
 </head>
 <body>
 <div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
@@ -1560,6 +1561,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
       </label>
       <button class="secure-button" id="securitySubmit" type="submit">Continuar</button>
     </form>
+    <button type="button" id="securityGuest" hidden class="clara-guest-entry">Conhecer a Clara sem criar senha</button>
     <button type="button" id="securityBiometric" hidden aria-label="Abrir Clara com biometria">Abrir com biometria</button>
     <p class="secure-status" id="securityStatus" role="alert" aria-live="polite"></p>
     <div class="secure-foot">A senha do Clara é local: ela não vai à Vercel. Não pode ser recuperada. Salve um backup criptografado e guarde sua senha. A instalação existente será migrada sem apagar os lançamentos.</div>
@@ -1580,6 +1582,10 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 
         </div>
         <p class="sub" id="pageSubtitle">Seu dinheiro em perspectiva, com indicadores conectados.</p>
+        <div id="claraGuestNotice" class="clara-guest-notice" role="note" hidden>
+          <span><strong>Modo demonstração</strong> · Dados fictícios, sem salvamento. Para cadastrar suas informações, crie um cofre protegido.</span>
+          <button type="button" id="claraGuestCreate" class="btn primary">Criar meu cofre</button>
+        </div>
       </div>
       <input id="period" type="hidden" aria-hidden="true" tabindex="-1">
     </header>
@@ -2071,8 +2077,10 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.1.0-rc';
+const CLARA_APP_VERSION='4.1.1-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "No desktop, conteúdo financeiro ocupa toda a largura útil e dock vertical fica fixa à esquerda, centralizada na altura da tela.",
+  "Modo demonstração sem senha: explore os módulos com dados fictícios sem salvar nada; cadastros e importações requerem criação do cofre criptografado.",
   "Design Clara Studio: tipografia editorial, superfícies sofisticadas, microinterações e hierarquia adaptável aos dispositivos.",
   "Remoção da barra lateral legada, seu HTML, configurações e renderizações desnecessárias; pílula continua sendo a navegação principal.",
   "Todos os 15 miniaplicativos, agenda, notificações, biometria, cofre e operações financeiras preservados nos modos simples e avançado.",
@@ -3409,6 +3417,7 @@ function openConfirmModal(title, message, onConfirm) {
 }
 
 function modal(kind, itemId = '') {
+  if(window.ClaraGuest?.active){window.ClaraGuest.prompt();return;}
   focusedBeforeModal = focusedBeforeModal || document.activeElement;
   $('modalBg').classList.add('show');
   $('modalBg').dataset.kind = kind;
@@ -4501,6 +4510,7 @@ function secureMode(isCreate) {
   secureDom('securityConfirm').required=isCreate;
   secureDom('securityPassword').setAttribute('autocomplete',isCreate?'new-password':'current-password');
   secureDom('securitySubmit').textContent=isCreate?'Criar cofre protegido':'Abrir cofre';
+  secureDom('securityGuest').hidden=!isCreate||!!safeStorageGet(KEY)||!!initializationError;
   secureStatus('');
 }
 function readVault() {
@@ -4568,6 +4578,7 @@ function secureQueue(snapshot) {
 }
 // Replace the legacy plaintext save path before allowing the user to interact.
 save=function() {
+  if(window.ClaraGuest?.active){window.ClaraGuest.prompt();throw Error('Modo demonstração: crie um cofre antes de gravar.');}
   if(!claraUnlocked||!claraKey||claraError)throw Error('Desbloqueie o cofre antes de salvar.');
   if(storageConflict)throw Error('Os dados foram alterados em outra aba. Reabra o aplicativo.');
   validateData(state);
@@ -4924,5 +4935,6 @@ window.ClaraInstall=ClaraInstall;
 <script src="./clara-biometric.js"></script>
 <script src="./clara-storage-ui.js"></script>
 <script src="./clara-agenda.js"></script>
+<script src="./clara-guest.js"></script>
 </body>
 </html>
