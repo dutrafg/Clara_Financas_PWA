@@ -39,6 +39,7 @@ async def run():
             assert await page.evaluate('state.quickNotes.length')==0
             # Sem pasta definida, a Dashboard oferece a configuração inicial.
             assert await page.locator('#claraBackupCard').is_visible()
+            assert 'Pendente · escolha uma pasta local' in await page.locator('#claraBackupCard').inner_text()
             await page.locator('#claraExtras [data-clx="new-reminder"]').click()
             await page.locator('#claraExtrasForm [name="title"]').fill('Pagar conta fictícia')
             await page.locator('#claraExtrasForm [name="dueDate"]').fill(await page.evaluate('todayISO()'))
@@ -83,6 +84,7 @@ async def run():
             await page.locator('#claraBackupSettings [data-cb-folder]').click()
             await page.wait_for_function("window.ClaraBackups.folderReady")
             assert await page.locator('#claraBackupSettings [data-cb-folder]').inner_text()=='Trocar pasta local'
+            assert 'Ativado · diariamente às 02:00' in await page.locator('#claraBackupSettings').inner_text()
             await page.evaluate("go('painel')")
             assert await page.locator('#claraBackupCard').count()==0, 'Card de backup permaneceu na Dashboard'
             assert await page.locator('#claraExtras').is_visible()
