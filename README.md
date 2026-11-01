@@ -1,6 +1,6 @@
-# Clara Finanças RC4.1.0 — Design Clara Studio
+# Clara Finanças RC4.1.1 — Design Clara Studio
 
-Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets e desktops, a pílula reúne os oito destinos; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
+Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
 
@@ -92,3 +92,11 @@ O protocolo manual está em [docs/QA-RC3.6.10.md](docs/QA-RC3.6.10.md). Homologa
 - Gestão de dívida técnica obrigatória: a cada versão identificar componentes órfãos, dependências e seletores inativos; remover **apenas após** cobertura de testes e preservar contratos de dados/backups.
 - Critérios de qualidade: contraste, responsividade em 320/390/768/1024/1440/1920 px, temas claro/escuro, teclado/foco, movimento reduzido, atualização offline, UX de cofre e nenhuma regressão nos 15 miniaplicativos.
 - O pacote visual é local e pré-cacheado; não usa dependências externas de CDN nem fontes descarregadas pela rede.
+
+## Clara Studio RC4.1.1 — demonstração e desktop em largura útil
+
+- A opção **Conhecer a Clara sem criar senha** só aparece quando não existe cofre nem armazenamento legado. O usuário pode navegar por informações financeiras **fictícias em memória**, sem criar lançamentos reais, sem acesso aos dados de outra pessoa e sem salvar a demonstração.
+- Ações de cadastro, edição, importação e gravação exigem a criação do cofre com senha local de pelo menos 12 caracteres. Ao escolher **Criar meu cofre**, a demonstração é descartada e o banco financeiro começa vazio.
+- No desktop (largura a partir de 1024 px), o dock dos oito módulos fica flutuante na lateral esquerda, centralizado verticalmente; o conteúdo principal ocupa toda a largura útil à direita, sem o limite central fixo de 1000/1460 px. Há espaço reservado de 105 px para evitar sobreposição.
+- No tablet (761–1023 px), a dock continua horizontal na parte inferior. No smartphone, o menu compacto original é mantido.
+- Dados do cofre, Service Worker, backup e recursos de biometria não são alterados pela demonstração; ela não permite persistir dados sem a senha.
