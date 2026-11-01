@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.2.2 • Instalação PWA</title>
+<title>Clara Finanças RC4.2.3 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1680,8 +1680,13 @@ const SVG_ICONS = {
 const CLARA_WIDGETS = Object.freeze([{"id":"attention","name":"Central de atenção","description":"Contas atrasadas, limites e metas"},{"id":"agenda","name":"Agenda financeira","description":"Vencimentos e recebimentos dos próximos 14 dias"},{"id":"quick","name":"Lançamentos rápidos","description":"Registre receitas, despesas e transferências"},{"id":"budgets","name":"Orçamentos por categoria","description":"Limites, realizado e previsto"},{"id":"goals","name":"Metas financeiras","description":"Progresso, edição e atualização"},{"id":"accounts","name":"Contas e cartões","description":"Saldos, faturas e conciliações"},{"id":"comparison","name":"Comparativo de meses","description":"Evolução de receitas e despesas"},{"id":"recent","name":"Movimentações recentes","description":"Editar, duplicar ou excluir registros"},{"id":"insights","name":"Insights automáticos","description":"Indicadores com base nos seus dados"},{"id":"forecast","name":"Fluxo de caixa projetado","description":"Saldo e compromissos dos meses futuros"},{"id":"audit","name":"Conferências e auditoria","description":"Histórico, conciliação e exportação"},{"id":"categories","name":"Onde estou gastando?","description":"Distribuição por categorias"},{"id":"history","name":"Histórico mensal","description":"Resumo dos meses anteriores"},{"id":"recurring","name":"Recorrências identificadas","description":"Encontrar despesas e receitas repetidas"},{"id":"simulator","name":"Simulador financeiro","description":"Comparar cenários sem alterar dados"}]);
 const CLARA_WIDGET_DEFAULT = Object.freeze(['attention','agenda','quick','budgets','goals','recent','insights']);
 let claraDashboardEditing = false;
-const claraWidgetUI = {agendaDays:14,agendaKind:'Todos',onlyRisk:false,onlyCards:false,recentStatus:'Todos',compareOffset:1};
-function recurringItems(){
+const claraWidgetUI = {
+ agendaDays:14,agendaKind:'Todos',attention:'Todos',onlyRisk:false,budgetSort:'Percentual',
+ onlyCards:false,goalOverdue:false,recentStatus:'Todos',recentKind:'Todos',compareOffset:1,
+ insightsImportant:false,onlyDeficits:false,auditOnlyDifference:false,
+ categoryMetric:'Realizado',historyOnlyNegative:false,recurringKind:'Todos'
+};
+function recurringItems(kind='Todos'){
  const groups=new Map();
  for(const t of state.transactions){
   if(t.status==='Cancelado'||t.kind==='Transferência')continue;
@@ -1693,15 +1698,15 @@ function recurringItems(){
   arr.sort((a,b)=>a.date.localeCompare(b.date));const t=arr.at(-1);
   return {id:t.id,name:t.description,kind:t.kind,months:new Set(arr.map(x=>x.date.slice(0,7))).size,count:arr.length,
    amount:t.amountCents,last:t.date,next:plusMonth(t.date,1)};
- }).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
+ }).filter(r=>kind==='Todos'||r.kind===kind).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
 }
 
 function renderRecurring(action,line,empty){
- const rows=recurringItems();
+ const rows=recurringItems(claraWidgetUI.recurringKind);
  return panel('Recorrências identificadas','Padrões em pelo menos dois meses distintos',`
  <div class="clw-list">${rows.slice(0,7).map(r=>line(r.name,
  `${r.kind} · ${r.months} meses · último ${brl(r.amount)} · próxima referência estimada ${fmtDay(r.next)}`,
- action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir',`data-clw-action="duplicate" data-clw-id="${esc(r.id)}"`))).join('')}
+ action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir no próximo mês',`data-clw-action="duplicate" data-clw-next="true" data-clw-id="${esc(r.id)}"`))).join('')}
  ${!rows.length?empty('Ainda não existem registros suficientes para identificar recorrências.'):''}</div>
  <p class="helper">Estimativa baseada em registros: não cria cobranças automaticamente.</p>`,
  action('Exportar CSV','data-clw-action="recurring-export"'));
@@ -1728,7 +1733,7 @@ function renderSimulator(action){
 function exportRecurring(){
  const q=x=>'"'+String(x).replace(/"/g,'""')+'"';
  const csv=[['Descrição','Tipo','Meses','Ocorrências','Última data','Próxima referência estimada','Último valor (R$)'],
- ...recurringItems().map(r=>[r.name,r.kind,r.months,r.count,r.last,r.next,(r.amount/100).toFixed(2).replace('.',',')])]
+ ...recurringItems(claraWidgetUI.recurringKind).map(r=>[r.name,r.kind,r.months,r.count,r.last,r.next,(r.amount/100).toFixed(2).replace('.',',')])]
  .map(row=>row.map(q).join(';')).join('\r\n');
  dl('clara-recorrencias-'+todayISO()+'.csv','\uFEFF'+csv,'text/csv;charset=utf-8');
 }
@@ -1759,30 +1764,31 @@ function runSimulation(){
 }
 
 function widgetToolstrip(id,action){
+ // Cada miniaplicativo oferece pelo menos três operações diretas, sem alterar
+ // movimentações em segundo plano. Dados filtrados permanecem somente na UI.
  const data={
- attention:[['Ver agenda','focus','agenda'],['Consultar despesas','view','mov']],
- agenda:[['7 dias','agenda-days','7'],['14 dias','agenda-days','14'],['30 dias','agenda-days','30'],['Só pagamentos','agenda-kind','Despesa'],['Só recebimentos','agenda-kind','Receita'],['Todos','agenda-kind','Todos']],
- quick:[['Parcelar','view','assist'],['Nova conta','open','account']],
- budgets:[['Mostrar alertas','budget-risk','toggle'],['Exportar CSV','budget-export','']],
- goals:[['Todas as metas','view','plan']],
- accounts:[['Só cartões','account-cards','toggle'],['Gerenciar contas','config','contas']],
- comparison:[['Mês anterior','compare','1'],['3 meses antes','compare','3'],['12 meses antes','compare','12']],
- recent:[['Todos','recent-status','Todos'],['Pendentes','recent-status','Pendente'],['Realizados','recent-status','Realizado'],['Exportar CSV','export-tx','']],
- insights:[['Ver categorias','focus','categories'],['Configurar limites','config','contas']],
- forecast:[['3 meses','forecast-months','3'],['6 meses','forecast-months','6'],['12 meses','forecast-months','12']],
- audit:[['Conciliação nova','view','conf'],['Ver histórico','focus','history']],
- categories:[['Nova despesa','new','Despesa'],['Planejamento','view','plan']],
- history:[['Comparar meses','focus','comparison'],['Exportar CSV','export-tx','']],
- recurring:[['Movimentações','view','mov']],
- simulator:[['Criar meta','open','goal']]
+  attention:[['Todos','attention-filter','Todos'],['Atrasos','attention-filter','Atrasos'],['Limites','attention-filter','Limites'],['Metas','attention-filter','Metas'],['CSV','widget-export','attention']],
+  agenda:[['7 dias','agenda-days','7'],['14 dias','agenda-days','14'],['30 dias','agenda-days','30'],['Receber','agenda-kind','Receita'],['Pagar','agenda-kind','Despesa'],['Todos','agenda-kind','Todos'],['CSV','widget-export','agenda']],
+  quick:[['Parcelar','view','assist'],['Nova conta','open','account'],['Nova meta','open','goal'],['Movimentações','view','mov']],
+  budgets:[['Só alertas','budget-risk','toggle'],['Por uso','budget-sort','Percentual'],['Por gasto','budget-sort','Gasto'],['A–Z','budget-sort','Nome'],['CSV','widget-export','budgets']],
+  goals:[['Todas','goal-overdue','all'],['Atrasadas','goal-overdue','overdue'],['Nova meta','open','goal'],['CSV','widget-export','goals']],
+  accounts:[['Só cartões','account-cards','toggle'],['Todas','account-cards','all'],['Gerenciar','config','contas'],['Nova conta','open','account'],['CSV','widget-export','accounts']],
+  comparison:[['Anterior','compare','1'],['3 meses','compare','3'],['12 meses','compare','12'],['CSV','widget-export','comparison']],
+  recent:[['Todos','recent-status','Todos'],['Pendentes','recent-status','Pendente'],['Realizados','recent-status','Realizado'],['Despesas','recent-kind','Despesa'],['Receitas','recent-kind','Receita'],['Limpar filtro','recent-kind','Todos'],['CSV','widget-export','recent']],
+  insights:[['Todos','insight-filter','all'],['Alertas','insight-filter','important'],['Categorias','focus','categories'],['Limites','config','contas'],['CSV','widget-export','insights']],
+  forecast:[['3 meses','forecast-months','3'],['6 meses','forecast-months','6'],['12 meses','forecast-months','12'],['Só negativos','forecast-negative','toggle'],['CSV','widget-export','forecast']],
+  audit:[['Conferir','view','conf'],['Histórico','focus','history'],['Divergentes','audit-difference','toggle'],['CSV','widget-export','audit']],
+  categories:[['Realizado','category-metric','Realizado'],['Previsto','category-metric','Previsto'],['Nova despesa','new','Despesa'],['Planejar','view','plan'],['CSV','widget-export','categories']],
+  history:[['Todos','history-negative','all'],['Negativos','history-negative','negative'],['Comparar','focus','comparison'],['CSV','widget-export','history']],
+  recurring:[['Todos','recurring-kind','Todos'],['Despesas','recurring-kind','Despesa'],['Receitas','recurring-kind','Receita'],['CSV','widget-export','recurring']],
+  simulator:[['Zerar','sim-reset',''],['Exportar cenário','sim-export',''],['Criar meta','open','goal']]
  };
- return data[id]?`<div class="clw-toolstrip">${data[id].map(([label,kind,val])=>{
- const attr=kind==='view'?`data-view="${val}"`:kind==='open'?`data-open="${val}"`:kind==='config'?`data-config-jump="${val}"`:
- kind==='new'?`data-clw-action="new" data-clw-kind="${val}"`:`data-clw-action="${kind}" data-clw-value="${val}"`;
- return action(label,attr);
+ return data[id]?`<div class="clw-toolstrip" role="group" aria-label="Ferramentas de ${esc(CLARA_WIDGETS.find(x=>x.id===id)?.name||'miniaplicativo')}">${data[id].map(([label,kind,val])=>{
+  const attr=kind==='view'?`data-view="${val}"`:kind==='open'?`data-open="${val}"`:kind==='config'?`data-config-jump="${val}"`:
+   kind==='new'?`data-clw-action="new" data-clw-kind="${val}"`:`data-clw-action="${kind}" data-clw-value="${val}"`;
+  return action(label,attr);
  }).join('')}</div>`:'';
 }
-
 function focusWidget(id){
  if(!CLARA_WIDGETS.some(x=>x.id===id))return;
  if(!claraWidgetEnabled().includes(id)){
@@ -1819,6 +1825,108 @@ function claraWidgetDifference(current,previous) {
  return previous===0?'Sem comparação anterior':`${current>=previous?'+':''}${pct((current-previous)/Math.abs(previous))}`;
 }
 
+// Consultas locais reutilizadas pelo painel e pelas exportações.
+// Somente comandos explícitos de edição/gravação modificam o cofre.
+function claraWidgetBudgets(p=state.settings.period){
+ const rows=budgetRows(p).filter(r=>!claraWidgetUI.onlyRisk||(r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100));
+ if(claraWidgetUI.budgetSort==='Nome')return rows.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+ if(claraWidgetUI.budgetSort==='Gasto')return rows.sort((a,b)=>b.planned-a.planned);
+ return rows.sort((a,b)=>b.ratio-a.ratio);
+}
+function claraWidgetGoals(){
+ return state.goals.filter(g=>!claraWidgetUI.goalOverdue||(g.dueDate&&g.dueDate<todayISO()&&g.savedCents<g.targetCents));
+}
+function claraWidgetAccounts(){
+ return state.accounts.filter(a=>!claraWidgetUI.onlyCards||a.type==='Cartão');
+}
+function claraWidgetRecent(){
+ return state.transactions.filter(t=>(claraWidgetUI.recentStatus==='Todos'||t.status===claraWidgetUI.recentStatus)&&
+  (claraWidgetUI.recentKind==='Todos'||t.kind===claraWidgetUI.recentKind))
+  .slice().sort((a,b)=>effective(b).localeCompare(effective(a)));
+}
+function claraWidgetInsights(p=state.settings.period){
+ const current=stat(p),previous=stat(plusMonth(p+'-01',-1).slice(0,7)),notes=[];
+ const add=(text,important=false)=>notes.push({text,important});
+ if(previous.expense>0&&current.expense>previous.expense*1.05)add('Os gastos realizados estão acima dos gastos do mês anterior.',true);
+ if(previous.expense>0&&current.expense<previous.expense*.95)add('Os gastos realizados estão abaixo dos gastos do mês anterior.');
+ if(current.income+current.expense>0&&current.net<0)add('O resultado realizado do mês está negativo.',true);
+ if(future30()>totalBalance(state.settings.cutoff))add('Despesas pendentes até 30 dias ultrapassam o saldo realizado, sem considerar recebimentos futuros.',true);
+ const budgets=budgetRows(p),alerts=budgets.filter(r=>r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100);
+ if(alerts.length)add(alerts.length+' categoria(s) atingiram o nível configurado para alerta de orçamento.',true);
+ const biggest=budgets.filter(r=>r.done>0).sort((a,b)=>b.done-a.done)[0];
+ if(biggest)add('Categoria com maior gasto realizado: '+biggest.name+'.');
+ return claraWidgetUI.insightsImportant?notes.filter(x=>x.important):notes;
+}
+function claraWidgetForecast(){
+ const rows=forecast(pref('forecastMonths'));
+ return claraWidgetUI.onlyDeficits?rows.filter(x=>x.balance<0):rows;
+}
+function claraWidgetAudits(){
+ return state.reconciliations.filter(r=>!claraWidgetUI.auditOnlyDifference||
+  accountBalance(r.accountId,r.date)!==r.statementCents);
+}
+function claraWidgetCategoryRows(p=state.settings.period){
+ return budgetRows(p).map(r=>({...r,done:claraWidgetUI.categoryMetric==='Previsto'?r.planned:r.done}));
+}
+function claraWidgetHistory(){
+ const months=[...new Set(state.transactions.map(t=>effective(t).slice(0,7)).filter(Boolean))].sort().reverse();
+ return months.filter(m=>!claraWidgetUI.historyOnlyNegative||stat(m).net<0).slice(0,10);
+}
+// CSV gerado sob demanda, sem rede e com escape contra fórmulas de planilha.
+function exportClaraWidget(id){
+ if(!CLARA_WIDGETS.some(w=>w.id===id))throw Error('Miniaplicativo inválido.');
+ const p=state.settings.period,today=todayISO(),fmt=csvAmount,rows=[];
+ const tx=t=>[t.date,t.kind,t.status,t.description,fmt(t.amountCents)];
+ if(id==='attention'){
+  rows.push(['Tipo','Descrição','Detalhe']);
+  const overdue=state.transactions.filter(t=>t.status==='Pendente'&&t.kind!=='Transferência'&&t.date<today);
+  if(['Todos','Atrasos'].includes(claraWidgetUI.attention))rows.push(...overdue.map(t=>['Vencido',t.description,t.date+' · '+fmt(t.amountCents)]));
+  if(['Todos','Limites'].includes(claraWidgetUI.attention))rows.push(...budgetRows(p).filter(r=>r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100).map(r=>['Orçamento',r.name,fmt(r.planned)+' / '+fmt(r.limitCents)]));
+  if(['Todos','Metas'].includes(claraWidgetUI.attention))rows.push(...state.goals.filter(g=>g.dueDate&&g.dueDate<today&&g.savedCents<g.targetCents).map(g=>['Meta',g.name,g.dueDate]));
+ }else if(id==='agenda'){
+  rows.push(['Data','Tipo','Situação','Descrição','Valor (R$)']);
+  rows.push(...state.transactions.filter(t=>t.status==='Pendente'&&t.kind!=='Transferência'&&t.date>=today&&t.date<=addDays(today,claraWidgetUI.agendaDays)&&
+   (claraWidgetUI.agendaKind==='Todos'||t.kind===claraWidgetUI.agendaKind)).sort((a,b)=>a.date.localeCompare(b.date)).map(tx));
+ }else if(id==='budgets'){
+  rows.push(['Categoria','Limite (R$)','Realizado (R$)','Pendente (R$)','Previsto (R$)']);
+  rows.push(...claraWidgetBudgets(p).map(r=>[r.name,fmt(r.limitCents),fmt(r.done),fmt(r.pending),fmt(r.planned)]));
+ }else if(id==='goals'){
+  rows.push(['Meta','Total (R$)','Acumulado (R$)','Prazo','Falta (R$)']);
+  rows.push(...claraWidgetGoals().map(g=>[g.name,fmt(g.targetCents),fmt(g.savedCents),g.dueDate||'',fmt(Math.max(0,g.targetCents-g.savedCents))]));
+ }else if(id==='accounts'){
+  rows.push(['Conta','Tipo','Saldo (R$)','Fatura pendente (R$)']);
+  rows.push(...claraWidgetAccounts().map(a=>[a.name,a.type,fmt(accountBalance(a.id,state.settings.cutoff)),
+   fmt(a.type==='Cartão'?accountPendingCard(a.id):0)]));
+ }else if(id==='comparison'){
+  const pp=plusMonth(p+'-01',-claraWidgetUI.compareOffset).slice(0,7),a=stat(p),b=stat(pp);
+  rows.push(['Indicador',p+' (R$)',pp+' (R$)','Diferença (R$)']);
+  for(const [label,key] of [['Receitas','income'],['Despesas','expense'],['Resultado','net']])
+   rows.push([label,fmt(a[key]),fmt(b[key]),fmt(a[key]-b[key])]);
+ }else if(id==='recent'){
+  rows.push(['Data','Tipo','Situação','Descrição','Valor (R$)']);
+  rows.push(...claraWidgetRecent().slice(0,5).map(tx));
+ }else if(id==='insights'){
+  rows.push(['Tipo','Observação']);
+  rows.push(...claraWidgetInsights(p).map(n=>[n.important?'Alerta':'Informação',n.text]));
+ }else if(id==='forecast'){
+  rows.push(['Mês','Saldo projetado (R$)','Entradas pendentes (R$)','Saídas pendentes (R$)']);
+  rows.push(...claraWidgetForecast().map(x=>[x.p,fmt(x.balance),fmt(x.incomes),fmt(x.outcomes)]));
+ }else if(id==='audit'){
+  rows.push(['Conta','Data','Extrato (R$)','Saldo calculado (R$)','Diferença (R$)']);
+  rows.push(...claraWidgetAudits().map(r=>{const actual=accountBalance(r.accountId,r.date);return [
+   state.accounts.find(a=>a.id===r.accountId)?.name||'Conta',r.date,fmt(r.statementCents),fmt(actual),fmt(r.statementCents-actual)];}));
+ }else if(id==='categories'){
+  rows.push(['Categoria','Situação','Despesas (R$)']);
+  rows.push(...claraWidgetCategoryRows(p).filter(r=>r.done>0).map(r=>[r.name,claraWidgetUI.categoryMetric,fmt(r.done)]));
+ }else if(id==='history'){
+  rows.push(['Mês','Receitas (R$)','Despesas (R$)','Resultado (R$)']);
+  rows.push(...claraWidgetHistory().map(m=>{const st=stat(m);return [m,fmt(st.income),fmt(st.expense),fmt(st.net)];}));
+ }else if(id==='recurring'){
+  rows.push(['Descrição','Tipo','Meses','Ocorrências','Próxima referência','Último valor (R$)']);
+  rows.push(...recurringItems(claraWidgetUI.recurringKind).map(r=>[r.name,r.kind,r.months,r.count,r.next,fmt(r.amount)]));
+ }else throw Error('Exportação não disponível neste miniaplicativo.');
+ dl('Clara_Miniapp_'+id+'_'+today+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
+}
 function renderClaraMiniapps(p) {
  const today=todayISO(), in14=addDays(today,claraWidgetUI.agendaDays);
  const pending=state.transactions.filter(t=>t.status==='Pendente' && t.kind!=='Transferência');
@@ -1827,20 +1935,21 @@ function renderClaraMiniapps(p) {
  const budgets=budgetRows(p), alerts=budgets.filter(r=>r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100).sort((a,b)=>b.ratio-a.ratio);
  const goalAlerts=state.goals.filter(g=>g.dueDate && g.dueDate<today && g.savedCents<g.targetCents);
  const current=stat(p), previousPeriod=plusMonth(p+'-01',-claraWidgetUI.compareOffset).slice(0,7), previous=stat(previousPeriod);
- const recent=state.transactions.filter(t=>claraWidgetUI.recentStatus==='Todos'||t.status===claraWidgetUI.recentStatus).slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,5);
+ const recent=claraWidgetRecent().slice(0,5);
  const action=(label,attributes,kind='ghost')=>claraWidgetButton(label,attributes,kind);
  const line=claraWidgetLine, empty=claraWidgetEmpty;
  const allPending=overdue.length+alerts.length+goalAlerts.length;
+ const showAttention=kind=>claraWidgetUI.attention==='Todos'||claraWidgetUI.attention===kind;
  const cards={
  attention:()=>panel('Central de atenção',`${allPending} sinal(is) que exigem revisão`,`
    <div class="clw-list">
-    ${overdue.slice(0,3).map(t=>line(t.description,`<span class="negative">${fmtDay(t.date)} · ${brl(t.amountCents)} · vencido</span>`,
-      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Quitar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join('')}
-    ${alerts.slice(0,2).map(r=>line(`Orçamento: ${r.name}`,`Utilização: ${pref('hideValues')?'oculta':pct(r.ratio)}`,
-      action('Ver limite','data-config-jump="contas"'))).join('')}
-    ${goalAlerts.slice(0,2).map(g=>line(`Meta: ${g.name}`,`Prazo vencido em ${fmtDay(g.dueDate)}`,
-      action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join('')}
-    ${allPending===0?empty('Nenhum prazo vencido ou orçamento crítico identificado.'):''}
+    ${showAttention('Atrasos')?overdue.slice(0,3).map(t=>line(t.description,`<span class="negative">${fmtDay(t.date)} · ${brl(t.amountCents)} · vencido</span>`,
+      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Quitar',`data-clw-action="pay" data-clw-id="${esc(t.id)}"`))).join(''):''}
+    ${showAttention('Limites')?alerts.slice(0,2).map(r=>line(`Orçamento: ${r.name}`,`Utilização: ${pref('hideValues')?'oculta':pct(r.ratio)}`,
+      action('Ver limite','data-config-jump="contas"'))).join(''):''}
+    ${showAttention('Metas')?goalAlerts.slice(0,2).map(g=>line(`Meta: ${g.name}`,`Prazo vencido em ${fmtDay(g.dueDate)}`,
+      action('Atualizar',`data-goal-edit="${esc(g.id)}"`))).join(''):''}
+    ${(claraWidgetUI.attention==='Atrasos'?overdue.length:claraWidgetUI.attention==='Limites'?alerts.length:claraWidgetUI.attention==='Metas'?goalAlerts.length:allPending)===0?empty('Nenhuma pendência para este filtro.'):''}
    </div>`,action('Ver registros','data-view="mov"')),
  agenda:()=>panel('Agenda financeira','Contas e recebimentos a vencer em até '+claraWidgetUI.agendaDays+' dias',`
    <div class="clw-list">
@@ -1859,7 +1968,7 @@ function renderClaraMiniapps(p) {
    <p class="helper">Nenhum valor é incluído sem confirmação no formulário.</p>`,
    action('Consultar registros','data-view="mov"')),
  budgets:()=>panel('Orçamentos por categoria','Previsto = realizado + pendente',`
-   <div class="clw-list">${budgets.filter(r=>!claraWidgetUI.onlyRisk||(r.limitCents>0 && r.ratio>=pref('budgetWarningPct')/100)).slice().sort((a,b)=>b.ratio-a.ratio).slice(0,7).map(r=>`
+   <div class="clw-list">${claraWidgetBudgets(p).slice(0,7).map(r=>`
     <div class="clw-budget">${line(r.name,`Realizado ${brl(r.done)} · Previsto ${brl(r.planned)} · Limite ${brl(r.limitCents)}`,
      action('Ajustar','data-config-jump="contas"'))}
     <div class="pbar"><span class="${budgetSemanticClass(r.ratio)}" style="width:${Math.max(0,Math.min(100,r.ratio*100))}%"></span></div>
@@ -1867,15 +1976,15 @@ function renderClaraMiniapps(p) {
    </div>`,action('Planejamento','data-view="plan"')),
  goals:()=>panel('Metas financeiras',`${state.goals.length} meta(s) cadastrada(s)`,`
    <div class="clw-list">
-    ${state.goals.slice(0,5).map(g=>`<div class="clw-goal">
+    ${claraWidgetGoals().slice(0,5).map(g=>`<div class="clw-goal">
      ${line(g.name,`${brl(g.savedCents)} de ${brl(g.targetCents)} · ${fmtDay(g.dueDate)}`,
        action('Atualizar',`data-goal-edit="${esc(g.id)}"`)+action('Editar',`data-edit-goal-full="${esc(g.id)}"`)+action('Excluir',`data-del-goal="${esc(g.id)}"`))}
      <div class="pbar"><span style="width:${Math.max(0,Math.min(100,(g.savedCents/g.targetCents)*100))}%"></span></div>
     </div>`).join('')}
-    ${!state.goals.length?empty('Crie uma meta para começar seu planejamento.'):''}
+    ${!claraWidgetGoals().length?empty('Nenhuma meta encontrada para este filtro.'):''}
    </div>`,action('Nova meta','data-open="goal"')),
  accounts:()=>panel('Contas e cartões','Posição até a data de corte e pendências por cartão',`
-   <div class="clw-list">${state.accounts.filter(a=>!claraWidgetUI.onlyCards||a.type==='Cartão').slice(0,7).map(a=>line(a.name,
+   <div class="clw-list">${claraWidgetAccounts().slice(0,7).map(a=>line(a.name,
     `${esc(a.type)} · ${brl(accountBalance(a.id,state.settings.cutoff))}${a.type==='Cartão'?' · Fatura pendente '+brl(accountPendingCard(a.id)):''}`,
     action('Editar',`data-edit-account="${esc(a.id)}"`)+action('Conferir','data-view="conf"'))).join('')}</div>`,
    action('Nova conta','data-open="account"')),
@@ -1892,45 +2001,39 @@ function renderClaraMiniapps(p) {
      action('Editar',`data-edit-tx="${esc(t.id)}"`)+action('Duplicar',`data-clw-action="duplicate" data-clw-id="${esc(t.id)}"`)+action('Excluir',`data-del-tx="${esc(t.id)}"`))).join('')}
     ${!recent.length?empty('Nenhuma movimentação cadastrada.'):''}
    </div>`,action('Novo lançamento','data-open="transaction"')),
- insights:()=>{const notes=[];
-    if(previous.expense>0 && current.expense>previous.expense*1.05) notes.push('Os gastos realizados estão acima dos gastos do mês anterior.');
-    if(previous.expense>0 && current.expense<previous.expense*.95) notes.push('Os gastos realizados estão abaixo dos gastos do mês anterior.');
-    if(current.income+current.expense>0 && current.net<0) notes.push('O resultado realizado do mês está negativo.');
-    if(future30()>totalBalance(state.settings.cutoff)) notes.push('Despesas pendentes até 30 dias ultrapassam o saldo realizado, sem considerar recebimentos futuros.');
-    if(alerts.length) notes.push(`${alerts.length} categoria(s) atingiram o nível configurado para alerta de orçamento.`);
-    const biggest=budgets.filter(r=>r.done>0).sort((a,b)=>b.done-a.done)[0];
-    if(biggest) notes.push('Categoria com maior gasto realizado: '+biggest.name+'.');
+ insights:()=>{const notes=claraWidgetInsights(p);
     return panel('Insights automáticos','Análises descritivas locais, sem IA externa',`
-      <div class="clw-list">${notes.slice(0,5).map((n,i)=>line('Observação '+(i+1),esc(n))).join('')}
+      <div class="clw-list">${notes.slice(0,5).map((n,i)=>line('Observação '+(i+1),esc(n.text))).join('')}
       ${!notes.length?empty('Cadastre movimentações para obter indicadores úteis.'):''}</div>
       <p class="helper">Não são previsões garantidas nem recomendações de investimento.</p>`,
       action('Revisar orçamento','data-view="plan"'));},
  forecast:()=>panel('Fluxo de caixa projetado','Baseado nos lançamentos pendentes conhecidos',`
-   <div class="clw-list">${forecast(pref('forecastMonths')).slice(0,6).map(f=>line(monthLabel(f.p),
+   <div class="clw-list">${claraWidgetForecast().slice(0,12).map(f=>line(monthLabel(f.p),
      `Saldo ${brl(f.balance)} · Entradas ${brl(f.incomes)} · Saídas ${brl(f.outcomes)}`,
      action('Registros','data-view="mov"'))).join('')}</div>
-   <p class="helper">Projeção condicionada aos lançamentos cadastrados; não representa saldo garantido.</p>`,
+   ${claraWidgetForecast().length===0?empty('Nenhum mês com saldo negativo no horizonte selecionado.'):''}
+    <p class="helper">Projeção condicionada aos lançamentos cadastrados; não representa saldo garantido.</p>`,
    action('Horizonte','data-config-jump="painel"')),
  audit:()=>panel('Conferências e auditoria',`${state.reconciliations.length} conferência(s) registrada(s)`,`
    <div class="clw-list">
-   ${state.reconciliations.slice(-5).reverse().map(r=>{
+   ${claraWidgetAudits().slice(-5).reverse().map(r=>{
     const a=state.accounts.find(a=>a.id===r.accountId);
     return line(a?.name||'Conta',`${fmtDay(r.date)} · Extrato ${brl(r.statementCents)}`,
       action('Editar',`data-edit-recon="${esc(r.id)}"`)+action('Conferir','data-view="conf"'));
    }).join('')}
-   ${!state.reconciliations.length?empty('Ainda não existem conciliações de extrato.'):''}
+   ${!claraWidgetAudits().length?empty('Nenhuma conciliação encontrada para este filtro.'):''}
    </div>`,
    action('Abrir auditoria','data-view="conf"')+action('Exportar CSV','data-clw-action="export"')),
- categories:()=>panel('Onde estou gastando?','Distribuição das despesas realizadas',`
-   ${donut(budgets,current.expense)}
-   <p class="helper">A distribuição usa apenas despesas realizadas.</p>`,
+ categories:()=>panel('Onde estou gastando?',claraWidgetUI.categoryMetric==='Previsto'?'Realizado + pendências cadastradas':'Distribuição das despesas realizadas',`
+   ${donut(claraWidgetCategoryRows(p),claraWidgetCategoryRows(p).reduce((sum,r)=>sum+r.done,0))}
+   <p class="helper">${claraWidgetUI.categoryMetric==='Previsto'?'Inclui despesas pendentes cadastradas, sem presumir despesas futuras.':'A distribuição usa apenas despesas realizadas.'}</p>`,
    action('Ver categorias','data-config-jump="contas"')),
- history:()=>{const months=[...new Set(state.transactions.map(t=>effective(t).slice(0,7)).filter(Boolean))].sort().reverse().slice(0,10);
+ history:()=>{const months=claraWidgetHistory();
     return panel('Histórico mensal','Auditoria resumida de meses anteriores',`
     <div class="clw-list">${months.map(m=>{const x=stat(m);return line(monthLabel(m),
       `Receitas ${brl(x.income)} · Despesas ${brl(x.expense)} · Resultado ${brl(x.net)}`,
       action('Examinar',`data-clw-action="month" data-clw-month="${m}"`));}).join('')}
-    ${!months.length?empty('O histórico aparece quando houver lançamentos cadastrados.'):''}</div>
+    ${!months.length?empty('Nenhum mês encontrado para este filtro.'):''}</div>
     <p class="helper">Examinar altera apenas o mês consultado; os registros originais permanecem preservados.</p>`,
     action('CSV anual','data-clw-action="export"'));}
  };
@@ -1961,6 +2064,37 @@ function renderClaraMiniapps(p) {
 function handleClaraWidgetAction(b) {
  const action=b.dataset.clwAction, id=b.dataset.clwId;
  const persist=()=>{try{save();}catch(error){showToast(error.message,true);}};
+ // Filtros de miniaplicativos: estado efêmero, sem escrita no cofre.
+ const value=b.dataset.clwValue;
+ if(action==='widget-export'){try{exportClaraWidget(value);}catch(e){showToast(e.message,true);}return;}
+ if(action==='attention-filter'){if(['Todos','Atrasos','Limites','Metas'].includes(value)){claraWidgetUI.attention=value;renderPainel();}return;}
+ if(action==='budget-sort'){if(['Percentual','Gasto','Nome'].includes(value)){claraWidgetUI.budgetSort=value;renderPainel();}return;}
+ if(action==='goal-overdue'){if(['all','overdue'].includes(value)){claraWidgetUI.goalOverdue=value==='overdue';renderPainel();}return;}
+ if(action==='recent-kind'){if(['Todos','Receita','Despesa'].includes(value)){claraWidgetUI.recentKind=value;renderPainel();}return;}
+ if(action==='insight-filter'){if(['all','important'].includes(value)){claraWidgetUI.insightsImportant=value==='important';renderPainel();}return;}
+ if(action==='forecast-negative'){claraWidgetUI.onlyDeficits=!claraWidgetUI.onlyDeficits;renderPainel();return;}
+ if(action==='audit-difference'){claraWidgetUI.auditOnlyDifference=!claraWidgetUI.auditOnlyDifference;renderPainel();return;}
+ if(action==='category-metric'){if(['Realizado','Previsto'].includes(value)){claraWidgetUI.categoryMetric=value;renderPainel();}return;}
+ if(action==='history-negative'){if(['all','negative'].includes(value)){claraWidgetUI.historyOnlyNegative=value==='negative';renderPainel();}return;}
+ if(action==='recurring-kind'){if(['Todos','Receita','Despesa'].includes(value)){claraWidgetUI.recurringKind=value;renderPainel();}return;}
+ if(action==='sim-reset'){
+  const income=$('clw-sim-income'),expense=$('clw-sim-expense'),months=$('clw-sim-months'),result=$('clw-sim-result');
+  if(income)income.value='0,00';if(expense)expense.value='0,00';if(months)months.value='1';
+  if(result)result.textContent='Cenário zerado. Preencha novos valores para calcular.';
+  return;
+ }
+ if(action==='sim-export'){
+  try{
+   const income=parseBRL($('clw-sim-income').value),expense=parseBRL($('clw-sim-expense').value);
+   const months=Number($('clw-sim-months').value);
+   const {monthly,estimated}=computeSimulation(income,expense,months,state.settings.period);
+   const rows=[['Parâmetro','Valor'],['Mês de referência',state.settings.period],
+    ['Receita extra/mês (R$)',csvAmount(income)],['Despesa extra/mês (R$)',csvAmount(expense)],
+    ['Prazo (meses)',months],['Resultado mensal hipotético (R$)',csvAmount(monthly)],
+    ['Saldo final hipotético (R$)',csvAmount(estimated)]];
+   dl('Clara_Simulacao_'+todayISO()+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
+  }catch(e){showToast(e.message,true);}return;
+ }
  if(action==='simulate'){runSimulation();return;}
  if(action==='sim-draft'){
    try{
@@ -1986,7 +2120,7 @@ function handleClaraWidgetAction(b) {
   const v=b.dataset.clwValue;if(['Todos','Pendente','Realizado'].includes(v)){claraWidgetUI.recentStatus=v;renderPainel();}return;
  }
  if(action==='budget-risk'){claraWidgetUI.onlyRisk=!claraWidgetUI.onlyRisk;renderPainel();return;}
- if(action==='account-cards'){claraWidgetUI.onlyCards=!claraWidgetUI.onlyCards;renderPainel();return;}
+ if(action==='account-cards'){claraWidgetUI.onlyCards=b.dataset.clwValue==='all'?false:!claraWidgetUI.onlyCards;renderPainel();return;}
  if(action==='compare'){
   const v=Number(b.dataset.clwValue);if([1,3,12].includes(v)){claraWidgetUI.compareOffset=v;renderPainel();}return;
  }
@@ -2026,7 +2160,7 @@ function handleClaraWidgetAction(b) {
    const t=state.transactions.find(x=>x.id===id);
    if(!t)return;
    modal('transaction');
-   $('m_date').value=t.date;
+   $('m_date').value=b.dataset.clwNext==='true'?plusMonth(t.date,1):t.date;
    $('m_description').value=t.description;
    $('m_kind').value=t.kind;
    updateCategoryForKind();
@@ -2080,8 +2214,9 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.2.2-rc';
+const CLARA_APP_VERSION='4.2.3-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "Dashboard: 15 miniaplicativos com ao menos três ferramentas cada, filtros contextuais, exportações CSV e simulação sem gravar dados.",
   "Atualizador com ação disponível também em Configurações, detecção de falhas do Service Worker, novas tentativas seguras e proteção contra preparações intermináveis.",
   "Correções de sobreposição: menu e formulários acima do sino, foco de teclado contido na navegação, fundo sem rolagem e aviso de atualização reposicionado.",
   "Estabilização visual da dock e do menu flutuante: cantos sempre arredondados, animação sem alterações de geometria, responsividade e acessibilidade revisadas.",

@@ -91,6 +91,65 @@ async def run():
     page.on('pageerror',lambda e:errors.append(str(e)))
     await all_widgets(page)
     periods=await seed(page)
+    # Requisitos: 15 miniaplicativos, 3+ operações distintas por card.
+    toolbars=await page.evaluate("""() => [...document.querySelectorAll('#dashboardMiniapps [data-widget]')].map(w=>{
+      const buttons=[...w.querySelectorAll('.clw-toolstrip button')];
+      return {id:w.dataset.widget,count:buttons.length,
+        distinct:new Set(buttons.map(b=>[b.dataset.clwAction,b.dataset.clwValue,b.dataset.view,b.dataset.open,b.dataset.configJump].join('|'))).size};
+    })""")
+    assert len(toolbars)==15 and all(x['count']>=3 and x['distinct']>=3 for x in toolbars),toolbars
+    checked.append('15-cards-3-mais-acoes')
+    original=await page.evaluate("() => JSON.stringify(state)")
+    for widget,action,value in [
+      ('attention','attention-filter','Atrasos'),('attention','attention-filter','Limites'),
+      ('attention','attention-filter','Metas'),('attention','attention-filter','Todos'),
+      ('budgets','budget-sort','Gasto'),('budgets','budget-sort','Nome'),
+      ('goals','goal-overdue','overdue'),('goals','goal-overdue','all'),
+      ('recent','recent-kind','Despesa'),('recent','recent-kind','Receita'),
+      ('recent','recent-kind','Todos'),
+      ('insights','insight-filter','important'),('insights','insight-filter','all'),
+      ('categories','category-metric','Previsto'),('categories','category-metric','Realizado'),
+      ('history','history-negative','negative'),('history','history-negative','all'),
+      ('recurring','recurring-kind','Receita'),('recurring','recurring-kind','Despesa'),
+      ('recurring','recurring-kind','Todos')
+    ]:
+      await page.locator(f'[data-widget="{widget}"] [data-clw-action="{action}"][data-clw-value="{value}"]').click()
+    for widget,action in [('forecast','forecast-negative'),('audit','audit-difference')]:
+      await page.locator(f'[data-widget="{widget}"] [data-clw-action="{action}"]').click()
+      await page.locator(f'[data-widget="{widget}"] [data-clw-action="{action}"]').click()
+    assert await page.evaluate("() => JSON.stringify(state)")==original,'Filtro modificou o cofre'
+    checked.append('filtros-novos-sem-escrita')
+    # Os navegadores podem bloquear downloads automáticos em lote (>10);
+    # instrumentar o download nos 13 cards e validar cada CSV em memória.
+    await page.evaluate("""() => {
+      window.__claraQaOriginalDl=dl;window.__claraQaExports=[];
+      dl=(name,content,mime)=>window.__claraQaExports.push({name,content,mime});
+    }""")
+    for widget in ['attention','agenda','budgets','goals','accounts','comparison','recent',
+                   'insights','forecast','audit','categories','history','recurring']:
+      before_count=await page.evaluate("window.__claraQaExports.length")
+      await page.locator(f'[data-widget="{widget}"] [data-clw-action="widget-export"]').click()
+      result=await page.evaluate("window.__claraQaExports.at(-1)")
+      assert await page.evaluate("window.__claraQaExports.length")==before_count+1,widget
+      assert result['name'].startswith('Clara_Miniapp_'+widget),result
+      assert result['content'].startswith('\ufeff') and len(result['content'])>25,widget
+      assert result['mime'].startswith('text/csv'),widget
+    await page.evaluate("() => {dl=window.__claraQaOriginalDl;delete window.__claraQaOriginalDl;}")
+    # Pelo menos um download físico, para aferir integração nativa com o Chromium.
+    async with page.expect_download() as d:
+      await page.locator('[data-widget="categories"] [data-clw-action="widget-export"]').click()
+    assert (await d.value).suggested_filename.startswith('Clara_Miniapp_categories')
+    assert await page.evaluate("() => JSON.stringify(state)")==original
+    checked.append('13-relatorios-csv-e-download-nativo')
+    # Duplicação de recorrência é rascunho no mês seguinte.
+    button=page.locator('[data-widget="recurring"] [data-clw-next="true"]').first
+    source_id=await button.get_attribute('data-clw-id')
+    next_month=await page.evaluate("(id) => plusMonth(state.transactions.find(t=>t.id===id).date,1)",source_id)
+    await button.click()
+    assert await page.locator('#m_date').input_value()==next_month
+    await page.locator('#closeModal').click()
+    assert await page.evaluate("() => JSON.stringify(state)")==original
+    checked.append('recorrencia-rascunho-proximo-mes')
     assert await page.locator('[data-widget="recurring"]').inner_text()
     assert await page.locator('[data-widget="recurring"] [data-edit-tx="qa4"]').count()+await page.locator('[data-widget="recurring"] [data-edit-tx="qa2"]').count()>0
     checked.append('recorrencia-identificada-sem-autocadastro')
@@ -113,14 +172,25 @@ async def run():
     assert await page.evaluate("() => JSON.stringify(state.transactions)")==before
     await page.locator('#closeModal').click()
     checked.append('simulacao-e-rascunho-sem-gravacao')
+    await page.locator('#clw-sim-income').fill('150,00')
+    await page.locator('#clw-sim-expense').fill('20,00')
+    async with page.expect_download() as d:
+      await page.locator('[data-widget="simulator"] [data-clw-action="sim-export"]').click()
+    assert (await d.value).suggested_filename.startswith('Clara_Simulacao_')
+    await page.locator('[data-widget="simulator"] [data-clw-action="sim-reset"]').click()
+    assert await page.locator('#clw-sim-income').input_value()=='0,00'
+    assert await page.locator('#clw-sim-expense').input_value()=='0,00'
+    assert await page.evaluate("() => JSON.stringify(state)")==original
+    checked.append('simulador-csv-reset-sem-escrita')
     # Filtros de agenda, recentes, orçamento, conta e comparação.
     for name,value in [('agenda-days','7'),('agenda-days','30'),('agenda-kind','Receita'),('agenda-kind','Todos'),
                        ('recent-status','Pendente'),('recent-status','Realizado'),('recent-status','Todos'),
                        ('compare','3'),('compare','12'),('compare','1'),('forecast-months','6')]:
       await page.locator(f'[data-clw-action="{name}"][data-clw-value="{value}"]').click()
     for name in ['budget-risk','account-cards']:
-      await page.locator(f'[data-clw-action="{name}"]').click()
-      await page.locator(f'[data-clw-action="{name}"]').click()
+      button=page.locator(f'[data-clw-action="{name}"][data-clw-value="toggle"]')
+      await button.click()
+      await button.click()
     checked.append('filtros-dos-miniaplicativos')
     # Débito manual com data de quitação real preserva vencimento.
     due=await page.evaluate("() => state.transactions.find(t=>t.id==='qa3').date")
@@ -136,7 +206,7 @@ async def run():
     await page.locator('#closeModal').click()
     checked.append('duplicacao-sem-salvar')
     # CSV gerado a partir do banco local, sem caracteres malformados.
-    for widget,act in [('recurring','recurring-export'),('budgets','budget-export'),('recent','export-tx')]:
+    for widget,act in [('recurring','recurring-export'),('budgets','widget-export'),('recent','widget-export')]:
       async with page.expect_download() as d:
         await page.locator(f'[data-widget="{widget}"] [data-clw-action="{act}"]').click()
       download=await d.value
