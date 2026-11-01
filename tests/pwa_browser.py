@@ -211,6 +211,13 @@ async def run():
             assert await page.locator('#claraUpdateNoticeInstall').is_visible()
             assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Atualizar agora'
             assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
+            # Botão equivalente também precisa aparecer em Configurações antes
+            # de existir um novo Service Worker em espera (captura do usuário).
+            await page.evaluate("configTab='dados';go('ajustes')")
+            assert await page.locator('#applyClaraUpdate').is_visible()
+            assert await page.locator('#applyClaraUpdate').inner_text()=='Atualizar agora'
+            assert await page.locator('#applyClaraUpdate').is_enabled()
+            await page.evaluate("go('painel')")
             await page.locator('#claraUpdateNoticeInstall').click()
             await page.wait_for_function("document.getElementById('claraUpdateNoticeInstall').textContent==='Preparando…'",timeout=15000)
             assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
