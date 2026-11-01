@@ -18,6 +18,11 @@ async def unlock(page):
 async def home(page):
     await page.goto(BASE, wait_until='load')
     await unlock(page)
+    # Miniaplicativos foram mantidos no modo avançado; o modo simples é o padrão.
+    await page.evaluate("""() => {
+      if(pref('simpleMode')){state.settings.simpleMode=false;save();}
+      go('painel');
+    }""")
     await page.locator('#dashboardMiniapps').wait_for()
 
 async def all_widgets(page):
