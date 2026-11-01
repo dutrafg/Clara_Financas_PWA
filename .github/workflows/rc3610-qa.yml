@@ -73,6 +73,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/guest_desktop_browser.py 2>&1 | tee /tmp/clara-guest-browser.log
+      - name: Testar lembretes, bloco de notas e backup privado no Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-extras-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/extras_backup_browser.py 2>&1 | tee /tmp/clara-extras-browser.log
       - name: Regressão ampliada dos 15 miniaplicativos
         shell: bash
         run: |
@@ -92,6 +100,7 @@ jobs:
             /tmp/clara-miniapps-extended.log
             /tmp/clara-agenda-browser.log
             /tmp/clara-guest-browser.log
+            /tmp/clara-extras-browser.log
             /tmp/clara-studio-browser.log
             /tmp/clara-studio-shots/
           if-no-files-found: ignore
