@@ -29,7 +29,7 @@
   });}finally{db.close();}
  }
  async function loadFolder(){
-  try{const handle=await folderPrefs('get');if(handle?.kind==='directory')selectedFolder=handle;}catch{}
+  try{const handle=await folderPrefs('get');if(handle?.kind==='directory'&&!selectedFolder)selectedFolder=handle;}catch{}
   folderLoaded=true;paint();
  }
  async function chooseFolder(){
@@ -150,7 +150,7 @@
    if(!unlocked())return '<p class="cb-secondary">Crie ou desbloqueie o cofre para armazenar cópias criptografadas.</p>';
    const newest=current.find(x=>x.name.startsWith(PREFIX));
    const next=nextTwo();
-   const stateLabel=pref('autoBackup')?'Ativado · diariamente às 02:00, com app aberto':'Desativado nas configurações';
+   const stateLabel=!pref('autoBackup')?'Desativado nas configurações':!selectedFolder?'Pendente · escolha uma pasta local':'Ativado · diariamente às 02:00, com app aberto';
    const folderStatus=selectedFolder?'Pasta: '+folderLabel():folderLoaded?'Selecione uma pasta de destino':'Carregando destino…';
    const items=current.slice(0,5).map(x=>
     `<div class="cb-entry"><span>${label(x.name)}</span><div class="cb-actions"><button type="button" data-cb-download="${x.name}">Copiar para pasta</button><button type="button" data-cb-restore="${x.name}">Restaurar</button><button type="button" data-cb-delete="${x.name}">Excluir</button></div></div>`).join('');
