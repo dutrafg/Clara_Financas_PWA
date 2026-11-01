@@ -66,9 +66,10 @@ async def run():
     # Primeiro consultá-la pela interface; antes disso o botão deve estar oculto.
     assert await page.locator('#checkClaraUpdate').is_visible()
     await page.locator('#checkClaraUpdate').click()
-    await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc'",timeout=12000)
+    await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc' && window.ClaraUpdate.status==='Preparando atualização'",timeout=12000)
     assert await page.locator('#applyClaraUpdate').is_visible()
-    assert await page.locator('#applyClaraUpdate').inner_text()=='Atualizar agora'
+    assert await page.locator('#applyClaraUpdate').inner_text()=='Preparando…'
+    assert await page.locator('#applyClaraUpdate').is_disabled()
     await page.evaluate("go('painel')")
 
     old_sw=(site/'sw.js').read_text()
