@@ -210,7 +210,9 @@
   const raw=await useStore('get',name);
   if(typeof raw!=='string')throw Error('Arquivo local não encontrado.');
   validateVault(raw);
-  if(selectedFolder)await writeExternal(name,raw);else dl(name,raw,'application/octet-stream');
+  if(selectedFolder)await writeExternal(name,raw);
+  else if(!externalSupported())dl(name,raw,'application/octet-stream');
+  else throw Error('Escolha uma pasta local para copiar o backup.');
  }
  async function restore(name){
   if(!unlocked())throw Error('Desbloqueie seu cofre.');
@@ -256,7 +258,10 @@
   }
   Promise.resolve().then(async()=>{
    if(action==='cbCreate')await create('manual');
-   else if(action==='cbExport')await window.ClaraSecurity.exportBackup();
+   else if(action==='cbExport'){
+    if(externalSupported())await create('manual');
+    else await window.ClaraSecurity.exportBackup();
+   }
    else if(action==='cbDownload')await download(button.dataset.cbDownload);
    else if(action==='cbRestore')await restore(button.dataset.cbRestore);
    else if(action==='cbDelete')await remove(button.dataset.cbDelete);
