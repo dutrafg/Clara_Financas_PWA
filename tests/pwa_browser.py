@@ -53,7 +53,7 @@ async def run():
             assert await page.locator('#view-mais .clara-more-item').count()==7
             await page.locator('#view-mais [data-config-jump="dados"]').click()
             assert await page.locator('#pageTitle').inner_text()=='Configurações'
-            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.0.0-rc'
+            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.0.1-rc'
             assert await page.locator('#exportJson').is_visible()
             assert await page.locator('#importClara').count()==1
             assert await page.locator('#claraAdvancedSettings').count()==1
@@ -77,15 +77,26 @@ async def run():
             await page.evaluate("go('mais')")
             await page.locator('[data-mode-toggle="advanced"]').click()
             assert await page.evaluate("pref('simpleMode')") is False
+            assert await page.locator('#claraExitAdvanced').is_visible()
             assert await page.locator('#dashboardMiniapps [data-widget]').count()>=7
             await page.get_by_role('button',name='Editar painel').click()
             await page.get_by_role('button',name='Mostrar todos').click()
             assert await page.locator('#dashboardMiniapps [data-widget]').count()==15
-            await page.evaluate("go('mais')")
-            await page.locator('[data-mode-toggle="simple"]').click()
+            await page.locator('#claraExitAdvanced').click()
             assert await page.evaluate("pref('simpleMode')") is True
             await page.evaluate("go('painel')")
             assert await page.locator('#dashboardMiniapps [data-widget]').count()==0
+
+            
+            # 10 MB: arquivo PNG pequeno com payload adicional, convertido em JPEG compacto.
+            outcome=await page.evaluate("""async () => {
+              const b64='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRFMAAAAASUVORK5CYII=';
+              const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+              const original=new File([raw,new Uint8Array(8*1024*1024)],'perfil.png',{type:'image/png'});
+              const photo=await loadProfilePhoto(original);
+              return {size:original.size,decoded:photo.startsWith('data:image/jpeg;base64,'),small:photo.length<120000};
+            }""")
+            assert outcome['size']>2*1024*1024 and outcome['decoded'] and outcome['small'],outcome
 
             # Dados continuam cifrados e o modo persiste após fechar o app.
             await page.evaluate("window.ClaraSecurity.flush()")
