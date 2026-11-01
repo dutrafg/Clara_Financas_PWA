@@ -184,10 +184,20 @@ async def run():
             assert await page.locator('.clara-balance').is_visible()
             assert not errors,errors
             # Regressão do aviso: o botão não deve desaparecer enquanto o pacote é preparado.
+            # Offline: version.json jamais pode vir de um cache antigo como prova de atualização.
+            failed_version=await page.evaluate("""async () => {
+              try{await fetch('./version.json?fresh=offline-qa',{cache:'no-store'});return false;}
+              catch{return true;}
+            }""")
+            assert failed_version, 'O Service Worker respondeu à verificação offline com versão antiga'
             await context.set_offline(False)
-            await page.route("**/version.json?fresh=*",lambda route:route.fulfill(
-                status=200,content_type='application/json',
-                body='{"version":"9.9.9-rc","notes":["Atualização simulada para QA."]}'))
+            await page.evaluate("""() => {
+              window.__qaOriginalFetch=window.fetch;
+              window.fetch=(input,options)=>String(input).includes('version.json?fresh=')
+                ? Promise.resolve(new Response(JSON.stringify({version:'9.9.9-rc',notes:['Atualização simulada para QA.']}),{
+                    status:200,headers:{'Content-Type':'application/json'}}))
+                : window.__qaOriginalFetch(input,options);
+            }""")
             await page.evaluate("window.ClaraUpdate.check(true)")
             await page.wait_for_function("window.ClaraUpdate.remoteVersion==='9.9.9-rc'",timeout=15000)
             assert await page.locator('#claraUpdateNotice').is_visible()
@@ -201,7 +211,7 @@ async def run():
             assert await page.evaluate("window.ClaraUpdate.installedVersion")==APP_VERSION
             await page.locator('#claraUpdateNoticeLater').click()
             assert not await page.locator('#claraUpdateNotice').is_visible()
-            await page.unroute("**/version.json?fresh=*")
+            await page.evaluate("window.fetch=window.__qaOriginalFetch;delete window.__qaOriginalFetch")
             assert not errors,errors
             print('QA Clara 4.0 OK:',width,'px — modo simples, avançado, cofre e offline')
             await context.close()
