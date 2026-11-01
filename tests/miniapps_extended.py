@@ -122,8 +122,10 @@ async def run():
     # Exportações reais no navegador: todas disponíveis, dados locais.
     for widget in ['attention','agenda','budgets','goals','accounts','comparison','recent',
                    'insights','forecast','audit','categories','history','recurring']:
-      async with page.expect_download() as d:
+      print('QA CSV MINIAPP:',widget,flush=True)
+      async with page.expect_download(timeout=12000) as d:
         await page.locator(f'[data-widget="{widget}"] [data-clw-action="widget-export"]').click()
+        print('STATUS EXPORT:',await page.locator('#toast').inner_text(),flush=True)
       assert (await d.value).suggested_filename.startswith('Clara_Miniapp_'+widget)
     assert await page.evaluate("() => JSON.stringify(state)")==original
     checked.append('13-relatorios-csv')
