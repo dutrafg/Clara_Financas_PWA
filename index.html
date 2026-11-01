@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.1.3 • Instalação PWA</title>
+<title>Clara Finanças RC4.1.4 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -2078,8 +2078,9 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.1.3-rc';
+const CLARA_APP_VERSION='4.1.4-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "Após escolher a pasta de backup, o card de configuração desaparece da Dashboard; o gerenciamento permanece em Configurações, inclusive após recarregar.",
   "Backups externos na pasta local selecionada, com criptografia AES-256-GCM de todas as informações, prevenção de sobrescrita e histórico privado complementar.",
   "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
   "Backup offline do cofre criptografado com histórico local, exportação, restauração autenticada e verificação automática às 02:00.",
