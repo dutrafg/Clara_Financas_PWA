@@ -1,4 +1,4 @@
-# Clara Finanças RC4.0.6 — PWA em estabilização
+# Clara Finanças RC4.1.0 — Design Clara Studio
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets e desktops, a pílula reúne os oito destinos; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
@@ -83,3 +83,12 @@ O protocolo manual está em [docs/QA-RC3.6.10.md](docs/QA-RC3.6.10.md). Homologa
 - QA canônico: `.github/workflows/rc3610-qa.yml` (main e homologacao/**); testes de 390/768/1440 px, offline, 15 miniaplicativos, agenda e armazenamento.
 - Ambientes: Vercel recebe produção de `main`; homologação usa branch `homologacao/**` e workflow do GitHub Pages. **Configurar Pages → Build and deployment → Source: GitHub Actions** para retirar a antiga publicação automática de main; requer acesso do proprietário às configurações do repositório.
 - PRs antigos de releases devem ser revisados individualmente, não mesclados sem reconciliação com a RC4.0.6.
+
+## Clara Studio RC4.1.0 — padrão de qualidade
+
+- Sistema visual próprio inspirado em referências de excelência de produtos digitais, com tipografia editorial, hierarquia de espaços, superfícies refinadas, estados acessíveis e transições discretas. Não utiliza código, imagens, fontes ou marcas da Apple.
+- Remoção concluída nesta versão: elemento `aside.sidebar`, renderização duplicada de `sideNav`, configurações `sidebarCompact` e regras CSS legadas associadas.
+- Navegação única: pílula compacta no telefone; dock de oito destinos no tablet/desktop; menu expandido no smartphone; perfil preservado.
+- Gestão de dívida técnica obrigatória: a cada versão identificar componentes órfãos, dependências e seletores inativos; remover **apenas após** cobertura de testes e preservar contratos de dados/backups.
+- Critérios de qualidade: contraste, responsividade em 320/390/768/1024/1440/1920 px, temas claro/escuro, teclado/foco, movimento reduzido, atualização offline, UX de cofre e nenhuma regressão nos 15 miniaplicativos.
+- O pacote visual é local e pré-cacheado; não usa dependências externas de CDN nem fontes descarregadas pela rede.
