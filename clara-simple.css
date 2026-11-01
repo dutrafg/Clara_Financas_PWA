@@ -143,3 +143,66 @@
  :root[data-simple="true"] .mobile-dock .float-trigger {height:52px;min-height:52px;}
  .profile-fab{flex-basis:49px;width:49px;height:49px;}
 }
+
+/* Clara 4.0.5: navegação centrada na pílula em todos os tamanhos.
+   Sidebar antiga fica apenas como suporte interno aos renderizadores legados. */
+.shell{display:block!important;grid-template-columns:minmax(0,1fr)!important;}
+.sidebar{display:none!important;}
+.main{padding-bottom:calc(116px + env(safe-area-inset-bottom,0px));}
+.clara-desktop-dock{display:none;}
+@media (min-width:761px){
+ .mobile-dock-wrap{
+  position:fixed;display:flex!important;align-items:center;justify-content:center;
+  gap:10px;bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  width:max-content;max-width:calc(100vw - 24px);z-index:110;box-sizing:border-box;
+ }
+ .mobile-dock-wrap>.mobile-dock{display:none!important;}
+ .clara-desktop-dock{
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  min-width:0;width:min(810px,calc(100vw - 106px));box-sizing:border-box;
+  padding:7px;border:1px solid var(--stroke-strong);border-radius:25px;
+  background:color-mix(in srgb,var(--panel) 94%,transparent);
+  box-shadow:0 14px 38px #0003;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+ }
+ .clara-desktop-link{
+  display:flex;flex:1 1 0;flex-direction:column;align-items:center;justify-content:center;
+  min-width:0;height:57px;padding:6px 2px;box-sizing:border-box;border:0;border-radius:17px;
+  background:transparent;color:var(--muted);font:680 11px/1.15 system-ui,sans-serif;
+  cursor:pointer;gap:5px;text-align:center;
+ }
+ .clara-desktop-link .ico{display:flex;align-items:center;justify-content:center;}
+ .clara-desktop-link svg{width:20px;height:20px;flex:none;}
+ .clara-desktop-link span:last-child{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+ .clara-desktop-link.active,.clara-desktop-link:hover{
+  color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--panel));
+ }
+ .clara-desktop-link:focus-visible,.mobile-dock-wrap>.profile-fab:focus-visible{
+  outline:2px solid var(--teal);outline-offset:2px;
+ }
+ .mobile-dock-wrap>.profile-fab{
+  position:relative;display:grid;place-items:center;flex:0 0 56px;
+  width:56px;height:56px;padding:0;border-radius:50%;
+  border:2px solid color-mix(in srgb,var(--teal) 45%,var(--panel));
+  background:linear-gradient(135deg,#7a61df,#2779da);box-shadow:0 12px 32px #0003;
+  color:#fff;cursor:pointer;font-size:15px;font-weight:780;overflow:hidden;
+ }
+ .mobile-dock-wrap>.profile-fab img{width:100%;height:100%;object-fit:cover;display:block;}
+ .mobile-dock-wrap>.profile-fab::after{content:"";position:absolute;right:2px;bottom:2px;
+  width:8px;height:8px;border:2px solid var(--panel);border-radius:50%;background:#39bb87;}
+}
+@media (min-width:761px) and (max-width:1000px){
+ .clara-desktop-dock{gap:1px;padding:5px;width:calc(100vw - 102px);}
+ .clara-desktop-link{font-size:9.5px;letter-spacing:-.02em;padding:5px 1px;height:54px;}
+ .clara-desktop-link svg{width:19px;height:19px;}
+ .mobile-dock-wrap{gap:8px;max-width:calc(100vw - 20px);}
+ .mobile-dock-wrap>.profile-fab{flex-basis:50px;width:50px;height:50px;}
+}
+@media (max-width:760px){
+ .clara-desktop-dock{display:none!important;}
+}
+/* A pílula não aparece sobre relatórios/PDFs impressos. */
+@media print{
+ .mobile-dock-wrap,.clara-desktop-dock{display:none!important;}
+ .main{padding-bottom:0;}
+}
