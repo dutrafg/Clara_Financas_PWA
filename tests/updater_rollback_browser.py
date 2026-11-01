@@ -20,6 +20,19 @@ async def main():
             page = await context.new_page()
             page_errors = []
             page.on('pageerror', lambda error: page_errors.append(str(error)))
+            await page.add_init_script("""(() => {
+              const key='__claraRollbackQaHistory';
+              const add=(event,detail)=>{
+                try {
+                  const history=JSON.parse(sessionStorage.getItem(key)||'[]');
+                  history.push({event,detail,time:Date.now()});
+                  sessionStorage.setItem(key,JSON.stringify(history.slice(-30)));
+                } catch {}
+              };
+              navigator.serviceWorker?.addEventListener('controllerchange',()=>add('controllerchange',navigator.serviceWorker.controller?.state));
+              navigator.serviceWorker?.addEventListener('message',event=>add('message',event.data));
+              window.addEventListener('load',()=>add('load',{updater:window.ClaraUpdate?.status||null,bootCache:document.querySelector('#clara-update-boot-guard')?.textContent.match(/CLARA_BOOT_CACHE='([^']+)'/)?.[1]||null}));
+            })();""")
             await page.goto(BASE, wait_until='load')
             if await page.locator('#securityCover').is_visible():
                 await page.locator('#securityPassword').fill(PASSWORD)
@@ -76,8 +89,11 @@ async def main():
                 diagnostics = await page.evaluate("""async candidate => ({
                   cacheNames: await caches.keys(),
                   activeWorker: (await navigator.serviceWorker.getRegistration())?.active?.scriptURL,
+                  activeState: (await navigator.serviceWorker.getRegistration())?.active?.state,
+                  waitingState: (await navigator.serviceWorker.getRegistration())?.waiting?.state || null,
                   currentPageBootCache: window.CLARA_BOOT_CACHE || null,
                   currentUpdater: window.ClaraUpdate?.status || null,
+                  bootHistory: JSON.parse(sessionStorage.getItem('__claraRollbackQaHistory')||'[]'),
                   candidateHtml: (await (await caches.open(candidate)).match(new URL('./index.html', location.href)))?.headers.get('content-type') || null
                 })""", candidate_name)
                 raise AssertionError(f'Rollback não ficou ativo; state={state!r}; diagnostics={diagnostics!r}; page_errors={page_errors!r}')
