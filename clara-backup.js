@@ -165,14 +165,20 @@
      <p class="cb-secondary">${status||'Todos os dados — inclusive os não financeiros, como perfil, configurações, notas e lembretes — são criptografados com AES-256-GCM. O histórico privado pode desaparecer ao limpar os dados do site. Para salvar externamente, escolha uma pasta e mantenha a permissão de gravação. Em navegadores sem seletor de pastas, use Exportar pelo navegador.'}</p>`;
   };
   const view=byId('view-painel');
-  if(view&&active==='painel'){
-   let panel=byId('claraBackupCard');
+  const dashboardCard=byId('claraBackupCard');
+  // A Dashboard só orienta a configuração inicial. Depois que a pasta for
+  // selecionada, remova o card (inclusive quando a escolha veio de Configurações).
+  // Aguarde carregar a escolha persistida para evitar o card piscar na inicialização.
+  if(selectedFolder)dashboardCard?.remove();
+  else if(view&&active==='painel'&&folderLoaded){
+   let panel=dashboardCard;
    if(!panel){
     panel=document.createElement('section');panel.id='claraBackupCard';panel.className='cb-card';
     view.appendChild(panel);
    }
    panel.innerHTML=`<header><div><h3>Backup e proteção</h3><p>Cópias offline da Clara, incluindo os registros, notas e lembretes.</p></div></header>${html(lastStatus)}`;
   }
+  // As ações, o histórico e o status seguem sempre disponíveis em Configurações.
   const settings=byId('claraBackupSettings');
   if(settings)settings.innerHTML=html(lastStatus);
  }
