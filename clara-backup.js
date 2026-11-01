@@ -29,7 +29,7 @@
   });}finally{db.close();}
  }
  async function loadFolder(){
-  try{const handle=await folderPrefs('get');if(handle?.kind==='directory')selectedFolder=handle;}catch{}
+  try{const handle=await folderPrefs('get');if(handle?.kind==='directory'&&!selectedFolder)selectedFolder=handle;}catch{}
   folderLoaded=true;paint();
  }
  async function chooseFolder(){
@@ -150,7 +150,7 @@
    if(!unlocked())return '<p class="cb-secondary">Crie ou desbloqueie o cofre para armazenar cópias criptografadas.</p>';
    const newest=current.find(x=>x.name.startsWith(PREFIX));
    const next=nextTwo();
-   const stateLabel=pref('autoBackup')?'Ativado · diariamente às 02:00, com app aberto':'Desativado nas configurações';
+   const stateLabel=!pref('autoBackup')?'Desativado nas configurações':!selectedFolder?'Pendente · escolha uma pasta local':'Ativado · diariamente às 02:00, com app aberto';
    const folderStatus=selectedFolder?'Pasta: '+folderLabel():folderLoaded?'Selecione uma pasta de destino':'Carregando destino…';
    const items=current.slice(0,5).map(x=>
     `<div class="cb-entry"><span>${label(x.name)}</span><div class="cb-actions"><button type="button" data-cb-download="${x.name}">Copiar para pasta</button><button type="button" data-cb-restore="${x.name}">Restaurar</button><button type="button" data-cb-delete="${x.name}">Excluir</button></div></div>`).join('');
@@ -165,14 +165,20 @@
      <p class="cb-secondary">${status||'Todos os dados — inclusive os não financeiros, como perfil, configurações, notas e lembretes — são criptografados com AES-256-GCM. O histórico privado pode desaparecer ao limpar os dados do site. Para salvar externamente, escolha uma pasta e mantenha a permissão de gravação. Em navegadores sem seletor de pastas, use Exportar pelo navegador.'}</p>`;
   };
   const view=byId('view-painel');
-  if(view&&active==='painel'){
-   let panel=byId('claraBackupCard');
+  const dashboardCard=byId('claraBackupCard');
+  // A Dashboard só orienta a configuração inicial. Depois que a pasta for
+  // selecionada, remova o card (inclusive quando a escolha veio de Configurações).
+  // Aguarde carregar a escolha persistida para evitar o card piscar na inicialização.
+  if(selectedFolder)dashboardCard?.remove();
+  else if(view&&active==='painel'&&folderLoaded){
+   let panel=dashboardCard;
    if(!panel){
     panel=document.createElement('section');panel.id='claraBackupCard';panel.className='cb-card';
     view.appendChild(panel);
    }
    panel.innerHTML=`<header><div><h3>Backup e proteção</h3><p>Cópias offline da Clara, incluindo os registros, notas e lembretes.</p></div></header>${html(lastStatus)}`;
   }
+  // As ações, o histórico e o status seguem sempre disponíveis em Configurações.
   const settings=byId('claraBackupSettings');
   if(settings)settings.innerHTML=html(lastStatus);
  }
@@ -242,6 +248,10 @@
  }
  const nativeRender=render;
  render=function(){nativeRender();paint();};
+ // As guias de Configurações também são trocadas sem chamar render():
+ // reconstruir o painel de backup sempre que a guia Dados for aberta.
+ const nativeSettingsRender=renderAjustes;
+ renderAjustes=function(){const result=nativeSettingsRender();paint();return result;};
  const mo=new MutationObserver(()=>{
   if(unlocked()){list().catch(e=>say('Cópias não acessíveis: '+e.message));daily();}
   else{current=[];paint();}
