@@ -96,8 +96,13 @@ test('Atualização não fica pendente indefinidamente e mantém cache antigo se
  assert.match(sw,/attempt<3/);
  assert.doesNotMatch(sw,/caches\.delete\(['"]clara-financas-vault/);
  assert.match(html,/id="applyClaraUpdate"/);
- assert.match(html,/action\.hidden=!hasUpdate\|\|applying/);
- assert.match(html,/const PREPARE_TIMEOUT=25000/);
+ assert.match(html,/action\.hidden=!newer\(\)\|\|applying/);
+ assert.match(html,/const PREPARE_TIMEOUT=15000, NETWORK_TIMEOUT=10000/);
+  assert.match(html,/async function activatedPackageReady\(r\)/);
+  assert.match(html,/async function reopenInstalled\(r\)/);
+  assert.match(html,/action\.disabled=applying/);
+  assert.match(html,/await bounded\(r\.update\(\),NETWORK_TIMEOUT/);
+  assert.doesNotMatch(html,/action\.disabled=applying\|\|installRequested/);
  assert.match(html,/watchInstalling\(r\.installing\)/);
  assert.match(html,/worker\.state==='redundant'/);
  assert.match(html,/id="claraUpdateRecoveryHint"/);
