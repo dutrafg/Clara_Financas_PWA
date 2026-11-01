@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC3.6.10 • Instalação PWA</title>
+<title>Clara Finanças RC4.0.0 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1645,6 +1645,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 #view-ajustes #claraInstallInstructions{line-height:1.6;margin-top:7px}
 #claraInstallBtn[hidden]{display:none!important}
 </style>
+<link rel="stylesheet" href="./clara-simple.css">
 </head>
 <body>
 <div class="secure-cover" id="securityCover" role="dialog" aria-modal="true" aria-labelledby="securityTitle">
@@ -1707,6 +1708,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
     <section id="view-assist" class="view"></section>
     <section id="view-conf" class="view"></section>
     <section id="view-historico" class="view"></section>
+    <section id="view-mais" class="view"></section>
   </main>
 </div>
 
@@ -1716,10 +1718,10 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 </div>
 <div class="mobile-dock-wrap" aria-label="Navegação flutuante do smartphone">
   <nav class="mobile-dock" aria-label="Atalhos rápidos">
-    <button class="dock-link" type="button" data-view="painel" aria-label="Painel"><span class="ico"><svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span><span>Painel</span></button>
+    <button class="dock-link" type="button" data-view="painel" aria-label="Início"><span class="ico"><svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span><span>Início</span></button>
     <button class="dock-link" type="button" data-view="mov" aria-label="Movimentações"><span class="ico"><svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5-5 5 5"/><path d="M17 14l-5 5-5-5"/></svg></span><span>Lançar</span></button>
     <button class="dock-link" type="button" data-view="plan" aria-label="Planejamento"><span class="ico"><svg class="svg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></span><span>Planejar</span></button>
-    <button type="button" class="float-trigger" id="floatTrigger" aria-label="Abrir todos os módulos" aria-expanded="false" aria-controls="mobileNav">
+    <button type="button" class="float-trigger" id="floatTrigger" aria-label="Mais opções" aria-expanded="false" aria-controls="mobileNav">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg><span>Mais</span>
     </button>
   </nav>
@@ -2186,25 +2188,26 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='3.6.10-rc';
+const CLARA_APP_VERSION='4.0.0-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
- "Removido o botão de testes isolado da barra lateral compacta.",
- "Central de QA acessível em Configurações → Segurança → Manutenção avançada e Conferências.",
- "Abertura e fechamento dos diagnósticos ajustados, com retorno de foco ao botão de origem.",
- "Atualizador, cofre AES-256-GCM, Perfil, Histórico e 15 miniaplicativos preservados."
+  "A Clara agora mostra somente quatro áreas: Início, Lançar, Planejar e Mais.",
+  "A tela inicial destaca saldo, entradas, saídas, próximos vencimentos e registros.",
+  "Cadastro de gastos, receitas e transferências direto, com menos etapas.",
+  "Os 15 miniaplicativos e as ferramentas completas ficam no modo avançado.",
+  "Cofre criptografado, backups, dados existentes e atualização confirmada preservados."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
   reduceMotion: false, sidebarCompact: false, hideValues: false,
   showSummary: true, showCategories: true, showOutlook: true,
-  forecastMonths: 4, budgetWarningPct: 75
+  forecastMonths: 4, budgetWarningPct: 75, simpleMode: true
 });
 const PREF_ENUMS = Object.freeze({
   palette: ['violet', 'blue', 'petrol', 'bosque', 'coral', 'areia'], density: ['comfortable', 'compact'],
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'sidebarCompact', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
@@ -3414,7 +3417,8 @@ const titleMap = {
   ajustes: ['Configurações', 'Personalize o Clara, gerencie contas e categorias, privacidade e dados.'],
   assist: ['Assistentes', 'Automatize parcelamentos com precisão em centavos.'],
   conf: ['Conferências', 'Conciliação de extratos e auditoria de movimentações.'],
-  historico: ['Histórico financeiro', 'Audite períodos anteriores, saldos e contas sem alterar o mês atual.']
+  historico: ['Histórico financeiro', 'Audite períodos anteriores, saldos e contas sem alterar o mês atual.'],
+  mais: ['Mais', 'Tudo em um lugar, sem complicação.']
 };
 
 function renderNav() {
@@ -3465,8 +3469,8 @@ function render() {
   renderNav();
   $('pageTitle').textContent = titleMap[active][0];
   $('pageSubtitle').textContent = titleMap[active][1];
-  for (const [key] of NAV) $('view-' + key).classList.toggle('active', key === active);
-  ({ painel: renderPainel, mov: renderMov, plan: renderPlan, ajustes: renderAjustes, assist: renderAssist, conf: renderConf, historico: renderHistorico }[active])();
+  for (const key of [...NAV.map(item => item[0]),'mais']) $('view-' + key).classList.toggle('active', key === active);
+  ({ painel: renderPainel, mov: renderMov, plan: renderPlan, ajustes: renderAjustes, assist: renderAssist, conf: renderConf, historico: renderHistorico, mais: () => window.ClaraSimple.renderMais() }[active])();
 }
 
 function go(to) {
@@ -4904,5 +4908,6 @@ const ClaraInstall=(()=>{
 })();
 window.ClaraInstall=ClaraInstall;
 </script>
+<script src="./clara-simple.js"></script>
 </body>
 </html>
