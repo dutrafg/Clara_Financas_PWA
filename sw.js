@@ -12,7 +12,7 @@ async function downloadRequired(path){
  let lastError;
  for(let attempt=0;attempt<3;attempt++){
   try{
-   const response=await fetch(new Request(url,{cache:'no-store'}));
+   const response=await fetch(new Request(url, {cache:'no-store'}));
    if(!response.ok)throw Error('HTTP '+response.status+' em '+path);
    return {url,response};
   }catch(error){
