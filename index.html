@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0a1118">
-<title>Clara Finanças RC4.1.4 • Instalação PWA</title>
+<title>Clara Finanças RC4.2.0 • Instalação PWA</title>
 <style>
 :root {
   font-family: Inter, "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1398,8 +1398,10 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 .clara-update-notice{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:135;width:min(420px,calc(100vw - 28px));background:var(--panel);color:var(--text);border:1px solid var(--stroke-strong);border-radius:20px;box-shadow:0 16px 50px #0007;padding:16px 18px;display:grid;gap:10px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .clara-update-notice strong{font-size:15px}
 .clara-update-notice p{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
-.clara-update-notice-actions{display:flex;flex-wrap:wrap;gap:8px}
+.clara-update-notice-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .clara-update-notice-actions button{min-height:40px}
+#claraUpdateNoticeInstall{margin-left:auto;min-width:142px}
+#claraUpdateNoticeInstall:disabled{opacity:.7;cursor:progress}
 @media(max-width:760px){.clara-update-notice{top:auto;bottom:calc(90px + env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px)}}
 @media(max-width:350px){.clara-update-metrics{grid-template-columns:1fr}}
 @media print{.clara-update-notice{display:none!important}}
@@ -1622,8 +1624,8 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
   <strong id="claraUpdateNoticeTitle">Atualização disponível</strong>
   <p id="claraUpdateNoticeText">Uma nova versão foi identificada.</p>
   <div class="clara-update-notice-actions">
-    <button type="button" id="claraUpdateNoticeInstall" class="btn primary" hidden>Atualizar agora</button>
     <button type="button" id="claraUpdateNoticeLater" class="btn">Agora não</button>
+    <button type="button" id="claraUpdateNoticeInstall" class="btn primary">Atualizar agora</button>
   </div>
 </aside>
 
@@ -2078,8 +2080,12 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.1.4-rc';
+const CLARA_APP_VERSION='4.2.0-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "Microbackups criptografados após alterações, retenção de até 20 pontos locais e cópias externas em lotes quando autorizadas.",
+  "Proteção pré-atualização com snapshot cifrado e alerta explícito quando não existe cópia externa confirmada.",
+  "Calendário compacto na Dashboard do celular, expansível, com preferência preservada no cofre.",
+  "Aviso de atualização com botão Atualizar agora sempre visível; prepara o pacote offline sob demanda e pede confirmação antes da instalação.",
   "Após escolher a pasta de backup, o card de configuração desaparece da Dashboard; o gerenciamento permanece em Configurações, inclusive após recarregar.",
   "Backups externos na pasta local selecionada, com criptografia AES-256-GCM de todas as informações, prevenção de sobrescrita e histórico privado complementar.",
   "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
@@ -2091,7 +2097,7 @@ const CLARA_RELEASE_NOTES=Object.freeze([
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
-  reduceMotion: false, hideValues: false,
+  reduceMotion: false, hideValues: false, calendarCompact: window.innerWidth<=760,
   showSummary: true, showCategories: true, showOutlook: true,
   forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true, autoBackup: true
 });
@@ -2100,7 +2106,7 @@ const PREF_ENUMS = Object.freeze({
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock', 'autoBackup'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock', 'autoBackup', 'calendarCompact'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
@@ -4595,6 +4601,9 @@ async function secureSaveSnapshot(snapshot) {
   if(claraFSDirectory)await claraFSWrite(raw);
   if(!safeStorageSet(CLARA_VAULT_KEY,raw)) throw Error('Não foi possível manter a cópia criptografada de compatibilidade.');
   claraVaultRaw=raw;
+  // Depois de confirmar o cofre, registra um ponto cifrado de recuperação.
+  // O microbackup não substitui nem altera a transação original.
+  void window.ClaraBackups?.onVaultSaved?.(raw);
 }
 function secureQueue(snapshot) {
   claraSaving=claraSaving.then(()=>secureSaveSnapshot(snapshot)).catch(e=>{
@@ -4664,17 +4673,21 @@ async function secureEnter(password,confirm) {
   secureHide();
   if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
 }
+let claraLocking=false;
 async function secureLock() {
-  if(!claraUnlocked)return;
-  claraUnlocked=false;
+  if(!claraUnlocked||claraLocking)return;
+  claraLocking=true;
   document.documentElement.removeAttribute('data-unlocked');
   secureDom('securityCover').hidden=false;
   secureDom('securityTitle').textContent='Bloqueando Clara…';
   secureDom('securityMessage').textContent='Concluindo a proteção dos lançamentos.';
+  // Não invalidar a chave criptográfica enquanto há gravações na fila.
   await claraSaving.catch(()=>{});
-  claraKey=null;auditBaseline=null;state=fresh();
+  await window.ClaraBackups?.flush?.().catch(()=>{});
+  claraUnlocked=false;claraKey=null;auditBaseline=null;state=fresh();
   active='painel';render();
   secureShow(claraError?.message);
+  claraLocking=false;
 }
 async function secureExport() {
   if(!claraUnlocked||!claraKey)throw Error('Desbloqueie o cofre para exportar.');
@@ -4726,7 +4739,7 @@ async function secureRestoreLocalEncrypted(raw,password){
   try{persistSuccess('Backup local restaurado com segurança.');await claraSaving;}
   catch(error){state=old;render();throw error;}
 }
-window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,restoreLocalEncrypted:secureRestoreLocalEncrypted,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,restoreLocalEncrypted:secureRestoreLocalEncrypted,flush:async()=>{await claraSaving;await window.ClaraBackups?.flush?.();},get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
 window.ClaraPrivateFolder={get folder(){return CLARA_FS_FOLDER;},get active(){return claraFSAvailable;},get revision(){return claraFSRevision;},get warning(){return claraFSWarning;}};
 (async()=>{
   try {
@@ -4749,6 +4762,8 @@ const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const HOUR=60*60*1000, RESUME=15*60*1000, DISMISS_KEY='clara-update-dismissed-v1';
  let registration=null, initialPromise=null, checking=null, applying=false, observed=false;
+ let installRequested=false, installPromise=null, prepareTimer=null;
+ const PREPARE_TIMEOUT=25000;
  let status='Aguardando', message='Verificação automática ao desbloquear.', lastCheck=0;
  let remoteVersion='', releaseNotes=[], ready=false;
  const get=id=>document.getElementById(id);
@@ -4760,6 +4775,17 @@ const ClaraUpdate=(()=>{
  };
  const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===remoteVersion;}catch{return false;}};
  function setStatus(next,msg){status=next;message=msg;paint();}
+ function clearPreparation(){installRequested=false;if(prepareTimer)clearTimeout(prepareTimer);prepareTimer=null;}
+ function startPreparation(){
+  if(prepareTimer)clearTimeout(prepareTimer);
+  prepareTimer=setTimeout(()=>{
+   prepareTimer=null;
+   if(installRequested&&!registration?.waiting){
+    installRequested=false;
+    setStatus('Falha ao preparar','O pacote ainda não está disponível. Confira a conexão e tente Atualizar agora novamente.');
+   }
+  },PREPARE_TIMEOUT);
+ }
  function paint(){
   const version=get('claraUpdateInstalled'),last=get('claraUpdateLast');
   if(version)version.textContent=INSTALLED_VERSION;
@@ -4774,21 +4800,30 @@ const ClaraUpdate=(()=>{
   const notice=get('claraUpdateNotice');
   if(notice){
    const available=remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
-   const show=available&&!dismissed()&&!applying&&(ready||status==='Preparando atualização');
+   const show=available&&!dismissed()&&!applying&&(ready||status==='Preparando atualização'||status==='Falha ao preparar'||installRequested);
    notice.hidden=!show;
    const title=get('claraUpdateNoticeTitle'),description=get('claraUpdateNoticeText');
-   if(title)title.textContent=ready?'Atualização pronta para instalar':'Nova versão encontrada';
+   if(title)title.textContent=ready?'Atualização pronta para instalar':status==='Falha ao preparar'?'Atualização ainda não pronta':'Nova versão encontrada';
    if(description)description.textContent='Clara '+remoteVersion+'. '+
-     (ready?'O pacote está pronto. Seus dados serão preservados.':'Preparando os arquivos para uso offline.')+
+     (ready?'O pacote está pronto. Seus dados serão preservados.':installRequested?'Preparando seu pedido de atualização. A instalação será confirmada quando o pacote estiver pronto.':status==='Falha ao preparar'?'Não foi possível finalizar o pacote. Tente atualizar novamente.':'Preparando os arquivos para uso offline.')+
      (releaseNotes.length?' '+releaseNotes[0]:'');
    const button=get('claraUpdateNoticeInstall');
-   if(button)button.hidden=!ready;
+   if(button){
+    button.hidden=false;
+    button.disabled=applying||installRequested;
+    button.textContent=installRequested?'Preparando…':'Atualizar agora';
+   }
   }
  }
  function handleWaiting(){
   ready=!!registration?.waiting;
   if(ready){
    setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Confira as novidades e escolha Atualizar agora.');
+   if(installRequested){
+    clearPreparation();
+    // A instalação exige confirmação e o salvamento do cofre; nunca ativar o SW sem ambos.
+    void installReady(registration).catch(error=>showToast(error.message,true));
+   }
   }else paint();
  }
  function bindEvents(){
@@ -4861,22 +4896,62 @@ const ClaraUpdate=(()=>{
   })();
   return checking;
  }
- async function apply(){
-  const r=await ensureRegistration();
-  if(!r?.waiting){setStatus('Preparando atualização','O novo pacote ainda não está pronto. Tente novamente após a conclusão do download.');return false;}
+ function canInstall(){
   if(!window.ClaraSecurity?.unlocked)throw Error('Desbloqueie o cofre antes de atualizar.');
   const modal=get('modalBg');
   if(modal&&modal.getAttribute('aria-hidden')==='false'){
-    showToast('Conclua ou feche a edição aberta antes de atualizar.',true);return false;
+   showToast('Conclua ou feche a edição aberta antes de atualizar.',true);
+   return false;
   }
-  if(!window.confirm('Instalar a atualização '+(remoteVersion||'disponível')+'? O Clara será reaberto, sem apagar o cofre nem os seus registros.'))return false;
-  await window.ClaraSecurity.flush();
-  applying=true;setStatus('Aplicando atualização','Dados protegidos salvos. Ativando o pacote validado…');
-  const waiting=r.waiting;
-  waiting.postMessage({type:'SKIP_WAITING'});
+  return true;
+ }
+ async function installReady(r){
+  if(installPromise)return installPromise;
+  installPromise=(async()=>{
+   if(!r?.waiting||applying)return false;
+   if(!canInstall())return false;
+   if(!window.confirm('Instalar a atualização '+(remoteVersion||'disponível')+'? O Clara será reaberto, sem apagar o cofre nem os seus registros.'))return false;
+   await window.ClaraSecurity.flush();
+   // O ponto de segurança deve ser concluído ANTES da troca do Service Worker.
+   // Nada do cache de código é usado como armazenamento da base financeira.
+   const protection=await window.ClaraBackups?.beforeUpdate?.();
+   if(!protection?.local)throw Error('O ponto de segurança pré-atualização não foi concluído. A instalação foi cancelada.');
+   if(!protection.external&&!window.confirm('O cofre está salvo e foi criado um ponto local, mas ainda não há backup externo confirmado. Limpar os dados do navegador pode apagar esses registros. Deseja atualizar mesmo assim?'))return false;
+   // Se outro processo ativou o worker durante o salvamento, não aplicar um pacote desconhecido.
+   const waiting=r.waiting;
+   if(!waiting){setStatus('Verificando','O pacote mudou durante o salvamento. Verifique novamente.');return false;}
+   applying=true;setStatus('Aplicando atualização','Dados protegidos salvos. Ativando o pacote validado…');
+   waiting.postMessage({type:'SKIP_WAITING'});
+   return true;
+  })().finally(()=>{installPromise=null;paint();});
+  return installPromise;
+ }
+ async function apply(){
+  if(applying)return false;
+  if(!canInstall())return false;
+  const r=await ensureRegistration();
+  if(!r)return false;
+  if(r.waiting){clearPreparation();return installReady(r);}
+  if(!navigator.onLine){setStatus('Sem conexão','Conecte-se à internet para preparar a atualização.');return false;}
+  installRequested=true;
+  startPreparation();
+  setStatus('Preparando atualização','Atualização solicitada. Preparando o pacote offline antes de confirmar a instalação.');
+  await check(false);
+  if(r.waiting){
+   installRequested=false;
+   return installReady(r);
+  }
+  if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'){
+   clearPreparation();
+   paint();
+   showToast('O pacote ainda não pôde ser preparado. Verifique a conexão e tente novamente.',true);
+   return false;
+  }
+  // O evento "installed" do novo Service Worker concluirá a solicitação, com confirmação.
   return true;
  }
  function dismiss(){
+  clearPreparation();
   try{if(remoteVersion)localStorage.setItem(DISMISS_KEY,remoteVersion);}catch{}
   const banner=get('claraUpdateNotice');if(banner)banner.hidden=true;
  }

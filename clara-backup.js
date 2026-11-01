@@ -1,12 +1,14 @@
 (function setupClaraOfflineBackups(){
  'use strict';
- const DAYS=30, PREFIX='daily-', FOLDER='ClaraFinancas', CHILD='Backups';
+ const DAYS=30, MICRO_LIMIT=20, SAFETY_LIMIT=8, PREFIX='daily-', FOLDER='ClaraFinancas', CHILD='Backups';
  const byId=id=>document.getElementById(id);
  const pad=n=>String(n).padStart(2,'0');
  const stamp=d=>[d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join('-');
  const unlocked=()=>!!window.ClaraSecurity?.unlocked&&!window.ClaraGuest?.active;
  let current=[],lastStatus='',running=null,nextTimer=null,backend='';
  let selectedFolder=null,folderLoaded=false;
+ let microWrites=Promise.resolve(),microCount=0,externalLastAt=0,microStatus='',lastExternal='';
+ let externalTimer=null,lastProtectedRaw='';
  const externalSupported=()=>typeof window.showDirectoryPicker==='function';
  const folderLabel=()=>selectedFolder?esc(selectedFolder.name):'Nenhuma pasta selecionada';
  async function folderPrefs(method,handle){
@@ -62,6 +64,7 @@
  function uniqueName(kind,now){
   const date=stamp(now),time=[now.getHours(),now.getMinutes(),now.getSeconds()].map(pad).join('');
   const suffix=Array.from(crypto.getRandomValues(new Uint8Array(6)),n=>n.toString(16).padStart(2,'0')).join('');
+  if(kind==='micro'||kind==='safety')return `${kind}-${date.replaceAll('-','')}-${time}-${String(now.getMilliseconds()).padStart(3,'0')}-${suffix}.clara`;
   return kind==='daily'?`daily-${date}-${time}-${suffix}.clara`:`manual-${date.replaceAll('-','')}-${time}-${suffix}.clara`;
  }
  function say(message){lastStatus=message;paint();}
@@ -122,7 +125,7 @@
    if(method==='delete'){await dir.removeEntry(name);return;}
    const rows=[];
    for await(const [filename,h] of dir.entries()){
-    if(h.kind==='file'&&/^(?:daily-\d{4}-\d{2}-\d{2}(?:-\d{6}-[a-f0-9]{12})?|manual-\d{8}-\d{6}(?:-[a-f0-9]{12})?)\.clara$/.test(filename))
+    if(h.kind==='file'&&/^(?:(?:daily-\d{4}-\d{2}-\d{2}(?:-\d{6}-[a-f0-9]{12})?|manual-\d{8}-\d{6}(?:-[a-f0-9]{12})?)|(?:micro|safety)-\d{8}-\d{6}-\d{3}-[a-f0-9]{12})\.clara$/.test(filename))
       rows.push({name:filename});
    }
    return rows;
@@ -142,9 +145,76 @@
   return current;
  }
  function label(name){
-  const date=name.startsWith(PREFIX)?name.slice(6,16):name.slice(7,15).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3');
-  return (name.startsWith(PREFIX)?'Automático':'Manual')+' · '+date;
+  const kind=name.startsWith('micro-')?'Ponto de recuperação':name.startsWith('safety-')?'Proteção pré-operação':name.startsWith(PREFIX)?'Automático':'Manual';
+  const date=name.startsWith(PREFIX)?name.slice(6,16):name.slice(name.indexOf('-')+1,name.indexOf('-')+9).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3');
+  return kind+' · '+date;
  }
+ function micros(){return current.filter(x=>x.name.startsWith('micro-'));}
+ function protectedStatus(){
+  if(!selectedFolder)return 'Sem pasta externa. Os pontos locais também podem ser apagados pelo navegador.';
+  if(microStatus)return microStatus;
+  return lastExternal?'Última cópia externa de alterações: '+lastExternal:'Pasta selecionada; aguardando a primeira cópia de alterações.';
+ }
+ async function pruneSnapshots(kind,limit){
+  const rows=(await useStore('list')).filter(x=>x.name.startsWith(kind+'-'))
+   .sort((a,b)=>b.name.localeCompare(a.name)).slice(limit);
+  for(const x of rows)await useStore('delete',x.name);
+ }
+ function scheduleExternal(){
+  if(externalTimer)clearTimeout(externalTimer);
+  if(!selectedFolder||!lastProtectedRaw)return;
+  externalTimer=setTimeout(()=>{
+   externalTimer=null;
+   void externalMicro(false).catch(e=>{microStatus='Cópia externa pendente: '+e.message;paint();});
+  },120000);
+ }
+ async function externalMicro(force=false){
+  if(!selectedFolder||!lastProtectedRaw)return false;
+  if(!force&&microCount===0)return false;
+  const name=uniqueName('micro',new Date());
+  await writeExternal(name,lastProtectedRaw);
+  microCount=0;externalLastAt=Date.now();lastExternal=new Date().toLocaleString('pt-BR');
+  microStatus='';paint();
+  if(externalTimer){clearTimeout(externalTimer);externalTimer=null;}
+  return true;
+ }
+ function onVaultSaved(raw){
+  if(!unlocked())return Promise.resolve(false);
+  // Só recebe o envelope cifrado após a gravação bem-sucedida do cofre.
+  // Cópias sequenciais preservam a ordem e nunca escrevem dados financeiros em claro.
+  microWrites=microWrites.catch(()=>{}).then(async()=>{
+   validateVault(raw);
+   const name=uniqueName('micro',new Date());
+   await useStore('put',name,raw);
+   await pruneSnapshots('micro',MICRO_LIMIT);
+   lastProtectedRaw=raw;microCount++;
+   if(selectedFolder){
+    if(microCount>=5||Date.now()-externalLastAt>=120000){
+     try{await externalMicro(true);}catch(e){microStatus='Cópia externa pendente: '+e.message;scheduleExternal();}
+    }else scheduleExternal();
+   }
+   await list();
+   return true;
+  }).catch(e=>{microStatus='Ponto de recuperação indisponível: '+e.message;paint();return false;});
+  return microWrites;
+ }
+ async function safetySnapshot(){
+  if(!unlocked())throw Error('Desbloqueie o cofre para criar ponto de segurança.');
+  await microWrites;
+  const raw=readVault();validateVault(raw);
+  const name=uniqueName('safety',new Date());
+  await useStore('put',name,raw);
+  await pruneSnapshots('safety',SAFETY_LIMIT);
+  let external=false;
+  if(selectedFolder){
+   try{await writeExternal(name,raw);external=true;lastExternal=new Date().toLocaleString('pt-BR');microStatus='';}
+   catch(e){microStatus='Cópia externa pendente: '+e.message;}
+  }
+  await list();
+  return {local:true,external,name};
+ }
+ async function flushMicro(){await microWrites;return true;}
+ 
  function paint(){
   const html=status=>{
    if(!unlocked())return '<p class="cb-secondary">Crie ou desbloqueie o cofre para armazenar cópias criptografadas.</p>';
@@ -152,16 +222,21 @@
    const next=nextTwo();
    const stateLabel=!pref('autoBackup')?'Desativado nas configurações':!selectedFolder?'Pendente · escolha uma pasta local':'Ativado · diariamente às 02:00, com app aberto';
    const folderStatus=selectedFolder?'Pasta: '+folderLabel():folderLoaded?'Selecione uma pasta de destino':'Carregando destino…';
-   const items=current.slice(0,5).map(x=>
+   const regular=current.filter(x=>!x.name.startsWith('micro-')&&!x.name.startsWith('safety-'));
+   const microHistory=current.filter(x=>x.name.startsWith('micro-')||x.name.startsWith('safety-')).slice(0,5);
+   const items=regular.slice(0,5).map(x=>
     `<div class="cb-entry"><span>${label(x.name)}</span><div class="cb-actions"><button type="button" data-cb-download="${x.name}">Copiar para pasta</button><button type="button" data-cb-restore="${x.name}">Restaurar</button><button type="button" data-cb-delete="${x.name}">Excluir</button></div></div>`).join('');
    return `<div class="cb-status"><span>Backup automático <strong>${stateLabel}</strong></span><span>Último: <strong>${newest?label(newest.name):'Nenhum ainda'}</strong></span>
      <span>Próxima verificação: <strong>${pad(next.getHours())}:${pad(next.getMinutes())} ou ao reabrir</strong></span>
      <span>Arquivos privados: <strong>${current.length}</strong> · ${backend||'Armazenamento privado'}</span>
-     <span>Destino externo: <strong>${folderStatus}</strong></span></div>
+     <span>Destino externo: <strong>${folderStatus}</strong></span>
+     <span>Pontos de recuperação: <strong>${micros().length} protegidos no navegador</strong></span></div>
      <div class="cb-actions"><button type="button" class="btn" data-cb-folder>${selectedFolder?'Trocar pasta local':'Escolher pasta local'}</button>
      <button type="button" class="btn primary" data-cb-create>Salvar backup na pasta</button>
      <button type="button" class="btn" data-cb-export>Exportar pelo navegador</button></div>
-     ${items?`<div class="cb-history">${items}</div>`:'<p class="cb-secondary">Nenhuma cópia local na lista. A exportação é recomendada como backup externo.</p>'}
+     ${items?`<div class="cb-history">${items}</div>`:'<p class="cb-secondary">Nenhum backup manual ou diário encontrado.</p>'}
+     ${microHistory.length?`<details class="cb-micro-history"><summary>Ver últimos pontos de recuperação (${micros().length})</summary><div class="cb-history">${microHistory.map(x=>`<div class="cb-entry"><span>${label(x.name)}</span><div class="cb-actions"><button type="button" data-cb-restore="${x.name}">Restaurar</button></div></div>`).join('')}</div></details>`:''}
+     <p class="cb-secondary" role="status">${protectedStatus()}</p>
      <p class="cb-secondary">${status||'Todos os dados — inclusive os não financeiros, como perfil, configurações, notas e lembretes — são criptografados com AES-256-GCM. O histórico privado pode desaparecer ao limpar os dados do site. Para salvar externamente, escolha uma pasta e mantenha a permissão de gravação. Em navegadores sem seletor de pastas, use Exportar pelo navegador.'}</p>`;
   };
   const view=byId('view-painel');
@@ -229,7 +304,7 @@
   if(password===null)return;
   try{
    // Garante uma cópia anterior à restauração, se o cofre ainda estiver íntegro.
-   await create('manual');
+   await safetySnapshot();
    await window.ClaraSecurity.restoreLocalEncrypted(raw,password);
    await list();
    say('Backup restaurado. Confira seus registros e exporte uma cópia externa.');
@@ -281,7 +356,8 @@
  window.addEventListener('focus',daily);
  window.setInterval(daily,15*60*1000);
  schedule();
- window.ClaraBackups={get entries(){return current.slice();},get backend(){return backend;},get next(){return nextTwo();},
+ window.ClaraBackups={get entries(){return current.slice();},get microCount(){return micros().length;},get backend(){return backend;},get next(){return nextTwo();},
+  onVaultSaved,flush:flushMicro,beforeUpdate:safetySnapshot,
   get folder(){return selectedFolder?.name||'';},get folderReady(){return !!selectedFolder;},
   chooseFolder,create,list,check:daily,refresh:paint};
  loadFolder().catch(e=>say(e.message));

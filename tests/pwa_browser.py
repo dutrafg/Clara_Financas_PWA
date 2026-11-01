@@ -183,6 +183,43 @@ async def run():
             assert await page.locator('#pageTitle').is_visible()
             assert await page.locator('.clara-balance').is_visible()
             assert not errors,errors
+            # Regressão do aviso: o botão não deve desaparecer enquanto o pacote é preparado.
+            # Offline: version.json jamais pode vir de um cache antigo como prova de atualização.
+            failed_version=await page.evaluate("""async () => {
+              try{await fetch('./version.json?fresh=offline-qa',{cache:'no-store'});return false;}
+              catch{return true;}
+            }""")
+            assert failed_version, 'O Service Worker respondeu à verificação offline com versão antiga'
+            await context.set_offline(False)
+            await page.wait_for_function('navigator.onLine',timeout=10000)
+            await page.evaluate("""() => {
+              window.__qaOriginalFetch=window.fetch;
+              window.fetch=(input,options)=>String(input).includes('version.json?fresh=')
+                ? Promise.resolve(new Response(JSON.stringify({version:'9.9.9-rc',notes:['Atualização simulada para QA.']}),{
+                    status:200,headers:{'Content-Type':'application/json'}}))
+                : window.__qaOriginalFetch(input,options);
+            }""")
+            # Se havia verificação automática em andamento, deixá-la terminar antes da simulação.
+            await page.evaluate("window.ClaraUpdate.check(false)")
+            await page.evaluate("window.ClaraUpdate.check(true)")
+            update_state=await page.evaluate("""() => ({
+              remote:window.ClaraUpdate.remoteVersion,status:window.ClaraUpdate.status,
+              online:navigator.onLine,visible:!document.getElementById('claraUpdateNotice').hidden
+            })""")
+            assert update_state['remote']=='9.9.9-rc',update_state
+            assert await page.locator('#claraUpdateNotice').is_visible()
+            assert await page.locator('#claraUpdateNoticeInstall').is_visible()
+            assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Atualizar agora'
+            assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
+            await page.locator('#claraUpdateNoticeInstall').click()
+            await page.wait_for_function("document.getElementById('claraUpdateNoticeInstall').textContent==='Preparando…'",timeout=15000)
+            assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
+            assert await page.evaluate("window.ClaraSecurity.unlocked") is True
+            assert await page.evaluate("window.ClaraUpdate.installedVersion")==APP_VERSION
+            await page.locator('#claraUpdateNoticeLater').click()
+            assert not await page.locator('#claraUpdateNotice').is_visible()
+            await page.evaluate("window.fetch=window.__qaOriginalFetch;delete window.__qaOriginalFetch")
+            assert not errors,errors
             print('QA Clara 4.0 OK:',width,'px — modo simples, avançado, cofre e offline')
             await context.close()
         await browser.close()

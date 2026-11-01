@@ -72,6 +72,23 @@ test('Atualização de recursos ignora o cache anterior',async()=>{
  assert.match(sw,/return await fetch\(request\)/);
 });
 
+test('Service Worker não confirma versão antiga quando a rede falha',async()=>{
+ const sw=await readFile('sw.js','utf8');
+ const versionBranch=sw.match(/if \(url\.pathname === versionPath\) \{([\s\S]*?)\n    \}/);
+ assert.ok(versionBranch,'Consulta explícita de versão no Service Worker ausente');
+ assert.match(versionBranch[1],/new Request\(request, \{cache:'no-store'\}\)/);
+ assert.match(versionBranch[1],/catch \{ return Response\.error\(\); \}/);
+ assert.doesNotMatch(versionBranch[1],/cache\.match/);
+ assert.ok(sw.indexOf('if (url.pathname === versionPath)')<sw.indexOf("if (request.cache === 'reload'"),
+  'A versão precisa ser verificada antes do fallback para recursos offline');
+ const vercel=JSON.parse(await readFile('vercel.json','utf8'));
+ for(const path of ['/sw.js','/version.json']){
+  const headers=vercel.headers.find(x=>x.source===path)?.headers||[];
+  assert.ok(headers.some(x=>x.key.toLowerCase()==='cache-control'&&x.value.includes('no-store')),
+   'Cache HTTP indevido: '+path);
+ }
+});
+
 test('Versão no painel deriva da mesma constante usada pelo atualizador',()=>{
  const appVersion=html.match(/const CLARA_APP_VERSION='([^']+)'/);
  assert.ok(appVersion);
