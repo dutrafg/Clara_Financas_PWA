@@ -37,7 +37,13 @@ async def run():
     }""")
     assert origin['scope']==BASE and origin['start']==BASE,origin
     assert len([key for key in origin['keys'] if key.startswith('clara-financas-')])==1,origin
-    assert await page.locator('#dashboardMiniapps').count()==1
+    # A Dashboard usa uma árvore diferente em modos simples e avançado.
+    await page.wait_for_function("""() => {
+      const simple=document.documentElement.dataset.simple==='true';
+      return document.documentElement.dataset.unlocked==='true' && (
+        simple ? !!document.querySelector('#view-painel .clara-simple-home')
+               : !!document.querySelector('#view-painel #dashboardMiniapps'));
+    }""",timeout=15000)
 
     meta=json.loads((site/'version.json').read_text())
     meta['version']='99.9.9-rc'
@@ -106,7 +112,13 @@ async def run():
     await new_page.goto(BASE,wait_until='load')
     await unlock(new_page)
     assert 'qa-version-two' in await new_page.content(),'Nova navegação offline usa HTML obsoleto'
-    assert await new_page.locator('#dashboardMiniapps').count()==1
+    # A Dashboard usa uma árvore diferente em modos simples e avançado.
+    await new_page.wait_for_function("""() => {
+      const simple=document.documentElement.dataset.simple==='true';
+      return document.documentElement.dataset.unlocked==='true' && (
+        simple ? !!document.querySelector('#view-painel .clara-simple-home')
+               : !!document.querySelector('#view-painel #dashboardMiniapps'));
+    }""",timeout=15000)
     assert not errors,errors
     print('QA SUBPASTA/VERSÕES OK: escopo relativo, versão online, atualização SW, substituição de cache e HTML novo offline.')
     await context.close()
