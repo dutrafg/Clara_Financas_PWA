@@ -1581,6 +1581,7 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
       </label>
       <button class="secure-button" id="securitySubmit" type="submit">Continuar</button>
     </form>
+    <button type="button" id="securityGuest" hidden class="clara-guest-entry">Conhecer a Clara sem criar senha</button>
     <button type="button" id="securityBiometric" hidden aria-label="Abrir Clara com biometria">Abrir com biometria</button>
     <p class="secure-status" id="securityStatus" role="alert" aria-live="polite"></p>
     <div class="secure-foot">A senha do Clara é local: ela não vai à Vercel. Não pode ser recuperada. Salve um backup criptografado e guarde sua senha. A instalação existente será migrada sem apagar os lançamentos.</div>
@@ -1617,6 +1618,10 @@ html:not([data-unlocked="true"]) .modal-backdrop {display:none!important}
 
         </div>
         <p class="sub" id="pageSubtitle">Seu dinheiro em perspectiva, com indicadores conectados.</p>
+        <div class="clara-guest-notice" id="claraGuestNotice" hidden role="note">
+          <span><strong>Modo demonstração</strong> · Informações fictícias. Explore à vontade; para salvar seus dados, crie seu cofre.</span>
+          <button type="button" id="claraGuestCreate" class="btn primary">Criar meu cofre</button>
+        </div>
       </div>
       <input id="period" type="hidden" aria-hidden="true" tabindex="-1">
     </header>
@@ -2114,7 +2119,7 @@ const CLARA_RELEASE_NOTES=Object.freeze([
   "Identidade Clara preservada: paletas e temas claro/escuro continuam disponíveis sem dependências externas ou imagens pesadas.",
   "Remoção de estilos legados da barra lateral e dos controles antigos, mantendo todos os módulos e miniaplicativos.",
   "Microinterações leves com acessibilidade, foco visível e suporte a movimento reduzido.",
-  "Cofre criptografado, biometria, backup, agenda e notificações preservados; Service Worker e cache renovados."
+  "Modo de demonstração sem senha e sem armazenamento: navegar gratuitamente; criar senha do cofre antes de adicionar ou importar dados. Cofre e backups preservados."
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
@@ -3450,6 +3455,7 @@ function openConfirmModal(title, message, onConfirm) {
 }
 
 function modal(kind, itemId = '') {
+  if(window.ClaraGuest?.active){window.ClaraGuest.prompt();return;}
   focusedBeforeModal = focusedBeforeModal || document.activeElement;
   $('modalBg').classList.add('show');
   $('modalBg').dataset.kind = kind;
@@ -4460,7 +4466,7 @@ const secureDom = id => document.getElementById(id);
 const bytesB64 = bytes => { let s=''; for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s); };
 const b64Bytes = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 const encoder = new TextEncoder(), decoder = new TextDecoder();
-let claraKey=null, claraVaultRaw=null, claraUnlocked=false, claraSaving=Promise.resolve(), claraError=null, claraBooted=false;
+let claraKey=null, claraVaultRaw=null, claraUnlocked=false, claraGuest=false, claraSaving=Promise.resolve(), claraError=null, claraBooted=false;
 const strongPass=p=>typeof p==='string'&&p.length>=12&&p.length<=128&&p.trim().length>=12;
 // Pasta lógica privada do site: contém SOMENTE snapshots já cifrados por AES-256-GCM.
 // Esquema de dois slots: um erro durante gravação nunca remove o último arquivo válido.
@@ -4532,6 +4538,91 @@ async function claraFSInit(){
  }
 }
 
+
+// Amostra exclusiva da RAM. Nunca é gravada em localStorage, OPFS ou backup.
+function claraGuestFixture(){
+ const sample=fresh(),day=todayISO(),month=day.slice(0,7);
+ sample.accounts[0].openingCents=275000;
+ sample.categories.find(c=>c.name==='Alimentação').limitCents=75000;
+ const tx=(id,description,kind,amountCents,date,status,category)=>({
+  id,description,kind,amountCents,date,status,category,accountId:'principal',
+  toAccountId:'',paidAt:status==='Realizado'?date:''
+ });
+ sample.transactions=[
+  tx('demo-salario','Recebimento de exemplo','Receita',485000,month+'-05','Realizado','Salário'),
+  tx('demo-mercado','Compras de supermercado','Despesa',38750,month+'-09','Realizado','Alimentação'),
+  tx('demo-conta','Conta de energia','Despesa',15990,day,'Pendente','Contas fixas'),
+  tx('demo-transporte','Combustível','Despesa',16800,month+'-12','Realizado','Transporte'),
+  tx('demo-lazer','Cinema','Despesa',7200,month+'-13','Realizado','Lazer')
+ ];
+ sample.goals=[{id:'demo-objetivo',name:'Reserva de emergência',savedCents:120000,targetCents:500000,dueDate:plusMonth(day,4)}];
+ sample.calendarEvents=[{id:'demo-reuniao',title:'Revisar orçamento',date:day,time:'18:00',notes:'Exemplo ilustrativo',done:false,reminder:'both'}];
+ sample.settings.simpleMode=true;
+ return sample;
+}
+function claraGuestPrompt(){
+ if(!claraGuest)return;
+ const button=secureDom('claraGuestCreate');
+ button?.focus({preventScroll:true});
+ showToast('Para adicionar ou alterar informações, primeiro crie a senha do cofre.',true);
+}
+function claraGuestExit(){
+ if(!claraGuest)return;
+ claraGuest=false;
+ delete document.documentElement.dataset.guest;
+ document.documentElement.removeAttribute('data-unlocked');
+ state=fresh();active='painel';
+ secureDom('securityCover').hidden=false;
+ secureMode(true);
+ secureDom('claraGuestNotice').hidden=true;
+ render();
+ secureDom('securityPassword').focus();
+}
+function claraGuestOpen(){
+ if(readVault()||initializationError)return;
+ claraGuest=true;
+ state=claraGuestFixture();active='painel';
+ document.documentElement.dataset.guest='true';
+ document.documentElement.dataset.unlocked='true';
+ secureDom('securityCover').hidden=true;
+ secureDom('claraGuestNotice').hidden=false;
+ render();
+}
+secureDom('securityGuest').addEventListener('click',claraGuestOpen);
+secureDom('claraGuestCreate').addEventListener('click',claraGuestExit);
+// Qualquer operação de gravação vira convite à criação do cofre.
+// A captura em window precede os listeners de módulos no document.
+const guestNavigationSelector='[data-view],[data-config-tab],[data-ca-day],[data-ca-prev],[data-ca-next],[data-ca-today],[data-ca-bell],[data-ca-close-bell],[data-ca-openagenda]';
+window.addEventListener('click',event=>{
+ if(!claraGuest)return;
+ const el=event.target.closest?.('button,[role="button"],a,[data-mode-toggle],[data-clw-action],[data-widget],input[type="file"]');
+ if(!el)return;
+ if(el.closest?.('#claraGuestNotice'))return;
+ const modeButton=el.closest?.('[data-mode-toggle]');
+ if(modeButton){
+  event.preventDefault();event.stopImmediatePropagation();
+  state.settings.simpleMode=modeButton.dataset.modeToggle==='simple';
+  go('painel');
+  return;
+ }
+ if(el.matches?.(guestNavigationSelector))return;
+ if(el.closest?.(guestNavigationSelector))return;
+ // links externos podem ser lidos, mas exportação/importação não.
+ if(el.matches?.('a[href^="https://"],a[href^="http://"]'))return;
+ event.preventDefault();event.stopImmediatePropagation();
+ claraGuestPrompt();
+},true);
+window.addEventListener('submit',event=>{
+ if(!claraGuest||event.target.id==='securityForm')return;
+ event.preventDefault();event.stopImmediatePropagation();claraGuestPrompt();
+},true);
+window.addEventListener('change',event=>{
+ if(!claraGuest)return;
+ if(['historyMonth','historyAccount','statusFilter','accountFilter'].includes(event.target.id))return;
+ event.preventDefault();event.stopImmediatePropagation();
+ claraGuestPrompt();
+},true);
+
 function secureStatus(message='') { secureDom('securityStatus').textContent=message; }
 function secureMode(isCreate) {
   secureDom('securityTitle').textContent=isCreate?'Criar proteção do Clara':'Desbloquear Clara';
@@ -4542,6 +4633,7 @@ function secureMode(isCreate) {
   secureDom('securityConfirm').required=isCreate;
   secureDom('securityPassword').setAttribute('autocomplete',isCreate?'new-password':'current-password');
   secureDom('securitySubmit').textContent=isCreate?'Criar cofre protegido':'Abrir cofre';
+  secureDom('securityGuest').hidden=!isCreate||!!initializationError;
   secureStatus('');
 }
 function readVault() {
@@ -4609,6 +4701,7 @@ function secureQueue(snapshot) {
 }
 // Replace the legacy plaintext save path before allowing the user to interact.
 save=function() {
+  if(claraGuest){claraGuestPrompt();throw Error('Modo demonstração: crie um cofre protegido para gravar.');}
   if(!claraUnlocked||!claraKey||claraError)throw Error('Desbloqueie o cofre antes de salvar.');
   if(storageConflict)throw Error('Os dados foram alterados em outra aba. Reabra o aplicativo.');
   validateData(state);
@@ -4628,6 +4721,7 @@ persistSuccess=function(message) {
   claraSaving.then(()=>showToast(message)).catch(()=>{});
 };
 async function secureEnter(password,confirm) {
+  if(claraGuest)throw Error('Encerre a demonstração antes de criar seu cofre.');
   if(!crypto?.subtle||!crypto?.getRandomValues)throw Error('Este navegador não suporta criptografia Web Crypto. Abra o Clara via HTTPS.');
   const raw=readVault();
   if(!raw) {
@@ -4702,6 +4796,7 @@ document.addEventListener('change',async e=>{
   }catch(err){showToast(err.message,true);}
 });
 window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+window.ClaraGuest={get active(){return claraGuest;},enter:claraGuestOpen,createVault:claraGuestExit,prompt:claraGuestPrompt};
 window.ClaraPrivateFolder={get folder(){return CLARA_FS_FOLDER;},get active(){return claraFSAvailable;},get revision(){return claraFSRevision;},get warning(){return claraFSWarning;}};
 (async()=>{
   try {
