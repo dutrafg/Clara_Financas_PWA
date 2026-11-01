@@ -4,23 +4,26 @@ import {fileURLToPath} from 'node:url';
 
 const root = new URL('../',import.meta.url);
 const dist = new URL('../dist/',import.meta.url);
-const files = ['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','clara-premium.css','clara-guest.css','clara-guest.js','clara-extras.css','clara-extras.js','clara-backup.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
+const files = ['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','clara-updater.js','clara-premium.css','clara-guest.css','clara-guest.js','clara-extras.css','clara-extras.js','clara-backup.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
 const file = name => new URL(name,root);
 const load = async name => readFile(file(name));
 const pkg=JSON.parse((await load('package.json')).toString('utf8'));
 const meta=JSON.parse((await load('version.json')).toString('utf8'));
 const manifest=JSON.parse((await load('manifest.webmanifest')).toString('utf8'));
 const html=(await load('index.html')).toString('utf8');
+const updater=(await load('clara-updater.js')).toString('utf8');
 const serviceWorker=(await load('sw.js')).toString('utf8');
 
 if(pkg.version !== meta.version) throw Error('Versão divergente entre package.json e version.json');
 if(!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/.test(pkg.version)) throw Error('Versão inválida');
 if(manifest.id !== './' || manifest.start_url !== './' || manifest.scope !== './')
   throw Error('Manifesto precisa usar rotas relativas à instalação (id/start_url/scope = ./)');
-if(!html.includes('href="./manifest.webmanifest"') || !html.includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"))
+if(!html.includes('href="./manifest.webmanifest"') || !html.includes('src="./clara-updater.js"') || !updater.includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"))
   throw Error('Referências canônicas de manifesto e Service Worker ausentes');
 if(!serviceWorker.includes("const CACHE_NAME = '__CLARA_CACHE_NAME__';"))
   throw Error('Service Worker não contém marcador de cache versionado');
+if((html.match(/__CLARA_CACHE_NAME__/g)||[]).length!==1)
+  throw Error('HTML precisa conter exatamente um marcador de pacote para a confirmação de boot');
 if(!serviceWorker.includes('const APP_FILES = ')) throw Error('Pré-cache PWA ausente');
 
 const localRef = path => {
@@ -51,6 +54,11 @@ const cacheName='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+rev
 
 await rm(dist,{recursive:true,force:true});
 await mkdir(new URL('./assets/',dist),{recursive:true});
-for(const name of files) await writeFile(new URL(name,dist),await load(name));
+for(const name of files) {
+  const content=name==='index.html'
+    ?Buffer.from(html.replace('__CLARA_CACHE_NAME__',cacheName))
+    :await load(name);
+  await writeFile(new URL(name,dist),content);
+}
 await writeFile(new URL('sw.js',dist),serviceWorker.replace('__CLARA_CACHE_NAME__',cacheName));
 console.log('Clara Finanças '+pkg.version+' | cache '+cacheName+' | arquivos verificados: '+files.length+' | referências: '+referenced.length+' | saída: '+fileURLToPath(dist));

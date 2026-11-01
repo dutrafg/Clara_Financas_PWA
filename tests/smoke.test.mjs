@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile,stat} from 'node:fs/promises';
 const appVersion=JSON.parse(await readFile('version.json','utf8')).version;
-const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','utf8');const manifest=JSON.parse(await readFile('manifest.webmanifest','utf8'));
+const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','utf8');const updater=await readFile('clara-updater.js','utf8');const guest=await readFile('clara-guest.js','utf8');const manifest=JSON.parse(await readFile('manifest.webmanifest','utf8'));
 test('Base financeira começa vazia',()=>{assert.match(html, /"transactions":\[\],"goals":\[\]/);assert.doesNotMatch(html,/EXEMPLO —|Restaurar demonstração/)});
 test('Configurações sempre por último',()=>{const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];assert.equal([...nav.matchAll(/\['([^']+)', SVG_ICONS/g)].at(-1)?.[1],'ajustes')});
 test('Menu flutuante apenas em smartphone',()=>{assert.match(html,/\.float-trigger, \.float-menu, \.mobile-dock-wrap \{ display: none; \}/);assert.match(html,/max-width:760px/);assert.match(html,/function setFloatMenu/)});
@@ -64,6 +64,17 @@ test('PWA só apresenta novo HTML após troca autorizada do SW',()=>{
  assert.doesNotMatch(sw,/const fresh = await fetch\(new Request\(request, \{cache:'no-store'\}\)\)/);
 });
 
+test('Confirmação de boot só aceita a shell vinculada ao cache candidato',async()=>{
+ const worker=await readFile('sw.js','utf8');
+ const build=await readFile('tools/build.mjs','utf8');
+ const verify=await readFile('tools/verify-paths.mjs','utf8');
+ assert.match(html,/const CLARA_BOOT_CACHE='__CLARA_CACHE_NAME__'/);
+ assert.match(html,/cacheName:CLARA_BOOT_CACHE/);
+ assert.match(worker,/event\.data\.cacheName!==CACHE_NAME/);
+ assert.match(build,/html\.replace\('__CLARA_CACHE_NAME__',cacheName\)/);
+ assert.match(verify,/HTML deve conter o identificador imutável do pacote/);
+});
+
 test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
  assert.match(html,/id="securityCover"/);
  assert.match(html,/CLARA_ROUNDS = 310000/);
@@ -73,9 +84,9 @@ test('A versão publicada exige cofre AES-GCM antes de exibir dados',()=>{
 });
 test('Atualizações por botão e aprovação, sem reiniciar durante gravação',()=>{
  assert.match(html,/id="checkClaraUpdate"/);
- assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
- assert.match(sw,/type === 'SKIP_WAITING'/);
+ assert.match(updater,/ClaraSecurity\.flush\(\)/);
+ assert.match(updater,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+ assert.match(sw,/type==='SKIP_WAITING'/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
 
@@ -126,7 +137,7 @@ test('Registro de alterações com inclusão, edição e exclusão cifradas',()=
  assert.match(html,/renderAuditJournal\(\)/);
  assert.match(html,/function auditEntriesForMonth\(/);
  assert.match(html,/rows\.push\(\[\],\['Alterações registradas'\]/);
- assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+ assert.match(updater,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
 });
 
 test('Versão exibida acompanha a única constante do aplicativo',async()=>{
@@ -135,7 +146,7 @@ test('Versão exibida acompanha a única constante do aplicativo',async()=>{
  assert.ok(expected,'Constante de versão ausente');
  assert.equal(expected[1],pkgVersion);
  assert.match(html,/id="claraUpdateInstalled">\$\{esc\(CLARA_APP_VERSION\)\}/);
- assert.match(html,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
+ assert.match(updater,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
  assert.doesNotMatch(html,/Versão 3\.6\.3-rc/);
 });
 
@@ -145,11 +156,11 @@ test('Atualizador EFI avisa e consulta automaticamente, sem instalação compuls
  assert.match(html,/id="applyClaraUpdate"/);
  assert.match(html,/O que há de novidade/);
  assert.match(html,/ÚLTIMA VERIFICAÇÃO/);
- assert.match(html,/window\.addEventListener\('online'/);
- assert.match(html,/window\.setInterval\(/);
- assert.match(html,/document\.addEventListener\('visibilitychange'/);
- assert.match(html,/ClaraSecurity\.flush\(\)/);
- assert.match(html,/worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
+ assert.match(updater,/window\.addEventListener\('online'/);
+ assert.match(updater,/window\.setInterval\(/);
+ assert.match(updater,/document\.addEventListener\('visibilitychange'/);
+ assert.match(updater,/ClaraSecurity\.flush\(\)/);
+ assert.match(updater,/worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\);/);
 });
 
@@ -236,15 +247,16 @@ test('Clara 4.0: Service Worker novo contém todos os arquivos e hash de si mesm
  const simple=await readFile('clara-simple.js','utf8');
  assert.match(html,/href="\.\/clara-simple\.css"/);
  assert.match(html,/src="\.\/clara-simple\.js"/);
- for(const asset of ['clara-simple.js','clara-simple.css']){
+ for(const asset of ['clara-simple.js','clara-simple.css','clara-updater.js']){
   assert.ok(sw.includes('./'+asset),'SW não faz precache: '+asset);
   assert.ok(build.includes("'"+asset+"'"),'Build não copia: '+asset);
   assert.ok(verify.includes("'"+asset+"'"),'QA não verifica: '+asset);
  }
+ assert.match(html,/src="\.\/clara-updater\.js"/);
  assert.ok(build.includes("cacheHash.update('sw.js\\n')"),'Código do próprio SW deve mudar cache');
  assert.ok(verify.includes("hash.update('sw.js\\n')"),'QA deve verificar hash SW');
  assert.ok(simple.includes('persistSuccess('),'Modo não persiste');
- assert.match(html,/ClaraSecurity\.flush\(\)/);
+ assert.match(updater,/ClaraSecurity\.flush\(\)/);
  assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
 
@@ -334,7 +346,7 @@ test('Clara 4.1.2: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/event\.returnValue=' '/);
  assert.match(html,/window\.ClaraSecurity\?\.unlocked && pref\('reloadLock'\)/);
  assert.match(html,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\(\);location\.reload\(\)/);
- assert.match(html,/await bounded\(window\.ClaraSecurity\.flush\(\),NETWORK_TIMEOUT/);
+ assert.match(updater,/await bounded\(window\.ClaraSecurity\.flush\(\),NETWORK_TIMEOUT/);
  assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
@@ -421,6 +433,9 @@ test('Clara 4.1.2: QA único cobre main e homologação sem workflows legados',a
  const workflow=await readFile('.github/workflows/rc3610-qa.yml','utf8');
  assert.match(workflow,/branches:\s*\n\s*- main\s*\n\s*- 'homologacao\/\*\*'/);
  assert.match(workflow,/python tests\/pwa_browser\.py/);
+ assert.match(workflow,/python tests\/security_pwa\.py/);
+ assert.match(workflow,/python tests\/input_validation_browser\.py/);
+ assert.match(workflow,/python tests\/updater_rollback_browser\.py/);
  assert.match(workflow,/python tests\/agenda_browser\.py/);
  assert.match(workflow,/python tests\/miniapps_extended\.py/);
  const {access}=await import('node:fs/promises');

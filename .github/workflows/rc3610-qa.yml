@@ -49,6 +49,22 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Verificar cofre, migração e conteúdo cifrado
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-security-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/security_pwa.py 2>&1 | tee /tmp/clara-security-browser.log
+      - name: Rejeitar valores inválidos e testar saída contra HTML ativo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-input-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/input_validation_browser.py 2>&1 | tee /tmp/clara-input-browser.log
       - name: Validar troca real do Service Worker em subpasta e offline
         shell: bash
         run: |
@@ -65,6 +81,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/update_recovery_browser.py 2>&1 | tee /tmp/clara-updater-recovery-browser.log
+      - name: Simular falha de módulo crítico e confirmar rollback no Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-updater-rollback-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/updater_rollback_browser.py 2>&1 | tee /tmp/clara-updater-rollback-browser.log
       - name: Testar calendário e central de notificações no Chromium
         shell: bash
         run: |
@@ -113,9 +137,12 @@ jobs:
           path: |
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
+            /tmp/clara-security-browser.log
+            /tmp/clara-input-browser.log
             /tmp/clara-miniapps-extended.log
             /tmp/clara-version-paths-browser.log
             /tmp/clara-updater-recovery-browser.log
+            /tmp/clara-updater-rollback-browser.log
             /tmp/clara-version-paths-server.log
             /tmp/clara-agenda-browser.log
             /tmp/clara-guest-browser.log

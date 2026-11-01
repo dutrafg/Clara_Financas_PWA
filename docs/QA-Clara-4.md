@@ -1,8 +1,7 @@
-# Clara Finanças 4.0 RC — matriz de homologação
+# Clara Finanças 4.x — matriz de homologação
 
-**Branch:** feature/clara-4-simples
-**Versão:** 4.0.0-rc
-**Política:** não publicar na main nem usar dados financeiros reais sem aprovação dos testes.
+**Versão de referência:** 4.2.5-rc
+**Política:** toda versão passa pela bateria local e CI de homologação; só integrar à `main` depois que os checks do commit estiverem verdes.
 
 ## Fluxos essenciais — modo simples
 
@@ -60,6 +59,33 @@
 | P10 | Abrir Chrome/Edge Windows | Layout desktop e offline corretos |
 | P11 | Reiniciar PWA após update | Versão 4.0.0-rc e cache novo |
 | P12 | Falha de rede durante update | Preserva dados e cache anterior |
+| P13 | Download longo com avanço de arquivos | Estado continua preparando e mostra progresso real |
+| P14 | Sem progresso por dois minutos | Falha recuperável com ação de tentar novamente |
+| P15 | Recurso do pacote falha ou retorna HTTP inválido | Descarta apenas o candidato; cache anterior continua disponível |
+| P16 | Nova versão falha ao inicializar módulo crítico (Chromium integrado) | Seleciona shell anterior e recarrega sem apagar o cofre |
+| P17 | Atualização já ativada em outra aba | Confirma cache/HTML e só reabre após proteger os dados |
+| P18 | Metadado semver inválido ou muito grande | Rejeita a versão e não a apresenta como pronta |
+| P19 | Atualização com modal aberto ou cofre bloqueado | Não ativa o worker até concluir edição e desbloquear o cofre |
+
+## Entradas inválidas e segurança
+
+| ID | Ação | Resultado esperado |
+|---|---|---|
+| V01 | Lançar `1,001`, `1e3`, `0x10`, texto, zero, valor negativo ou acima do limite | Rejeita com erro visível; nenhum registro persistido |
+| V02 | Importar JSON truncado, campos em tipo incorreto ou IDs duplicados | Rejeita sem sobrescrever o cofre atual |
+| V03 | Importar datas impossíveis e relações de conta/categoria inválidas | Rejeita antes de renderizar ou persistir |
+| V04 | Usar HTML/atributos de evento como descrição de lançamento | Mostra como texto inerte; não executa código |
+| V05 | Senha incorreta, cofre cifrado, migração e backup | Segredo permanece cifrado; senha errada não desbloqueia |
+| V06 | Abrir o app embutido em iframe de outra origem | `X-Frame-Options: DENY` impede framing |
+| V07 | Ler respostas estáticas e arquivos de script | `nosniff` e política explícita de referrer presentes |
+
+## Gate antes da main
+
+1. Revisar todo o diff e executar `npm test`, `npm run build`, `npm run verify:paths` e verificações de sintaxe.
+2. Rodar no Chromium as suítes `pwa_browser.py`, `security_pwa.py`, `input_validation_browser.py`, `version_paths_browser.py`, `update_recovery_browser.py`, `updater_rollback_browser.py`, agenda, Studio, demonstração, backups e miniapps ampliados.
+3. Confirmar os checks verdes no commit exato e examinar logs/artifacts.
+4. Fazer validação física em Chrome Android, Samsung Internet, Windows Chrome/Edge e offline antes de recomendar uso com dados financeiros reais.
+5. Só então integrar à `main`; checar deployment, versão, cabeçalhos e cache publicados.
 
 ## Plataformas e legado
 
