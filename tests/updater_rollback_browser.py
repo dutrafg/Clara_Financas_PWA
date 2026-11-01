@@ -19,7 +19,11 @@ async def main():
             context = await browser.new_context(viewport={'width': 390, 'height': 844})
             page = await context.new_page()
             page_errors = []
+            dialog_messages = []
             page.on('pageerror', lambda error: page_errors.append(str(error)))
+            async def accept_dialog(dialog):
+                dialog_messages.append(dialog.message)
+                await dialog.accept()
             await page.add_init_script("""(() => {
               const key='__claraRollbackQaHistory';
               const add=(event,detail)=>{
@@ -54,7 +58,7 @@ async def main():
             FILES[0].write_text(worker.replace(current_name, candidate_name, 1), encoding='utf-8')
             FILES[3].write_text(originals[FILES[3]].replace(current_name, candidate_name, 1), encoding='utf-8')
 
-            page.on('dialog', lambda dialog: asyncio.create_task(dialog.accept()))
+            page.on('dialog', accept_dialog)
             await page.evaluate('window.ClaraUpdate.check(true)')
             await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc'", timeout=15000)
             await page.wait_for_function('navigator.serviceWorker.ready.then(registration => !!registration.waiting)', timeout=30000)
@@ -70,7 +74,17 @@ async def main():
               return (await (await cache.match(new URL('./index.html', location.href))).text());
             }""", candidate_name)
             assert f"const CLARA_BOOT_CACHE='{candidate_name}'" in candidate_html
+            await page.evaluate("""() => {
+              const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
+              window.__qaApplyPromise=null;
+              window.ClaraUpdate.apply=()=>{
+                window.__qaApplyPromise=apply();
+                return window.__qaApplyPromise;
+              };
+            }""")
             await page.locator('#claraUpdateNoticeInstall').click()
+            apply_result = await page.evaluate('window.__qaApplyPromise')
+            assert apply_result is True, f'Instalação não foi aceita: status={await page.evaluate("ClaraUpdate.status")!r}; dialogs={dialog_messages!r}'
 
             await page.wait_for_function("""async () => {
               const stateCache = await caches.open('clara-update-system-v1');
@@ -96,7 +110,7 @@ async def main():
                   bootHistory: JSON.parse(sessionStorage.getItem('__claraRollbackQaHistory')||'[]'),
                   candidateHtml: (await (await caches.open(candidate)).match(new URL('./index.html', location.href)))?.headers.get('content-type') || null
                 })""", candidate_name)
-                raise AssertionError(f'Rollback não ficou ativo; state={state!r}; diagnostics={diagnostics!r}; page_errors={page_errors!r}')
+                raise AssertionError(f'Rollback não ficou ativo; state={state!r}; diagnostics={diagnostics!r}; page_errors={page_errors!r}; dialogs={dialog_messages!r}')
             print('QA ROLLBACK DE BOOT OK: módulo crítico falhou, shell anterior voltou e o cache do candidato foi isolado.')
             await context.close()
             await browser.close()
