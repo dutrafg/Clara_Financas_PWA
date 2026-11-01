@@ -3993,7 +3993,7 @@ document.addEventListener('click', e => {
     document.body.classList.add('report-printing');
     window.print();
   }
-  if (id === 'exportJson') window.ClaraSecurity.exportBackup().catch(err=>showToast(err.message,true));
+  if (id === 'exportJson') (typeof window.showDirectoryPicker==='function' ? window.ClaraBackups.create('manual') : window.ClaraSecurity.exportBackup()).catch(err=>showToast(err.message,true));
   if (id === 'lockClaraNow') window.ClaraSecurity.lock();
   if (id === 'checkClaraUpdate') window.ClaraUpdate.check(true).catch(err=>showToast(err.message,true));
   if (id === 'applyClaraUpdate' || id==='claraUpdateNoticeInstall') window.ClaraUpdate.apply().catch(err=>showToast(err.message,true));
