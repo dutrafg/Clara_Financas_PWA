@@ -25,7 +25,7 @@ async def open_clara(page):
 async def run():
   async with async_playwright() as pw:
     browser=await pw.chromium.launch(headless=True)
-    for width,height in [(320,700),(390,844),(768,1024),(1024,768),(1440,900),(1920,1080)]:
+    for width,height in [(320,700),(360,780),(390,844),(430,932),(760,900),(768,1024),(1024,768),(1440,900),(1920,1080)]:
       ctx=await browser.new_context(viewport={'width':width,'height':height},device_scale_factor=1)
       page=await ctx.new_page()
       errors=await open_clara(page)
@@ -70,9 +70,57 @@ async def run():
       assert await page.locator('#claraDesktopDock [data-view]').count()==8
       if width in (390,1440):
         await page.screenshot(path=str(CAPTURES/f'studio-dark-advanced-{width}.png'),full_page=True)
+      # Revisão da dock/pílula: bordas constantes e enquadramento sem overflow.
+      dock_geometry=await page.evaluate("""() => {
+        const mobile=innerWidth<=760;
+        const dock=document.querySelector(mobile?'.mobile-dock':'#claraDesktopDock');
+        const style=getComputedStyle(dock), rect=dock.getBoundingClientRect();
+        const links=[...dock.querySelectorAll('button')];
+        return {display:style.display,clip:style.overflowX,radius:parseFloat(style.borderTopLeftRadius),
+          left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,
+          linkRadii:links.map(x=>parseFloat(getComputedStyle(x).borderTopLeftRadius)),
+          documentWidth:document.documentElement.scrollWidth};
+      }""")
+      assert dock_geometry['radius']>=30,dock_geometry
+      assert dock_geometry['clip']=='hidden',dock_geometry
+      assert all(r>=14 for r in dock_geometry['linkRadii']),dock_geometry
+      assert dock_geometry['left']>=-2 and dock_geometry['right']<=width+2,dock_geometry
+      if width<=760:
+        # Modo avançado: capturar os primeiros frames da abertura do menu.
+        await page.locator('#floatTrigger').click()
+        assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='false'
+        assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='true'
+        snapshots=await page.evaluate("""async () => {
+          const menu=document.getElementById('mobileNav');
+          const read=()=>{
+            const st=getComputedStyle(menu),r=menu.getBoundingClientRect();
+            return {radius:parseFloat(st.borderTopLeftRadius),clip:st.overflowX,
+             left:r.left,right:r.right,bottom:r.bottom,bg:st.backgroundClip,animation:st.animationName};
+          };
+          const samples=[read()];
+          await new Promise(resolve=>requestAnimationFrame(resolve));samples.push(read());
+          await new Promise(resolve=>setTimeout(resolve,80));samples.push(read());
+          await new Promise(resolve=>setTimeout(resolve,260));samples.push(read());
+          return samples;
+        }""")
+        assert all(frame['radius']==22 and frame['clip']=='hidden' and frame['bg']=='padding-box' for frame in snapshots),snapshots
+        assert all(frame['left']>=8 and frame['right']<=width-8 and frame['bottom']<=height for frame in snapshots),snapshots
+        assert await page.locator('#mobileNav [data-view]').count()==7
+        await page.keyboard.press('Escape')
+        assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='true'
+        assert await page.locator('#floatTrigger').get_attribute('aria-expanded')=='false'
+        await page.locator('#floatTrigger').click()
+        await page.locator('#floatBackdrop').click(position={'x':3,'y':3},force=True)
+        assert await page.locator('#floatMenu').get_attribute('aria-hidden')=='true'
+        if width in (320,390):
+          await page.screenshot(path=str(CAPTURES/f'studio-dock-{width}.png'),full_page=False)
       await page.emulate_media(reduced_motion='reduce')
       animation=await page.evaluate("""() => getComputedStyle(document.querySelector('.view.active')).animationName""")
       assert animation=='none',(width,animation)
+      if width<=760:
+        await page.locator('#floatTrigger').click()
+        assert await page.evaluate("getComputedStyle(document.getElementById('mobileNav')).animationName")=='none'
+        await page.keyboard.press('Escape')
       assert not errors,errors
       await ctx.close()
       print('CLARA STUDIO QA OK:',width,'px - light, dark, navigation, motion, overflow')

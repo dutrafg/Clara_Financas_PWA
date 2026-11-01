@@ -81,7 +81,7 @@
 @media(max-width:760px){
  :root[data-simple="true"] .main {padding-bottom:calc(106px + env(safe-area-inset-bottom));}
  :root[data-simple="true"] .view.active {padding-bottom:12px;}
- :root[data-simple="true"] .mobile-dock {border-radius:25px;box-shadow:0 12px 28px #15182e1a;border-color:var(--stroke);}
+ :root[data-simple="true"] .mobile-dock {border-radius:999px;box-shadow:0 12px 28px #15182e1a;border-color:var(--stroke);}
  :root[data-simple="true"] .mobile-dock .dock-link,
  :root[data-simple="true"] .mobile-dock .float-trigger {min-width:clamp(48px,13.6vw,64px);min-height:52px;font-weight:680;color:var(--muted);}
  :root[data-simple="true"] #floatTrigger.active {color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--panel));}
@@ -155,7 +155,7 @@
  .clara-desktop-dock{
   display:flex;align-items:center;justify-content:center;gap:3px;
   min-width:0;width:min(810px,calc(100vw - 106px));box-sizing:border-box;
-  padding:7px;border:1px solid var(--stroke-strong);border-radius:25px;
+  padding:7px;border:1px solid var(--stroke-strong);border-radius:999px;
   background:color-mix(in srgb,var(--panel) 94%,transparent);
   box-shadow:0 14px 38px #0003;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
  }
