@@ -57,6 +57,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/version_paths_browser.py 2>&1 | tee /tmp/clara-version-paths-browser.log
+      - name: Simular atualização travada e validar glass em três resoluções
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-updater-recovery-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/update_recovery_browser.py 2>&1 | tee /tmp/clara-updater-recovery-browser.log
       - name: Testar calendário e central de notificações no Chromium
         shell: bash
         run: |
@@ -107,6 +115,7 @@ jobs:
             /tmp/clara-pwa-browser.log
             /tmp/clara-miniapps-extended.log
             /tmp/clara-version-paths-browser.log
+            /tmp/clara-updater-recovery-browser.log
             /tmp/clara-version-paths-server.log
             /tmp/clara-agenda-browser.log
             /tmp/clara-guest-browser.log
