@@ -44,13 +44,13 @@ async def run():
    assert not vault['exists'] and not vault['plaintext'],vault
 
    # Modo avançado também é navegável sem cadastrar dados.
-   await page.evaluate("go('painel')")
+   await page.evaluate("go('mov')")
    debug=await page.evaluate("""() => ({
      active,mode:pref('simpleMode'),
      toggles:[...document.querySelectorAll('[data-mode-toggle]')].map(x=>({value:x.dataset.modeToggle,visible:!!x.offsetParent}))
    })""")
    assert debug['mode'] is True,debug
-   await page.locator('#view-painel [data-mode-toggle="advanced"]').click()
+   await page.locator('#view-mov [data-mode-toggle="advanced"]').click()
    assert await page.evaluate("pref('simpleMode')") is False
    assert await page.locator('#claraExitAdvanced').is_visible()
    await page.locator('#claraExitAdvanced').click()
