@@ -111,12 +111,21 @@
     const hide=e.target.closest?.('[data-simple-hide]');
     if(hide){e.preventDefault();e.stopPropagation();try{state.settings.hideValues=!pref('hideValues');persistSuccess('Preferência de privacidade atualizada.');}catch(x){showToast(x.message,true);}return;}
     const toggle=e.target.closest?.('[data-mode-toggle]');
-    if(toggle){e.preventDefault();e.stopPropagation();const next=toggle.dataset.modeToggle==='simple';try{state.settings.simpleMode=next;claraDashboardEditing=false;persistSuccess(next?'Modo simples ativado.':'Ferramentas avançadas disponíveis.');if(!next)go('painel');}catch(x){showToast(x.message,true);}return;}
+    if(toggle){e.preventDefault();e.stopPropagation();const next=toggle.dataset.modeToggle==='simple';try{state.settings.simpleMode=next;claraDashboardEditing=false;persistSuccess(next?'Modo simples ativado.':'Ferramentas avançadas disponíveis.');go('painel');}catch(x){showToast(x.message,true);}return;}
  },true);
  window.ClaraSimple={renderMais:mais,get enabled(){return mode();},mainNav:mainNav.map(x=>x[0])};
  document.documentElement.dataset.simple=String(mode());
  const nativeRender=render;
- render=function(){document.documentElement.dataset.simple=String(mode());nativeRender();};
+ // A volta para o modo simples deve ser descoberta sem abrir menus.
+ const exitAdvanced=document.createElement('button');
+ exitAdvanced.id='claraExitAdvanced';
+ exitAdvanced.type='button';
+ exitAdvanced.className='clara-exit-advanced';
+ exitAdvanced.dataset.modeToggle='simple';
+ exitAdvanced.setAttribute('aria-label','Sair do modo avançado e voltar ao início');
+ exitAdvanced.textContent='← Voltar ao modo simples';
+ document.querySelector('.topbar')?.appendChild(exitAdvanced);
+ render=function(){document.documentElement.dataset.simple=String(mode());nativeRender();exitAdvanced.hidden=mode();};
  // A inicialização do cofre pode já ter ocorrido; renderizar só depois do desbloqueio.
  // O cofre chama render() antes de marcar data-unlocked na primeira abertura.
  const observer=new MutationObserver(()=>{
