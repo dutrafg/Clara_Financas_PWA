@@ -191,6 +191,7 @@ async def run():
             }""")
             assert failed_version, 'O Service Worker respondeu à verificação offline com versão antiga'
             await context.set_offline(False)
+            await page.wait_for_function('navigator.onLine',timeout=10000)
             await page.evaluate("""() => {
               window.__qaOriginalFetch=window.fetch;
               window.fetch=(input,options)=>String(input).includes('version.json?fresh=')
@@ -199,7 +200,11 @@ async def run():
                 : window.__qaOriginalFetch(input,options);
             }""")
             await page.evaluate("window.ClaraUpdate.check(true)")
-            await page.wait_for_function("window.ClaraUpdate.remoteVersion==='9.9.9-rc'",timeout=15000)
+            update_state=await page.evaluate("""() => ({
+              remote:window.ClaraUpdate.remoteVersion,status:window.ClaraUpdate.status,
+              online:navigator.onLine,visible:!document.getElementById('claraUpdateNotice').hidden
+            })""")
+            assert update_state['remote']=='9.9.9-rc',update_state
             assert await page.locator('#claraUpdateNotice').is_visible()
             assert await page.locator('#claraUpdateNoticeInstall').is_visible()
             assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Atualizar agora'
