@@ -248,6 +248,10 @@
  }
  const nativeRender=render;
  render=function(){nativeRender();paint();};
+ // As guias de Configurações também são trocadas sem chamar render():
+ // reconstruir o painel de backup sempre que a guia Dados for aberta.
+ const nativeSettingsRender=renderAjustes;
+ renderAjustes=function(){const result=nativeSettingsRender();paint();return result;};
  const mo=new MutationObserver(()=>{
   if(unlocked()){list().catch(e=>say('Cópias não acessíveis: '+e.message));daily();}
   else{current=[];paint();}
