@@ -1,4 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile,stat} from 'node:fs/promises';
+const appVersion=JSON.parse(await readFile('version.json','utf8')).version;
 const html=await readFile('index.html','utf8');const sw=await readFile('sw.js','utf8');const manifest=JSON.parse(await readFile('manifest.webmanifest','utf8'));
 test('Base financeira começa vazia',()=>{assert.match(html, /"transactions":\[\],"goals":\[\]/);assert.doesNotMatch(html,/EXEMPLO —|Restaurar demonstração/)});
 test('Configurações sempre por último',()=>{const nav=html.match(/const NAV = \[([\s\S]*?)\];/)[1];assert.equal([...nav.matchAll(/\['([^']+)', SVG_ICONS/g)].at(-1)?.[1],'ajustes')});
@@ -172,7 +173,7 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/await prompt\.prompt\(\)/);
  assert.match(html,/id="claraInstallHelp"/);
  assert.match(html,/No Chrome, primeiro abra o site normalmente/);
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
 test('Navegação sem botão órfão de QA, preservando acesso de manutenção',()=>{
@@ -182,7 +183,7 @@ test('Navegação sem botão órfão de QA, preservando acesso de manutenção',
  assert.match(html,/if \(b\.dataset\.openQa\) \{ qaOpen\(\); return; \}/);
  assert.match(html,/id="claraAdvancedSettings"/);
  assert.match(html,/data-open-qa="1"/);
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
 
@@ -194,9 +195,9 @@ test('RC4.1.2: notas da interface, metadata e instruções de segurança alinhad
  const notesSource=html.match(/const CLARA_RELEASE_NOTES=Object\.freeze\((\[[\s\S]*?\])\);/)?.[1];
  assert.ok(notesSource,'Lista de novidades da interface ausente');
  const notes=JSON.parse(notesSource);
- assert.equal(version.version,'4.1.2-rc');
+ assert.equal(version.version,appVersion);
  assert.equal(pkg.version,version.version);
- assert.match(html,/Clara Finanças RC4\.1\.2/);
+ assert.ok(html.includes('Clara Finanças RC'+appVersion.split('-')[0]));
  assert.deepEqual(notes,version.notes,'Notas do HTML e version.json divergentes');
  assert.ok(notes.some(x=>x.includes('recarregamento')));
  assert.ok(notes.some(x=>x.includes('simples e avançado')));
@@ -334,7 +335,7 @@ test('Clara 4.1.2: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/window\.ClaraSecurity\?\.unlocked && pref\('reloadLock'\)/);
  assert.match(html,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\(\);location\.reload\(\)/);
  assert.match(html,/await window\.ClaraSecurity\.flush\(\);/);
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
 
@@ -372,7 +373,7 @@ test('Clara 4.1.2: cache offline da agenda acompanha a versão',async()=>{
   assert.ok(build.includes("'"+f+"'"));
   assert.ok(verify.includes("'"+f+"'"));
  }
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
 test('Clara 4.1.2: símbolo macOS, canto fixo, painel de alertas independente do cabeçalho',async()=>{
@@ -386,7 +387,7 @@ test('Clara 4.1.2: símbolo macOS, canto fixo, painel de alertas independente do
  assert.match(css,/right:calc\(14px \+ env\(safe-area-inset-right,0px\)\)/);
  assert.match(css,/\.ca-popover\{position:fixed/);
  assert.match(css,/\.ca-badge\{/);
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 test('Clara 4.1.2: dock tablet e desktop tem todos os módulos, menu lateral fora da interface',async()=>{
  const js=await readFile('clara-simple.js','utf8'),css=await readFile('clara-simple.css','utf8');
@@ -496,7 +497,7 @@ test('RC4.1.2: PWA inclui os recursos da demonstração no cache offline',async(
   assert.ok(build.includes("'"+filename+"'"));
   assert.ok(verify.includes("'./"+filename+"'")||verify.includes("'"+filename+"'"));
  }
- assert.match(html,/const CLARA_APP_VERSION='4\.1\.2-rc'/);
+ assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
 
