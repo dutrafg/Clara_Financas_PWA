@@ -1,15 +1,14 @@
 {
   "name": "Clara Finanças",
-  "version": "4.1.1-rc",
+  "version": "4.1.2-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "No desktop, conteúdo financeiro ocupa toda a largura útil e dock vertical fica fixa à esquerda, centralizada na altura da tela.",
-    "Modo demonstração sem senha: explore os módulos com dados fictícios sem salvar nada; cadastros e importações requerem criação do cofre criptografado.",
-    "Design Clara Studio: tipografia editorial, superfícies sofisticadas, microinterações e hierarquia adaptável aos dispositivos.",
-    "Remoção da barra lateral legada, seu HTML, configurações e renderizações desnecessárias; pílula continua sendo a navegação principal.",
-    "Todos os 15 miniaplicativos, agenda, notificações, biometria, cofre e operações financeiras preservados nos modos simples e avançado.",
-    "Animações respeitam movimento reduzido; contraste, estados de foco e alvos de toque foram refinados.",
-    "Bloqueio de recarregamento, backup e atualização segura mantidos; Service Worker e cache offline renovados para Clara 4.1.1."
+    "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
+    "Backup offline do cofre criptografado com histórico local, exportação, restauração autenticada e verificação automática às 02:00.",
+    "Quando a Clara estiver fechada às 02:00, o backup automático é executado na primeira reabertura elegível; backups externos continuam necessários.",
+    "Modo demonstração com dados fictícios sem senha, sem gravação e com convite para criar o cofre protegido.",
+    "Desktop com módulos na largura útil e dock vertical flutuante à esquerda; experiência premium nos modos simples e avançado.",
+    "Proteção contra recarregamento, biometria opcional, agenda e 15 miniaplicativos originais preservados."
   ]
 }
