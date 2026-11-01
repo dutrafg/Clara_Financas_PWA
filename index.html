@@ -4521,6 +4521,76 @@ const b64Bytes = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 let claraKey=null, claraVaultRaw=null, claraUnlocked=false, claraSaving=Promise.resolve(), claraError=null, claraBooted=false;
 const strongPass=p=>typeof p==='string'&&p.length>=12&&p.length<=128&&p.trim().length>=12;
+// Pasta lógica privada do site: contém SOMENTE snapshots já cifrados por AES-256-GCM.
+// Esquema de dois slots: um erro durante gravação nunca remove o último arquivo válido.
+const CLARA_FS_FOLDER='ClaraFinancas';
+const CLARA_FS_SLOTS=['cofre-0.clara','cofre-1.clara'];
+let claraFSDirectory=null,claraFSRaw=null,claraFSRevision=0,claraFSAvailable=false,claraFSWarning='',claraFSInitialized=false;
+async function claraFSReadSlot(index){
+ let handle;
+ try{handle=await claraFSDirectory.getFileHandle(CLARA_FS_SLOTS[index]);}
+ catch(error){if(error?.name==='NotFoundError')return null;throw error;}
+ const file=await handle.getFile();
+ const entry=JSON.parse(await file.text());
+ if(entry.format!=='CLARA-OPFS-1'||!Number.isSafeInteger(entry.revision)||entry.revision<1||typeof entry.vault!=='string')
+  throw Error('Arquivo do cofre privado inválido.');
+ validateVault(entry.vault);
+ return entry;
+}
+async function claraFSLatest(){
+ const entries=[];
+ for(let i=0;i<2;i++){
+  try{const entry=await claraFSReadSlot(i);if(entry)entries.push(entry);}
+  catch(error){claraFSWarning='Um snapshot do banco privado precisa ser recuperado. Mantenha seu backup.';}
+ }
+ return entries.sort((a,b)=>b.revision-a.revision)[0]||null;
+}
+async function claraFSWrite(vault){
+ if(!claraFSDirectory)return;
+ validateVault(vault);
+ const next=claraFSRevision+1,index=next%2;
+ const handle=await claraFSDirectory.getFileHandle(CLARA_FS_SLOTS[index],{create:true});
+ const writer=await handle.createWritable();
+ try {
+  await writer.write(JSON.stringify({format:'CLARA-OPFS-1',revision:next,vault}));
+  await writer.close();
+ }catch(error){try{await writer.abort();}catch{}throw error;}
+ const verified=await claraFSReadSlot(index);
+ if(verified?.revision!==next||verified.vault!==vault)throw Error('Falha ao verificar o arquivo criptografado.');
+ claraFSRevision=next;
+ claraFSRaw=vault;
+}
+async function claraFSInit(){
+ if(claraFSInitialized)return;
+ claraFSInitialized=true;
+ if(!navigator.storage?.getDirectory){
+  claraFSWarning='Este navegador não dispõe de pasta privada. O cofre criptografado anterior continua ativo.';
+  return;
+ }
+ try {
+  const root=await navigator.storage.getDirectory();
+  claraFSDirectory=await root.getDirectoryHandle(CLARA_FS_FOLDER,{create:true});
+  const previous=await claraFSLatest();
+  if(previous){
+   claraFSRevision=previous.revision;
+   claraFSRaw=previous.vault;
+   const local=safeStorageGet(CLARA_VAULT_KEY);
+   if(local!==claraFSRaw&&!safeStorageSet(CLARA_VAULT_KEY,claraFSRaw))
+    claraFSWarning='Cofre privado recuperado; não foi possível atualizar a cópia de compatibilidade.';
+  }else{
+   const legacy=safeStorageGet(CLARA_VAULT_KEY);
+   if(legacy){validateVault(legacy);await claraFSWrite(legacy);}
+  }
+  claraFSAvailable=true;
+ }catch(error){
+  const hadFiles=!!claraFSDirectory;
+  claraFSDirectory=null;claraFSRaw=null;
+  claraFSWarning='A pasta privada não está acessível. Seus dados criptografados anteriores foram preservados.';
+  if(!safeStorageGet(CLARA_VAULT_KEY)&&hadFiles)
+   throw Error('O banco privado não pôde ser lido e não há cópia local. Não crie um cofre novo; restaure um backup criptografado.');
+ }
+}
+
 function secureStatus(message='') { secureDom('securityStatus').textContent=message; }
 function secureMode(isCreate) {
   secureDom('securityTitle').textContent=isCreate?'Criar proteção do Clara':'Desbloquear Clara';
@@ -4534,8 +4604,8 @@ function secureMode(isCreate) {
   secureStatus('');
 }
 function readVault() {
-  const raw=safeStorageGet(CLARA_VAULT_KEY);
-  if (!storageAvailable) throw Error('Armazenamento indisponível. Abra em um navegador compatível para preservar os dados.');
+  const raw=claraFSRaw??safeStorageGet(CLARA_VAULT_KEY);
+  if (!storageAvailable && !claraFSDirectory) throw Error('Armazenamento indisponível. Abra em um navegador compatível para preservar os dados.');
   return raw;
 }
 function validateVault(raw) {
@@ -4573,9 +4643,14 @@ async function secureSaveSnapshot(snapshot) {
   if(!claraKey||!claraUnlocked) throw Error('Cofre bloqueado; operação cancelada.');
   const existing=readVault();
   if(existing!==claraVaultRaw){storageConflict=true;throw Error('Cofre atualizado em outra aba. Reabra para evitar conflito de dados.');}
+  if(claraFSDirectory){
+    const disk=await claraFSLatest();
+    if(disk?.vault!==claraVaultRaw){storageConflict=true;throw Error('O banco privado mudou em outra aba. Reabra para evitar sobrescrita.');}
+  }
   const salt=b64Bytes(validateVault(claraVaultRaw).salt);
   const raw=await encryptState(snapshot,claraKey,salt);
-  if(!safeStorageSet(CLARA_VAULT_KEY,raw)) throw Error('Não foi possível gravar o cofre criptografado.');
+  if(claraFSDirectory)await claraFSWrite(raw);
+  if(!safeStorageSet(CLARA_VAULT_KEY,raw)) throw Error('Não foi possível manter a cópia criptografada de compatibilidade.');
   claraVaultRaw=raw;
 }
 function secureQueue(snapshot) {
@@ -4622,7 +4697,8 @@ async function secureEnter(password,confirm) {
     const salt=crypto.getRandomValues(new Uint8Array(16));
     const key=await deriveKey(password,salt);
     const encrypted=await encryptState(state,key,salt);
-    if(!safeStorageSet(CLARA_VAULT_KEY,encrypted))throw Error('Falha ao armazenar cofre. Nada foi apagado.');
+    if(claraFSDirectory)await claraFSWrite(encrypted);
+    if(!safeStorageSet(CLARA_VAULT_KEY,encrypted))throw Error('Falha ao manter cópia criptografada. Nada foi apagado.');
     claraKey=key;claraVaultRaw=encrypted;
     try{localStorage.removeItem(KEY);}catch{throw Error('Cofre criado, mas dados antigos não puderam ser removidos. Verifique a privacidade do armazenamento.');}
   } else {
@@ -4638,6 +4714,7 @@ async function secureEnter(password,confirm) {
   claraUnlocked=true;claraError=null;storageConflict=false;
   auditBaseline=structuredClone(state);
   secureHide();
+  if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
 }
 async function secureLock() {
   if(!claraUnlocked)return;
@@ -4684,9 +4761,11 @@ document.addEventListener('change',async e=>{
   }catch(err){showToast(err.message,true);}
 });
 window.ClaraSecurity={lock:secureLock,exportBackup:secureExport,flush:()=>claraSaving,get unlocked(){return claraUnlocked;},get vaultKey(){return CLARA_VAULT_KEY;}};
+window.ClaraPrivateFolder={get folder(){return CLARA_FS_FOLDER;},get active(){return claraFSAvailable;},get revision(){return claraFSRevision;},get warning(){return claraFSWarning;}};
 (async()=>{
   try {
     if(!crypto?.subtle||!storageAvailable)throw Error('Navegador sem armazenamento criptografável. Use Chrome ou Edge em HTTPS.');
+    await claraFSInit();
     secureMode(!readVault());
     if(initializationError)secureStatus(initializationError);
   } catch(err) {
