@@ -199,7 +199,7 @@ test('RC4.0.3: notas da interface, metadata e instruções de segurança alinhad
  assert.match(html,/Clara Finanças RC4\.0\.3/);
  assert.deepEqual(notes,version.notes,'Notas do HTML e version.json divergentes');
  assert.ok(notes.some(x=>x.includes('recarregamento')));
- assert.ok(notes.some(x=>x.includes('modo avançado')));
+ assert.ok(notes.some(x=>x.includes('modo simples e avançado')));
  assert.match(readme,/RC4\.0\.0|RC4\.0\.3/);
  assert.match(readme,/AES-256-GCM/);
  assert.match(readme,/PBKDF2-HMAC-SHA-256/);
