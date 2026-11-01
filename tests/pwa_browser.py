@@ -56,9 +56,9 @@ async def run():
             await page.evaluate("window.ClaraReloadGuard.allowOfficialUpdate()")
             assert await page.evaluate("window.ClaraReloadGuard.enabled") is False
 
-            await page.wait_for_function("document.querySelectorAll('#sideNav [data-view]').length===4",timeout=10000)
-            assert await page.locator('#sideNav [data-view]').count()==4
-            assert await page.evaluate("getComputedStyle(document.querySelector('.sidebar')).display")=='none'
+            await page.wait_for_function("document.querySelectorAll('#claraDesktopDock [data-view]').length===8",timeout=10000)
+            assert await page.locator('#sideNav').count()==0
+            assert await page.locator('.sidebar').count()==0
             assert await page.locator('#claraDesktopDock [data-view]').count()==8
             if width>760:
                 assert await page.locator('#claraDesktopDock').is_visible()
@@ -92,7 +92,7 @@ async def run():
             assert await page.locator('#view-mais .clara-more-item').count()==7
             await page.locator('#view-mais [data-config-jump="dados"]').click()
             assert await page.locator('#pageTitle').inner_text()=='Configurações'
-            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.0.6-rc'
+            assert await page.locator('#claraUpdateInstalled').inner_text()=='4.1.0-rc'
             assert await page.locator('#exportJson').is_visible()
             assert await page.locator('#importClara').count()==1
             assert await page.locator('#claraAdvancedSettings').count()==1
