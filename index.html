@@ -4998,7 +4998,8 @@ const ClaraInstall=(()=>{
  const chrome=/Chrome\//i.test(ua)&&!/EdgA\//i.test(ua)&&!samsung;
  function guidance(){
   if(samsung)return 'No Samsung Internet, abra o menu ≡ e escolha Adicionar página a → Tela inicial. Confirme a instalação quando oferecida.';
-  if(chrome)return 'No Chrome, primeiro abra o site normalmente. Depois toque em ⋮ → Instalar aplicativo ou Adicionar à tela inicial. Se o site mostrar ERR_FAILED, a instalação não funcionará até a conexão ser corrigida.';
+  if(chrome && !/Android/i.test(ua))return 'No Windows, abra a Clara instalada pelo atalho no menu Iniciar ou na barra de tarefas. Uma aba do navegador pode oferecer instalação novamente sem saber que já existe um atalho. Para atualizar, use Configurações → Atualizações; não reinstale e não apague os dados.';
+  if(chrome)return 'No Chrome, use ⋮ → Instalar aplicativo apenas se ainda não estiver instalado. Uma atualização existente é feita em Configurações → Atualizações, sem reinstalar.';
   return 'No menu do navegador, escolha Instalar aplicativo ou Adicionar à tela inicial. A opção depende do navegador e da versão do Android.';
  }
  function paint(){
@@ -5010,11 +5011,11 @@ const ClaraInstall=(()=>{
    status.dataset.status='installed';
    button.hidden=true;
   }else if(candidate){
-   status.textContent='Instalação disponível neste navegador.';
-   status.dataset.status='ready';button.hidden=false;button.textContent='Instalar Clara';
+   status.textContent='O navegador oferece instalar nesta janela. Se a Clara já está no Windows, abra pelo atalho e use Atualizações para receber novas versões.';
+   status.dataset.status='ready';button.hidden=false;button.textContent='Instalar nesta janela';
   }else{
-   status.textContent=samsung?'Instale pelo menu do Samsung Internet.':'Instalação pelo menu do navegador.';
-   status.dataset.status='manual';button.hidden=false;button.textContent='Como instalar';
+   status.textContent=samsung?'Instale pelo menu do Samsung Internet apenas se necessário.':'Se já está instalado, abra o atalho. Para atualizar, use Atualizações; não é necessário reinstalar.';
+   status.dataset.status='manual';button.hidden=false;button.textContent='Ver instruções';
   }
  }
  async function request(){
