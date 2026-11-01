@@ -2094,7 +2094,7 @@ const CLARA_RELEASE_NOTES=Object.freeze([
 ]);
 const PREF_DEFAULTS = Object.freeze({
   palette: 'violet', density: 'comfortable', surface: 'soft', backdrop: 'none', largeText: false,
-  reduceMotion: false, hideValues: false,
+  reduceMotion: false, hideValues: false, calendarCompact: window.innerWidth<=760,
   showSummary: true, showCategories: true, showOutlook: true,
   forecastMonths: 4, budgetWarningPct: 75, simpleMode: true, reloadLock: true, autoBackup: true
 });
@@ -2103,7 +2103,7 @@ const PREF_ENUMS = Object.freeze({
   surface: ['soft', 'flat', 'floating'], backdrop: ['none', 'aurora', 'grid'],
   forecastMonths: [3, 4, 6, 12], budgetWarningPct: [65, 75, 85, 90]
 });
-const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock', 'autoBackup'];
+const PREF_BOOL_KEYS = ['largeText', 'reduceMotion', 'hideValues', 'showSummary', 'showCategories', 'showOutlook', 'simpleMode', 'reloadLock', 'autoBackup', 'calendarCompact'];
 const PROFILE_DEFAULTS=Object.freeze({name:'',email:'',phone:'',photo:''});
 const AUDIT_MAX=2500;
 const AUDIT_COLLECTIONS=[['transactions','Lançamento'],['accounts','Conta'],['goals','Meta'],['reconciliations','Conciliação']];
