@@ -62,6 +62,11 @@ async def run():
     # Antes de chegar o novo Service Worker, há versão remota detectada.
     # A ação precisa existir também em Configurações, não apenas no banner.
     await page.evaluate("configTab='dados';go('ajustes')")
+    # A versão remota foi alterada no servidor DEPOIS do primeiro carregamento.
+    # Primeiro consultá-la pela interface; antes disso o botão deve estar oculto.
+    assert await page.locator('#checkClaraUpdate').is_visible()
+    await page.locator('#checkClaraUpdate').click()
+    await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc'",timeout=12000)
     assert await page.locator('#applyClaraUpdate').is_visible()
     assert await page.locator('#applyClaraUpdate').inner_text()=='Atualizar agora'
     await page.evaluate("go('painel')")
