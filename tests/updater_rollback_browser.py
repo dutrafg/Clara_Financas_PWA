@@ -18,6 +18,8 @@ async def main():
             browser = await playwright.chromium.launch(headless=True)
             context = await browser.new_context(viewport={'width': 390, 'height': 844})
             page = await context.new_page()
+            page_errors = []
+            page.on('pageerror', lambda error: page_errors.append(str(error)))
             await page.goto(BASE, wait_until='load')
             if await page.locator('#securityCover').is_visible():
                 await page.locator('#securityPassword').fill(PASSWORD)
@@ -50,6 +52,11 @@ async def main():
               return (await (await cache.match(new URL('./clara-updater.js', location.href))).text());
             }""", candidate_name)
             assert expected_boot_error in candidate_source, 'O pacote candidato precisa conter o módulo defeituoso simulado.'
+            candidate_html = await page.evaluate("""async name => {
+              const cache = await caches.open(name);
+              return (await (await cache.match(new URL('./index.html', location.href))).text());
+            }""", candidate_name)
+            assert f"const CLARA_BOOT_CACHE='{candidate_name}'" in candidate_html
             await page.locator('#claraUpdateNoticeInstall').click()
 
             await page.wait_for_function("""async () => {
@@ -65,7 +72,15 @@ async def main():
               const cache = await caches.open('clara-update-system-v1');
               return (await (await cache.match(new URL('./__clara_update_state__', location.href))).json());
             }""")
-            assert state['rolledBack'] and state['previous'], state
+            if not (state['rolledBack'] and state['previous']):
+                diagnostics = await page.evaluate("""async candidate => ({
+                  cacheNames: await caches.keys(),
+                  activeWorker: (await navigator.serviceWorker.getRegistration())?.active?.scriptURL,
+                  currentPageBootCache: window.CLARA_BOOT_CACHE || null,
+                  currentUpdater: window.ClaraUpdate?.status || null,
+                  candidateHtml: (await (await caches.open(candidate)).match(new URL('./index.html', location.href)))?.headers.get('content-type') || null
+                })""", candidate_name)
+                raise AssertionError(f'Rollback não ficou ativo; state={state!r}; diagnostics={diagnostics!r}; page_errors={page_errors!r}')
             print('QA ROLLBACK DE BOOT OK: módulo crítico falhou, shell anterior voltou e o cache do candidato foi isolado.')
             await context.close()
             await browser.close()
