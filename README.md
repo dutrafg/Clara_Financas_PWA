@@ -1,8 +1,8 @@
-# Clara Finanças RC4.0.0 — PWA em homologação
+# Clara Finanças RC4.0.6 — PWA em estabilização
 
-Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante; no desktop, um menu lateral de quatro itens. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
+Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets e desktops, a pílula reúne os oito destinos; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
-**Estado da versão:** candidata a homologação, ainda não liberada como versão comercial ou certificada. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
+**Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
 
 ## O que mudou na RC4.0.0
 
@@ -73,3 +73,13 @@ O protocolo manual está em [docs/QA-RC3.6.10.md](docs/QA-RC3.6.10.md). Homologa
 - Não considerar um status `READY` da Vercel como prova de compatibilidade em navegador: verificar a versão efetivamente servida, o hash do build e as operações do usuário.
 
 **Branch recomendada para homologação:** `feature/clara-4-simples`. A integração à `main` deve ocorrer somente após a bateria de QA e a aprovação correspondente.
+
+## Estabilização RC4.0.6 (2026-11-01)
+
+- Calendário com lembretes para o dia, a véspera e **até 1 hora antes**, quando existe horário cadastrado. A central é atualizada enquanto a Clara está em execução; **não envia push remoto com o aplicativo totalmente fechado**.
+- Sino de notificações fixo no canto superior direito. Navegação compacta no telefone, dock de oito destinos em tablets e desktop, sem painel lateral.
+- Banco privado OPFS e cópia criptografada de compatibilidade mantidos. **A exclusão dos dados do site também pode excluir o cofre**: exporte backups externos regularmente.
+- Autenticação biométrica opcional por WebAuthn PRF, dependendo do navegador/aparelho e de autenticação local. **Cadastro biométrico físico ainda requer QA em dispositivo real**.
+- QA canônico: `.github/workflows/rc3610-qa.yml` (main e homologacao/**); testes de 390/768/1440 px, offline, 15 miniaplicativos, agenda e armazenamento.
+- Ambientes: Vercel recebe produção de `main`; homologação usa branch `homologacao/**` e workflow do GitHub Pages. **Configurar Pages → Build and deployment → Source: GitHub Actions** para retirar a antiga publicação automática de main; requer acesso do proprietário às configurações do repositório.
+- PRs antigos de releases devem ser revisados individualmente, não mesclados sem reconciliação com a RC4.0.6.
