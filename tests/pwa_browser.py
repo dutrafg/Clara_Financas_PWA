@@ -183,6 +183,26 @@ async def run():
             assert await page.locator('#pageTitle').is_visible()
             assert await page.locator('.clara-balance').is_visible()
             assert not errors,errors
+            # Regressão do aviso: o botão não deve desaparecer enquanto o pacote é preparado.
+            await context.set_offline(False)
+            await page.route("**/version.json?fresh=*",lambda route:route.fulfill(
+                status=200,content_type='application/json',
+                body='{"version":"9.9.9-rc","notes":["Atualização simulada para QA."]}'))
+            await page.evaluate("window.ClaraUpdate.check(true)")
+            await page.wait_for_function("window.ClaraUpdate.remoteVersion==='9.9.9-rc'",timeout=15000)
+            assert await page.locator('#claraUpdateNotice').is_visible()
+            assert await page.locator('#claraUpdateNoticeInstall').is_visible()
+            assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Atualizar agora'
+            assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
+            await page.locator('#claraUpdateNoticeInstall').click()
+            await page.wait_for_function("document.getElementById('claraUpdateNoticeInstall').textContent==='Preparando…'",timeout=15000)
+            assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
+            assert await page.evaluate("window.ClaraSecurity.unlocked") is True
+            assert await page.evaluate("window.ClaraUpdate.installedVersion")==APP_VERSION
+            await page.locator('#claraUpdateNoticeLater').click()
+            assert not await page.locator('#claraUpdateNotice').is_visible()
+            await page.unroute("**/version.json?fresh=*")
+            assert not errors,errors
             print('QA Clara 4.0 OK:',width,'px — modo simples, avançado, cofre e offline')
             await context.close()
         await browser.close()
