@@ -28,7 +28,8 @@ async def run():
    await page.evaluate("go('mov')")
    assert await page.locator('#view-mov').is_visible()
    start=await page.evaluate("state.transactions.length")
-   await page.locator('[data-open="transaction"]').first.click()
+   await page.evaluate("go('painel')")
+   await page.locator('[data-clw-action="new"]').first.click()
    assert await page.locator('#modalBg').is_hidden()
    assert await page.evaluate("state.transactions.length")==start
    await page.evaluate("""() => {
