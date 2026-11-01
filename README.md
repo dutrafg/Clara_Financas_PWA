@@ -1,21 +1,24 @@
-# Clara Finanças RC3.6.10 — PWA em homologação
+# Clara Finanças RC4.0.0 — PWA em homologação
 
-Aplicativo financeiro pessoal com **sete módulos** (Painel, Movimentações, Planejamento, Assistentes, Conferências, Histórico e Configurações). A dashboard oferece **15 miniaplicativos** editáveis. No smartphone (largura de até 760 px), a navegação usa dock/menu flutuante; em telas maiores, usa barra lateral. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
+Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante; no desktop, um menu lateral de quatro itens. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata a homologação, ainda não liberada como versão comercial ou certificada. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
 
-## O que mudou na RC3.6.10
+## O que mudou na RC4.0.0
 
-- O botão isolado de QA foi removido da barra lateral compacta, evitando controle órfão.
-- A Central de QA permanece disponível em **Configurações → Segurança → Manutenção avançada**, além do acesso em Conferências.
-- A abertura e o fechamento da Central de QA preservam o foco do teclado, devolvendo-o ao controle de origem.
-- Os recursos existentes (atualizador, Perfil, Histórico, cofre e 15 miniaplicativos) foram mantidos. A integridade funcional deve ser confirmada na bateria de testes.
+- **Modo simples por padrão:** saldo, entradas e saídas, contas próximas, registros e uma dica, sem exibir os 15 miniaplicativos de uma vez.
+- **Quatro destinos claros:** Início, Lançar, Planejar e Mais. Os recursos técnicos ficam disponíveis por Mais ou modo avançado.
+- **Lançamento direto:** despesa, receita e transferência; os fluxos financeiros antigos continuam sendo usados e os dados permanecem no cofre.
+- **Modo avançado reversível:** recupera editor dos miniaplicativos, análises, filtros e preferências anteriores; não modifica lançamentos.
+- **Configurações essenciais:** aparência reduzida a claro/escuro e seções menos comuns escondidas, preservando segurança, atualização, backups e contas.
+- **Service Worker renovado em cada versão:** o build considera o código do SW, o HTML, o CSS e o JS na revisão SHA-256; todos entram no pré-cache offline.
+- **Sem mudanças automáticas em produção:** homologar em branch antes de integrar à main.
 
-As notas acima devem coincidir com as exibidas pelo aplicativo em `CLARA_RELEASE_NOTES` e no `version.json`.
+Consulte o [plano de QA da Clara 4.0](docs/QA-Clara-4.md) e o [protocolo anterior](docs/QA-RC3.6.10.md). Os modos simples e avançado compartilham os mesmos dados; nenhum deles é um banco separado.
 
 ## Segurança e armazenamento
 
-A RC3.6.10 implementa um **cofre local criptografado**: AES-256-GCM via Web Crypto, chave derivada da senha usando PBKDF2-HMAC-SHA-256 com 310.000 iterações, salt aleatório de 16 bytes e IV aleatório de 12 bytes a cada gravação. A senha de criação requer pelo menos 12 caracteres. A cópia persistida fica no `localStorage`, na chave `clara-financas-vault-aesgcm-v1`, mas o conteúdo financeiro do cofre é cifrado — diferentemente das prévias sem criptografia.
+A Clara implementa um **cofre local criptografado**: AES-256-GCM via Web Crypto, chave derivada da senha usando PBKDF2-HMAC-SHA-256 com 310.000 iterações, salt aleatório de 16 bytes e IV aleatório de 12 bytes a cada gravação. A senha de criação requer pelo menos 12 caracteres. A cópia persistida fica no `localStorage`, na chave `clara-financas-vault-aesgcm-v1`, mas o conteúdo financeiro do cofre é cifrado — diferentemente das prévias sem criptografia.
 
 Ao criar o cofre, o aplicativo tenta migrar os dados da chave legada `clara-html-preview-planilha-optio-v2` e remover a cópia não cifrada depois de salvar a versão cifrada. Confirmar esse comportamento no QA, inclusive em migrações com falha de gravação. Não presumir que o navegador apaga cópias externas, backups antigos, histórico de arquivos ou informações capturadas antes da migração.
 
@@ -69,4 +72,4 @@ O protocolo manual está em [docs/QA-RC3.6.10.md](docs/QA-RC3.6.10.md). Homologa
 - Se o QA encontrar falha em migração, cofre, persistência, atualização, offline ou navegação, **bloquear a publicação em main** até corrigir.
 - Não considerar um status `READY` da Vercel como prova de compatibilidade em navegador: verificar a versão efetivamente servida, o hash do build e as operações do usuário.
 
-**Branch recomendada para homologação:** `release/rc3610-menu-clean`. A integração à `main` deve ocorrer somente após a bateria de QA e a aprovação correspondente.
+**Branch recomendada para homologação:** `feature/clara-4-simples`. A integração à `main` deve ocorrer somente após a bateria de QA e a aprovação correspondente.
