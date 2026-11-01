@@ -1,9 +1,10 @@
 {
   "name": "Clara Finanças",
-  "version": "4.2.1-rc",
+  "version": "4.2.2-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Correções de sobreposição: menu e formulários acima do sino, foco de teclado contido na navegação, fundo sem rolagem e aviso de atualização reposicionado.",
     "Estabilização visual da dock e do menu flutuante: cantos sempre arredondados, animação sem alterações de geometria, responsividade e acessibilidade revisadas.",
     "Microbackups criptografados após alterações, retenção de até 20 pontos locais e cópias externas em lotes quando autorizadas.",
     "Proteção pré-atualização com snapshot cifrado e alerta explícito quando não existe cópia externa confirmada.",
