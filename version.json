@@ -1,12 +1,13 @@
 {
   "name": "Clara Finanças",
-  "version": "4.0.5-rc",
+  "version": "4.0.6-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
-    "Sino discreto inspirado no macOS, fixo no canto superior direito durante toda a navegação.",
-    "Tablet e desktop: pílula flutuante com todos os módulos e perfil, sem painel lateral.",
-    "Modo simples e avançado compartilham agenda, compromissos, alertas de vencimento e atualizações.",
-    "Proteção contra recarregamento, biometria, cofre e backups criptografados preservados."
+    "Avisos da agenda corrigidos: lembrete de 1 hora antes tem prioridade sobre a notificação do dia; horário local validado.",
+    "QA de produção unificado para modos simples e avançado, miniaplicativos, cofre e uso offline.",
+    "Preparação da homologação no GitHub Pages em branch separada, mantendo Vercel vinculada à main.",
+    "Sino fixo, dock completa em tablet e desktop, banco privado, biometria e backups preservados.",
+    "Atualização segura com Service Worker e cache renovados para a Clara 4.0.6."
   ]
 }
