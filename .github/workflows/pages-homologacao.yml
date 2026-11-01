@@ -1,0 +1,65 @@
+name: Clara — GitHub Pages (homologação)
+
+on:
+  push:
+    branches:
+      - homologacao/pages
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-homologacao
+  cancel-in-progress: false
+
+jobs:
+  homologar-publicar:
+    name: Validar e publicar somente homologação
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout de homologação
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regressão estática
+        run: npm test
+      - name: Construir PWA de homologação
+        run: npm run build
+      - name: Verificar caminhos e Service Worker
+        run: npm run verify:paths
+      - name: Preparar Playwright
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Validar navegação, cofre, modos e offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-pages-test.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/pwa_browser.py
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Publicar artefato compilado (nunca o código-fonte cru)
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Enviar homologação para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
