@@ -67,7 +67,7 @@
    go('painel');return;
   }
   if(b.closest(safePreviewSelector)||b.id==='floatTrigger'||b.id==='floatBackdrop')return;
-  if(b.dataset.clx==='view-note')return;
+  if(['view-note','close'].includes(b.dataset.clx))return;
   if(b.dataset.clwAction && safeWidgetActions.has(b.dataset.clwAction))return;
   if(b.matches('a[href^="https://"],a[href^="http://"]'))return;
   event.preventDefault();event.stopImmediatePropagation();promptCreate();
