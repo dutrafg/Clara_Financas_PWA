@@ -209,21 +209,19 @@ async def run():
             assert update_state['remote']=='9.9.9-rc',update_state
             assert await page.locator('#claraUpdateNotice').is_visible()
             assert await page.locator('#claraUpdateNoticeInstall').is_visible()
-            assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Atualizar agora'
-            assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
-            # Botão equivalente também precisa aparecer em Configurações antes
-            # de existir um novo Service Worker em espera (captura do usuário).
+            # O teste troca apenas o metadado remoto, sem publicar um SW novo.
+            # O app precisa distinguir versão detectada de pacote pronto.
+            assert await page.locator('#claraUpdateNoticeInstall').inner_text()=='Preparando…'
+            assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
+            assert await page.locator('#claraUpdateNoticeInstall').get_attribute('aria-busy')=='true'
+            # Configurações reflete o mesmo estado enquanto o worker ainda não espera.
             await page.evaluate("configTab='dados';go('ajustes')")
             assert await page.locator('#applyClaraUpdate').is_visible()
-            assert await page.locator('#applyClaraUpdate').inner_text()=='Atualizar agora'
-            assert await page.locator('#applyClaraUpdate').is_enabled()
+            assert await page.locator('#applyClaraUpdate').inner_text()=='Preparando…'
+            assert await page.locator('#applyClaraUpdate').is_disabled()
             await page.evaluate("go('painel')")
-            await page.locator('#claraUpdateNoticeInstall').click()
-            # O erro da captura era o botão ficar desativado em "Preparando...".
-            # A nova implementação permite tentar novamente sem bloquear o cofre.
-            assert await page.locator('#claraUpdateNoticeInstall').is_enabled()
-            assert await page.locator('#claraUpdateNoticeInstall').inner_text() in ('Atualizar agora','Tentar novamente','Instalar atualização','Reabrir atualizado')
-            assert not await page.locator('#claraUpdateNoticeInstall').get_attribute('aria-busy')=='true'
+            assert await page.locator('#claraUpdateNoticeInstall').is_disabled()
+            assert await page.locator('#claraUpdateNoticeInstall').get_attribute('aria-busy')=='true'
             assert await page.evaluate("window.ClaraSecurity.unlocked") is True
             assert await page.evaluate("window.ClaraUpdate.installedVersion")==APP_VERSION
             await page.locator('#claraUpdateNoticeLater').click()
