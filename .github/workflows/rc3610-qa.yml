@@ -1,10 +1,11 @@
-name: Clara Finanças Clara 4.0 — QA
+name: Clara Finanças 4.0.2 — QA
 
 on:
   push:
     branches:
       - release/rc3610-menu-clean
       - feature/clara-4-simples
+      - feature/clara-biometria-prf
   pull_request:
     branches:
       - main
