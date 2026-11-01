@@ -1,0 +1,52 @@
+name: Clara — publicar homologação no GitHub Pages
+
+on:
+  workflow_run:
+    workflows:
+      - Clara Finanças 4.0.6 — QA único
+    branches:
+      - 'homologacao/**'
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: clara-pages-homologacao
+  cancel-in-progress: false
+
+jobs:
+  publicar-homologacao:
+    name: Pages após QA aprovado da branch de homologação
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'homologacao/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar exatamente o commit aprovado
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build PWA
+        run: npm run build
+      - name: Verificar versão, Service Worker e caminhos relativos
+        run: npm run verify:paths
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Enviar apenas pacote validado
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Publicar ambiente de homologação
+        uses: actions/deploy-pages@v4
+        id: deployment
