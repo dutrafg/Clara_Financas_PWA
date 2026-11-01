@@ -118,5 +118,12 @@
  const nativeRender=render;
  render=function(){document.documentElement.dataset.simple=String(mode());nativeRender();};
  // A inicialização do cofre pode já ter ocorrido; renderizar só depois do desbloqueio.
+ // O cofre chama render() antes de marcar data-unlocked na primeira abertura.
+ const observer=new MutationObserver(()=>{
+   if(document.documentElement.dataset.unlocked==='true'){
+     render();
+   }
+ });
+ observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-unlocked']});
  if(document.documentElement.dataset.unlocked==='true')render();
 })();
