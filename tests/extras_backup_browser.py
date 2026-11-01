@@ -58,6 +58,17 @@ async def run():
             await page.locator('#claraExtrasForm [type="submit"]').click()
             assert await page.evaluate('state.quickNotes.length')==1
             assert await page.evaluate('state.quickNotes[0].pinned') is True
+            await page.evaluate('window.ClaraSecurity.flush()')
+            assert await page.evaluate('window.ClaraBackups.microCount')>=1
+            micro=await page.evaluate("window.ClaraBackups.entries.filter(x=>x.name.startsWith('micro-')).map(x=>x.name)")
+            assert micro, 'Sem microbackup de recuperação'
+            raw_micro=await page.evaluate("""async name => {
+              const root=await navigator.storage.getDirectory();
+              const dir=await (await root.getDirectoryHandle('ClaraFinancas')).getDirectoryHandle('Backups');
+              return (await (await dir.getFileHandle(name)).getFile()).text();
+            }""",micro[0])
+            assert 'CLARA-VAULT-1' in raw_micro and 'Conteúdo privado' not in raw_micro
+
             await page.locator('#clxNoteSearch').fill('exemplo')
             assert await page.locator('#clxNotesList .clx-item').count()==1
             await page.locator('#clxNoteSearch').fill('inexistente')
@@ -112,7 +123,13 @@ async def run():
               }
               return files;
             }""")
-            assert len(external)==3 and all(x['encrypted'] for x in external),external
+            assert len([x for x in external if x['name'].startswith(('manual-','daily-'))])==3,external
+            assert external and all(x['encrypted'] for x in external),external
+            # A atualização deve produzir um ponto local, sem apagar o histórico.
+            safety=await page.evaluate("window.ClaraBackups.beforeUpdate()")
+            assert safety['local'] is True and safety['external'] is True,safety
+            assert await page.evaluate("window.ClaraBackups.entries.some(x=>x.name.startsWith('safety-'))")
+
             backup=await page.evaluate("""async()=>{
                const root=await navigator.storage.getDirectory();
                const folder=await root.getDirectoryHandle('ClaraFinancas');
