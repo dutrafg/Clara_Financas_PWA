@@ -57,6 +57,13 @@
   --clara-button-glass:color-mix(in srgb,var(--panel2) 80%,transparent);
   --clara-primary-glass:color-mix(in srgb,var(--teal) 80%,transparent);
 }
+/* Tema claro: reduzir a luminosidade da base para manter texto branco >=4,5:1. */
+:root[data-theme="light"]{
+  --clara-primary-glass:color-mix(in srgb,color-mix(in srgb,var(--teal) 85%,#000000) 80%,transparent);
+}
+.ca-bell{
+  background:color-mix(in srgb,var(--panel) 80%,transparent);
+}
 :where(button:not(.float-backdrop):not(.ca-notification)){
   -webkit-backdrop-filter:blur(5px) saturate(1.05);
   backdrop-filter:blur(5px) saturate(1.05);
