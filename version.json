@@ -6,6 +6,7 @@
   "notes": [
     "Atualizador com ação disponível também em Configurações, detecção de falhas do Service Worker, novas tentativas seguras e proteção contra preparações intermináveis.",
     "Estabilização visual da dock e do menu flutuante: cantos sempre arredondados, animação sem alterações de geometria, responsividade e acessibilidade revisadas.",
+    "Dock com vidro sutil: 20% de transparência e desfoque de 5 px, mantendo ícones e textos legíveis nos temas claro e escuro.",
     "Microbackups criptografados após alterações, retenção de até 20 pontos locais e cópias externas em lotes quando autorizadas.",
     "Proteção pré-atualização com snapshot cifrado e alerta explícito quando não existe cópia externa confirmada.",
     "Calendário compacto na Dashboard do celular, expansível, com preferência preservada no cofre.",
