@@ -183,7 +183,13 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/addEventListener\('appinstalled'/);
  assert.match(html,/await prompt\.prompt\(\)/);
  assert.match(html,/id="claraInstallHelp"/);
- assert.match(html,/No Chrome, primeiro abra o site normalmente/);
+ assert.match(html,/No Windows, abra a Clara instalada pelo atalho/);
+ assert.match(html,/para atualizar, use Atualizações/i);
+ assert.match(html,/clw-panel/);
+ assert.match(html,/clw-scroll-area/);
+ assert.match(html,/function claraWidgetPanel\(/);
+ assert.match(updater,/Aplicar atualização/);
+ assert.doesNotMatch(updater,/Instalar atualização/);
  assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 

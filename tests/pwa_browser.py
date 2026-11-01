@@ -124,6 +124,27 @@ async def run():
             await page.get_by_role('button',name='Editar painel').click()
             await page.get_by_role('button',name='Mostrar todos').click()
             assert await page.locator('#dashboardMiniapps [data-widget]').count()==15
+            # Os cards devem ter altura média e rolagem interna, mesmo quando
+            # o vizinho tiver muito menos conteúdo. Nenhum dado é alterado.
+            assert await page.locator('#dashboardMiniapps .clw-panel .clw-scroll-area').count()==15
+            card_layout=await page.evaluate("""() => {
+              const cards=[...document.querySelectorAll('#dashboardMiniapps .clw-item')];
+              return cards.map(card=>{
+                const panel=card.querySelector('.clw-panel');
+                const area=panel.querySelector('.clw-scroll-area');
+                const tools=card.querySelector('.clw-toolstrip');
+                const rect=panel.getBoundingClientRect();
+                const css=getComputedStyle(area);
+                return {id:card.dataset.widget,height:rect.height,
+                  maxHeight:getComputedStyle(panel).maxHeight,
+                  overflow:css.overflowY,accessible:area.tabIndex===0,
+                  actions:!!tools&&tools.getBoundingClientRect().height>0};
+              });
+            }""")
+            assert all(c['height']<=421 and c['overflow']=='auto' and c['accessible'] and c['actions'] for c in card_layout),card_layout
+            budgets=next(c for c in card_layout if c['id']=='budgets')
+            goals=next(c for c in card_layout if c['id']=='goals')
+            assert goals['height']<budgets['height'] or budgets['height']<421,(budgets,goals)
             await page.locator('#claraExitAdvanced').click()
             assert await page.evaluate("pref('simpleMode')") is True
             await page.evaluate("go('painel')")
