@@ -1680,8 +1680,13 @@ const SVG_ICONS = {
 const CLARA_WIDGETS = Object.freeze([{"id":"attention","name":"Central de atenção","description":"Contas atrasadas, limites e metas"},{"id":"agenda","name":"Agenda financeira","description":"Vencimentos e recebimentos dos próximos 14 dias"},{"id":"quick","name":"Lançamentos rápidos","description":"Registre receitas, despesas e transferências"},{"id":"budgets","name":"Orçamentos por categoria","description":"Limites, realizado e previsto"},{"id":"goals","name":"Metas financeiras","description":"Progresso, edição e atualização"},{"id":"accounts","name":"Contas e cartões","description":"Saldos, faturas e conciliações"},{"id":"comparison","name":"Comparativo de meses","description":"Evolução de receitas e despesas"},{"id":"recent","name":"Movimentações recentes","description":"Editar, duplicar ou excluir registros"},{"id":"insights","name":"Insights automáticos","description":"Indicadores com base nos seus dados"},{"id":"forecast","name":"Fluxo de caixa projetado","description":"Saldo e compromissos dos meses futuros"},{"id":"audit","name":"Conferências e auditoria","description":"Histórico, conciliação e exportação"},{"id":"categories","name":"Onde estou gastando?","description":"Distribuição por categorias"},{"id":"history","name":"Histórico mensal","description":"Resumo dos meses anteriores"},{"id":"recurring","name":"Recorrências identificadas","description":"Encontrar despesas e receitas repetidas"},{"id":"simulator","name":"Simulador financeiro","description":"Comparar cenários sem alterar dados"}]);
 const CLARA_WIDGET_DEFAULT = Object.freeze(['attention','agenda','quick','budgets','goals','recent','insights']);
 let claraDashboardEditing = false;
-const claraWidgetUI = {agendaDays:14,agendaKind:'Todos',onlyRisk:false,onlyCards:false,recentStatus:'Todos',compareOffset:1};
-function recurringItems(){
+const claraWidgetUI = {
+ agendaDays:14,agendaKind:'Todos',attention:'Todos',onlyRisk:false,budgetSort:'Percentual',
+ onlyCards:false,goalOverdue:false,recentStatus:'Todos',recentKind:'Todos',compareOffset:1,
+ insightsImportant:false,onlyDeficits:false,auditOnlyDifference:false,
+ categoryMetric:'Realizado',historyOnlyNegative:false,recurringKind:'Todos'
+};
+function recurringItems(kind='Todos'){
  const groups=new Map();
  for(const t of state.transactions){
   if(t.status==='Cancelado'||t.kind==='Transferência')continue;
@@ -1693,15 +1698,15 @@ function recurringItems(){
   arr.sort((a,b)=>a.date.localeCompare(b.date));const t=arr.at(-1);
   return {id:t.id,name:t.description,kind:t.kind,months:new Set(arr.map(x=>x.date.slice(0,7))).size,count:arr.length,
    amount:t.amountCents,last:t.date,next:plusMonth(t.date,1)};
- }).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
+ }).filter(r=>kind==='Todos'||r.kind===kind).sort((a,b)=>b.last.localeCompare(a.last)).slice(0,20);
 }
 
 function renderRecurring(action,line,empty){
- const rows=recurringItems();
+ const rows=recurringItems(claraWidgetUI.recurringKind);
  return panel('Recorrências identificadas','Padrões em pelo menos dois meses distintos',`
  <div class="clw-list">${rows.slice(0,7).map(r=>line(r.name,
  `${r.kind} · ${r.months} meses · último ${brl(r.amount)} · próxima referência estimada ${fmtDay(r.next)}`,
- action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir',`data-clw-action="duplicate" data-clw-id="${esc(r.id)}"`))).join('')}
+ action('Revisar',`data-edit-tx="${esc(r.id)}"`)+action('Repetir no próximo mês',`data-clw-action="duplicate" data-clw-next="true" data-clw-id="${esc(r.id)}"`))).join('')}
  ${!rows.length?empty('Ainda não existem registros suficientes para identificar recorrências.'):''}</div>
  <p class="helper">Estimativa baseada em registros: não cria cobranças automaticamente.</p>`,
  action('Exportar CSV','data-clw-action="recurring-export"'));
@@ -1759,30 +1764,31 @@ function runSimulation(){
 }
 
 function widgetToolstrip(id,action){
+ // Cada miniaplicativo oferece pelo menos três operações diretas, sem alterar
+ // movimentações em segundo plano. Dados filtrados permanecem somente na UI.
  const data={
- attention:[['Ver agenda','focus','agenda'],['Consultar despesas','view','mov']],
- agenda:[['7 dias','agenda-days','7'],['14 dias','agenda-days','14'],['30 dias','agenda-days','30'],['Só pagamentos','agenda-kind','Despesa'],['Só recebimentos','agenda-kind','Receita'],['Todos','agenda-kind','Todos']],
- quick:[['Parcelar','view','assist'],['Nova conta','open','account']],
- budgets:[['Mostrar alertas','budget-risk','toggle'],['Exportar CSV','budget-export','']],
- goals:[['Todas as metas','view','plan']],
- accounts:[['Só cartões','account-cards','toggle'],['Gerenciar contas','config','contas']],
- comparison:[['Mês anterior','compare','1'],['3 meses antes','compare','3'],['12 meses antes','compare','12']],
- recent:[['Todos','recent-status','Todos'],['Pendentes','recent-status','Pendente'],['Realizados','recent-status','Realizado'],['Exportar CSV','export-tx','']],
- insights:[['Ver categorias','focus','categories'],['Configurar limites','config','contas']],
- forecast:[['3 meses','forecast-months','3'],['6 meses','forecast-months','6'],['12 meses','forecast-months','12']],
- audit:[['Conciliação nova','view','conf'],['Ver histórico','focus','history']],
- categories:[['Nova despesa','new','Despesa'],['Planejamento','view','plan']],
- history:[['Comparar meses','focus','comparison'],['Exportar CSV','export-tx','']],
- recurring:[['Movimentações','view','mov']],
- simulator:[['Criar meta','open','goal']]
+  attention:[['Todos','attention-filter','Todos'],['Atrasos','attention-filter','Atrasos'],['Limites','attention-filter','Limites'],['Metas','attention-filter','Metas'],['CSV','widget-export','attention']],
+  agenda:[['7 dias','agenda-days','7'],['14 dias','agenda-days','14'],['30 dias','agenda-days','30'],['Receber','agenda-kind','Receita'],['Pagar','agenda-kind','Despesa'],['Todos','agenda-kind','Todos'],['CSV','widget-export','agenda']],
+  quick:[['Parcelar','view','assist'],['Nova conta','open','account'],['Nova meta','open','goal'],['Movimentações','view','mov']],
+  budgets:[['Só alertas','budget-risk','toggle'],['Por uso','budget-sort','Percentual'],['Por gasto','budget-sort','Gasto'],['A–Z','budget-sort','Nome'],['CSV','widget-export','budgets']],
+  goals:[['Todas','goal-overdue','all'],['Atrasadas','goal-overdue','overdue'],['Nova meta','open','goal'],['CSV','widget-export','goals']],
+  accounts:[['Só cartões','account-cards','toggle'],['Todas','account-cards','all'],['Gerenciar','config','contas'],['Nova conta','open','account'],['CSV','widget-export','accounts']],
+  comparison:[['Anterior','compare','1'],['3 meses','compare','3'],['12 meses','compare','12'],['CSV','widget-export','comparison']],
+  recent:[['Todos','recent-status','Todos'],['Pendentes','recent-status','Pendente'],['Realizados','recent-status','Realizado'],['Despesas','recent-kind','Despesa'],['Receitas','recent-kind','Receita'],['Limpar filtro','recent-kind','Todos'],['CSV','widget-export','recent']],
+  insights:[['Todos','insight-filter','all'],['Alertas','insight-filter','important'],['Categorias','focus','categories'],['Limites','config','contas'],['CSV','widget-export','insights']],
+  forecast:[['3 meses','forecast-months','3'],['6 meses','forecast-months','6'],['12 meses','forecast-months','12'],['Só negativos','forecast-negative','toggle'],['CSV','widget-export','forecast']],
+  audit:[['Conferir','view','conf'],['Histórico','focus','history'],['Divergentes','audit-difference','toggle'],['CSV','widget-export','audit']],
+  categories:[['Realizado','category-metric','Realizado'],['Previsto','category-metric','Previsto'],['Nova despesa','new','Despesa'],['Planejar','view','plan'],['CSV','widget-export','categories']],
+  history:[['Todos','history-negative','all'],['Negativos','history-negative','negative'],['Comparar','focus','comparison'],['CSV','widget-export','history']],
+  recurring:[['Todos','recurring-kind','Todos'],['Despesas','recurring-kind','Despesa'],['Receitas','recurring-kind','Receita'],['CSV','widget-export','recurring']],
+  simulator:[['Zerar','sim-reset',''],['Exportar cenário','sim-export',''],['Criar meta','open','goal']]
  };
- return data[id]?`<div class="clw-toolstrip">${data[id].map(([label,kind,val])=>{
- const attr=kind==='view'?`data-view="${val}"`:kind==='open'?`data-open="${val}"`:kind==='config'?`data-config-jump="${val}"`:
- kind==='new'?`data-clw-action="new" data-clw-kind="${val}"`:`data-clw-action="${kind}" data-clw-value="${val}"`;
- return action(label,attr);
+ return data[id]?`<div class="clw-toolstrip" role="group" aria-label="Ferramentas de ${esc(CLARA_WIDGETS.find(x=>x.id===id)?.name||'miniaplicativo')}">${data[id].map(([label,kind,val])=>{
+  const attr=kind==='view'?`data-view="${val}"`:kind==='open'?`data-open="${val}"`:kind==='config'?`data-config-jump="${val}"`:
+   kind==='new'?`data-clw-action="new" data-clw-kind="${val}"`:`data-clw-action="${kind}" data-clw-value="${val}"`;
+  return action(label,attr);
  }).join('')}</div>`:'';
 }
-
 function focusWidget(id){
  if(!CLARA_WIDGETS.some(x=>x.id===id))return;
  if(!claraWidgetEnabled().includes(id)){
