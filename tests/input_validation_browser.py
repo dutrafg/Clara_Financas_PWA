@@ -47,7 +47,7 @@ async def main():
         await page.locator('#m_status').select_option('Pendente')
         await page.locator('#modalForm button[type=submit]').click()
         try:
-            await page.wait_for_function('state.transactions.length === initialCount + 1', arg=initial_count, timeout=5000)
+            await page.wait_for_function('state.transactions.length === arg + 1', arg=initial_count, timeout=5000)
         except Exception as error:
             fields = await page.locator('#modalForm .field-error').all_inner_texts()
             raise AssertionError(f'Lançamento válido não foi salvo; erros={fields!r}') from error
