@@ -45,7 +45,7 @@ async def main():
             await page.wait_for_function('navigator.serviceWorker.ready.then(registration => !!registration.waiting)', timeout=30000)
             await page.evaluate('window.ClaraUpdate.check(false)')
             await page.wait_for_function('window.ClaraUpdate.ready', timeout=10000)
-            await page.locator('#applyClaraUpdate').click()
+            await page.locator('#claraUpdateNoticeInstall').click()
 
             await page.wait_for_function("""async () => {
               const stateCache = await caches.open('clara-update-system-v1');
