@@ -61,6 +61,10 @@
 | P11 | Reiniciar PWA após update | Versão 4.0.0-rc e cache novo |
 | P12 | Falha de rede durante update | Preserva dados e cache anterior |
 
+## Plataformas e legado
+
+Testar explicitamente **Chrome Android**, **Samsung Internet**, **Windows 11** (Chrome e Edge) e operação **offline**, incluindo instalação como PWA e migração a partir de RC3.6.10. Conferir os 15 miniaplicativos no modo avançado, especialmente o **M15 (Simulador financeiro)**: não pode gravar valores simulados como lançamentos sem confirmação.
+
 ## Critérios de bloqueio
 
 Validar em 390, 768 e 1440 px, Android Chrome, Samsung Internet, Windows Chrome e Edge. Testar teclado, tamanho de toque, foco, contraste, scroll horizontal e retorno após segundo plano.
