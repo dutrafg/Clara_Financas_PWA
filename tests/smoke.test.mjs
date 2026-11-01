@@ -172,7 +172,7 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/await prompt\.prompt\(\)/);
  assert.match(html,/id="claraInstallHelp"/);
  assert.match(html,/No Chrome, primeiro abra o site normalmente/);
- assert.match(html,/const CLARA_APP_VERSION='4\.0\.3-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.4-rc'/);
 });
 
 test('Navegação sem botão órfão de QA, preservando acesso de manutenção',()=>{
@@ -182,11 +182,11 @@ test('Navegação sem botão órfão de QA, preservando acesso de manutenção',
  assert.match(html,/if \(b\.dataset\.openQa\) \{ qaOpen\(\); return; \}/);
  assert.match(html,/id="claraAdvancedSettings"/);
  assert.match(html,/data-open-qa="1"/);
- assert.match(html,/const CLARA_APP_VERSION='4\.0\.3-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.4-rc'/);
 });
 
 
-test('RC4.0.3: notas da interface, metadata e instruções de segurança alinhadas',async()=>{
+test('RC4.0.4: notas da interface, metadata e instruções de segurança alinhadas',async()=>{
  const pkg=JSON.parse(await readFile('package.json','utf8'));
  const version=JSON.parse(await readFile('version.json','utf8'));
  const readme=await readFile('README.md','utf8');
@@ -194,13 +194,13 @@ test('RC4.0.3: notas da interface, metadata e instruções de segurança alinhad
  const notesSource=html.match(/const CLARA_RELEASE_NOTES=Object\.freeze\((\[[\s\S]*?\])\);/)?.[1];
  assert.ok(notesSource,'Lista de novidades da interface ausente');
  const notes=JSON.parse(notesSource);
- assert.equal(version.version,'4.0.3-rc');
+ assert.equal(version.version,'4.0.4-rc');
  assert.equal(pkg.version,version.version);
- assert.match(html,/Clara Finanças RC4\.0\.3/);
+ assert.match(html,/Clara Finanças RC4\.0\.4/);
  assert.deepEqual(notes,version.notes,'Notas do HTML e version.json divergentes');
  assert.ok(notes.some(x=>x.includes('recarregamento')));
- assert.ok(notes.some(x=>x.includes('modo simples e avançado')));
- assert.match(readme,/RC4\.0\.0|RC4\.0\.3/);
+ assert.ok(notes.some(x=>x.includes('simples e avançado')));
+ assert.match(readme,/RC4\.0\.0|RC4\.0\.4/);
  assert.match(readme,/AES-256-GCM/);
  assert.match(readme,/PBKDF2-HMAC-SHA-256/);
  assert.match(readme,/310\.000 iterações/);
@@ -248,7 +248,7 @@ test('Clara 4.0: Service Worker novo contém todos os arquivos e hash de si mesm
 });
 
 
-test('Clara 4.0.3: biometria opcional não substitui nem expõe a senha do cofre',async()=>{
+test('Clara 4.0.4: biometria opcional não substitui nem expõe a senha do cofre',async()=>{
  const bio=await readFile('clara-biometric.js','utf8');
  assert.match(html,/id="securityBiometric"/);
  assert.match(html,/src="\.\/clara-biometric\.js"/);
@@ -264,7 +264,7 @@ test('Clara 4.0.3: biometria opcional não substitui nem expõe a senha do cofre
  assert.doesNotMatch(bio,/localStorage\.setItem\(.*password/);
  assert.match(html,/const CLARA_VAULT_KEY = 'clara-financas-vault-aesgcm-v1'/);
 });
-test('Clara 4.0.3: modo avançado tem saída direta e dock aproveita a tela',async()=>{
+test('Clara 4.0.4: modo avançado tem saída direta e dock aproveita a tela',async()=>{
  const simple=await readFile('clara-simple.js','utf8');
  const css=await readFile('clara-simple.css','utf8');
  assert.match(simple,/id='claraExitAdvanced'/);
@@ -274,14 +274,14 @@ test('Clara 4.0.3: modo avançado tem saída direta e dock aproveita a tela',asy
  assert.match(css,/width:calc\(100% - 24px\)/);
  assert.match(css,/\.mobile-dock \{flex:1 1 auto/);
 });
-test('Clara 4.0.3: aceita foto original de 10 MiB e reduz antes de criptografar',()=>{
+test('Clara 4.0.4: aceita foto original de 10 MiB e reduz antes de criptografar',()=>{
  assert.match(html,/file\.size>10\*1024\*1024/);
  assert.match(html,/foto de até 10 MB/i);
  assert.match(html,/192\/Math\.max\(picture\.width,picture\.height\)/);
  assert.match(html,/canvas\.toDataURL\('image\/jpeg',0\.78\)/);
  assert.match(html,/p\.photo\.length>120000/);
 });
-test('Clara 4.0.3: precache inclui todos os arquivos biométricos',async()=>{
+test('Clara 4.0.4: precache inclui todos os arquivos biométricos',async()=>{
  const sw=await readFile('sw.js','utf8'),build=await readFile('tools/build.mjs','utf8'),verify=await readFile('tools/verify-paths.mjs','utf8');
  for(const file of ['clara-biometric.js','clara-biometric.css']){
   assert.ok(sw.includes('./'+file));
@@ -291,7 +291,7 @@ test('Clara 4.0.3: precache inclui todos os arquivos biométricos',async()=>{
 });
 
 
-test('Clara 4.0.3: OPFS primário em pasta privada criptografada e migração legada',async()=>{
+test('Clara 4.0.4: OPFS primário em pasta privada criptografada e migração legada',async()=>{
  assert.match(html,/CLARA_FS_FOLDER='ClaraFinancas'/);
  assert.match(html,/CLARA_FS_SLOTS=\['cofre-0\.clara','cofre-1\.clara'\]/);
  assert.match(html,/navigator\.storage\.getDirectory\(\)/);
@@ -307,7 +307,7 @@ test('Clara 4.0.3: OPFS primário em pasta privada criptografada e migração le
  assert.match(ui,/Salvar backup/);
  assert.match(ui,/ClaraSecurity\?\.exportBackup/);
 });
-test('Clara 4.0.3: todos os arquivos biométricos e do OPFS estão em cache offline',async()=>{
+test('Clara 4.0.4: todos os arquivos biométricos e do OPFS estão em cache offline',async()=>{
  const build=await readFile('tools/build.mjs','utf8');
  const verify=await readFile('tools/verify-paths.mjs','utf8');
  const sw=await readFile('sw.js','utf8');
@@ -320,7 +320,7 @@ test('Clara 4.0.3: todos os arquivos biométricos e do OPFS estão em cache offl
  assert.match(html,/href="\.\/clara-storage-ui\.css"/);
 });
 
-test('Clara 4.0.3: recarregamento bloqueado por padrão, reversível e integrado às configurações',()=>{
+test('Clara 4.0.4: recarregamento bloqueado por padrão, reversível e integrado às configurações',()=>{
  assert.match(html,/simpleMode: true, reloadLock: true/);
  assert.match(html,/const PREF_BOOL_KEYS = [^\n]*'reloadLock'/);
  assert.match(html,/prefSwitch\('reloadLock','Proteger contra recarregamento'/);
@@ -334,5 +334,43 @@ test('Clara 4.0.3: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/window\.ClaraSecurity\?\.unlocked && pref\('reloadLock'\)/);
  assert.match(html,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\(\);location\.reload\(\)/);
  assert.match(html,/await window\.ClaraSecurity\.flush\(\);/);
- assert.match(html,/const CLARA_APP_VERSION='4\.0\.3-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.4-rc'/);
+});
+
+
+test('Clara 4.0.4: agenda mensal e sino para ambos os modos',async()=>{
+ const calendar=await readFile('clara-agenda.js','utf8');
+ const style=await readFile('clara-agenda.css','utf8');
+ assert.match(calendar,/window\.ClaraAgenda=/);
+ for(const term of ['renderCalendar','renderBell','calendarEvents','notificationsRead','dateValid','formOpen','saveEvent','persistSuccess','new Date','data-ca-bell','data-ca-day','data-ca-new','data-ca-edit','data-ca-toggle','data-ca-delete','data-ca-readall','data-ca-alert'])
+  assert.ok(calendar.includes(term),'Agenda incompleta: '+term);
+ assert.match(calendar,/const nativeRender=render/);
+ assert.match(calendar,/render=function\(\)\{nativeRender\(\);paint\(\);\}/);
+ assert.match(style,/\.ca-grid\{display:grid/);
+ assert.match(style,/\.ca-bell\{/);
+ assert.match(style,/max-width:760px/);
+ assert.match(html,/src="\.\/clara-agenda\.js"/);
+ assert.match(html,/href="\.\/clara-agenda\.css"/);
+ assert.match(html,/calendarEvents: \[\]/);
+ assert.match(html,/notificationsRead: \[\]/);
+ assert.match(html,/data\.calendarEvents!==undefined/);
+ assert.match(html,/data\.notificationsRead!==undefined/);
+ assert.match(html,/obj\.calendarEvents=obj\.calendarEvents\|\|\[\]/);
+});
+test('Clara 4.0.4: novas fontes de notificação com persistência no cofre',async()=>{
+ const calendar=await readFile('clara-agenda.js','utf8');
+ for(const token of ['for(const ev of calendarData())','for(const tx of state.transactions)','for(const goal of state.goals)','for(const budget of budgetRows())','update?.remoteVersion','update.compare','markRead([id])','state.notificationsRead=','window.ClaraUpdate.check'])
+  assert.ok(calendar.includes(token),'Fonte de notificação ausente: '+token);
+ assert.match(html,/await encryptState\(snapshot,claraKey,salt\)/);
+ assert.match(html,/CLARA_FS_FOLDER='ClaraFinancas'/);
+});
+test('Clara 4.0.4: cache offline da agenda acompanha a versão',async()=>{
+ const build=await readFile('tools/build.mjs','utf8');
+ const verify=await readFile('tools/verify-paths.mjs','utf8');
+ for(const f of ['clara-agenda.css','clara-agenda.js']){
+  assert.ok(sw.includes("'./"+f+"'"));
+  assert.ok(build.includes("'"+f+"'"));
+  assert.ok(verify.includes("'"+f+"'"));
+ }
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.4-rc'/);
 });
