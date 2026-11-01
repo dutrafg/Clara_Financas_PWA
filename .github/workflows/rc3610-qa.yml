@@ -1,4 +1,4 @@
-name: Clara Finanças 4.1.0 — QA único
+name: Clara Finanças 4.1.1 — QA único
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
       - 'homologacao/**'
       - feature/clara-design-premium-cleanup
+      - feature/clara-411-modo-demonstracao
   pull_request:
     branches:
       - main
