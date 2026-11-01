@@ -63,6 +63,12 @@ async def run():
             await page.evaluate('window.ClaraSecurity.flush()')
             vault=await page.evaluate("localStorage.getItem('clara-financas-vault-aesgcm-v1')")
             assert vault and 'Pagar conta fictícia' not in vault and 'Conteúdo privado' not in vault
+            # Não criar backup externo sem uma pasta; a recusa não altera o cofre.
+            rejected=await page.evaluate("""async () => {
+              try{await window.ClaraBackups.create('manual');return false;}
+              catch(e){return e.message.includes('Escolha uma pasta local');}
+            }""")
+            assert rejected, 'Backup sem pasta foi indevidamente permitido'
             # Seleção explícita de uma pasta (substituto OPFS para o seletor nativo no Chromium CI).
             await page.evaluate("""async () => {
               const root=await navigator.storage.getDirectory();
