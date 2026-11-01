@@ -172,7 +172,7 @@ test('Instalação PWA sem apagar o cofre e sem simular instalação',()=>{
  assert.match(html,/await prompt\.prompt\(\)/);
  assert.match(html,/id="claraInstallHelp"/);
  assert.match(html,/No Chrome, primeiro abra o site normalmente/);
- assert.match(html,/const CLARA_APP_VERSION='3\.6\.10-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.0-rc'/);
 });
 
 test('Navegação sem botão órfão de QA, preservando acesso de manutenção',()=>{
@@ -182,28 +182,67 @@ test('Navegação sem botão órfão de QA, preservando acesso de manutenção',
  assert.match(html,/if \(b\.dataset\.openQa\) \{ qaOpen\(\); return; \}/);
  assert.match(html,/id="claraAdvancedSettings"/);
  assert.match(html,/data-open-qa="1"/);
- assert.match(html,/const CLARA_APP_VERSION='3\.6\.10-rc'/);
+ assert.match(html,/const CLARA_APP_VERSION='4\.0\.0-rc'/);
 });
 
 
-test('RC3.6.10: notas da interface, metadata e instruções de segurança alinhadas',async()=>{
+test('RC4.0.0: notas da interface, metadata e instruções de segurança alinhadas',async()=>{
  const pkg=JSON.parse(await readFile('package.json','utf8'));
  const version=JSON.parse(await readFile('version.json','utf8'));
  const readme=await readFile('README.md','utf8');
- const qa=await readFile('docs/QA-RC3.6.10.md','utf8');
+ const qa=await readFile('docs/QA-RC4.0.0.md','utf8');
  const notesSource=html.match(/const CLARA_RELEASE_NOTES=Object\.freeze\((\[[\s\S]*?\])\);/)?.[1];
  assert.ok(notesSource,'Lista de novidades da interface ausente');
  const notes=JSON.parse(notesSource);
- assert.equal(version.version,'3.6.10-rc');
+ assert.equal(version.version,'4.0.0-rc');
  assert.equal(pkg.version,version.version);
- assert.match(html,/Clara Finanças RC3\.6\.10/);
+ assert.match(html,/Clara Finanças RC4\.0\.0/);
  assert.deepEqual(notes,version.notes,'Notas do HTML e version.json divergentes');
- assert.ok(notes.some(x=>x.includes('botão de testes isolado')));
- assert.ok(notes.some(x=>x.includes('Manutenção avançada')));
- assert.match(readme,/RC3\.6\.10/);
+ assert.ok(notes.some(x=>x.includes('quatro áreas')));
+ assert.ok(notes.some(x=>x.includes('modo avançado')));
+ assert.match(readme,/RC4\.0\.0/);
  assert.match(readme,/AES-256-GCM/);
  assert.match(readme,/PBKDF2-HMAC-SHA-256/);
  assert.match(readme,/310\.000 iterações/);
  for(const scenario of ['Chrome Android','Samsung Internet','Windows 11','offline','migração','M15'])
    assert.ok(qa.toLowerCase().includes(scenario.toLowerCase()),'Cenário QA ausente: '+scenario);
+});
+
+
+test('Clara 4.0: quatro áreas visíveis e sete rotas antigas preservadas',async()=>{
+ const simple=await readFile('clara-simple.js','utf8');
+ const css=await readFile('clara-simple.css','utf8');
+ const paths=['painel','mov','plan','mais'];
+ for(const path of paths)assert.ok(simple.includes("'"+path+"'"),'Navegação principal ausente: '+path);
+ assert.match(html,/id="view-mais"/);
+ assert.match(html,/window\.ClaraSimple\.renderMais\(\)/);
+ assert.match(html,/simpleMode: true/);
+ assert.match(html,/const PREF_BOOL_KEYS = [^\n]*'simpleMode'/);
+ assert.match(simple,/renderPainel=function/);
+ assert.match(simple,/renderMov=function/);
+ assert.match(simple,/renderPlan=function/);
+ assert.match(simple,/renderAjustes=function/);
+ assert.match(simple,/renderNav=function/);
+ assert.match(simple,/data-mode-toggle/);
+ assert.match(simple,/state\.settings\.simpleMode=next/);
+ assert.match(simple,/data-simple-hide/);
+ assert.match(css,/:root\[data-simple="true"\]/);
+ assert.match(css,/max-width:760px/);
+});
+test('Clara 4.0: Service Worker novo contém todos os arquivos e hash de si mesmo',async()=>{
+ const build=await readFile('tools/build.mjs','utf8');
+ const verify=await readFile('tools/verify-paths.mjs','utf8');
+ const simple=await readFile('clara-simple.js','utf8');
+ assert.match(html,/href="\.\/clara-simple\.css"/);
+ assert.match(html,/src="\.\/clara-simple\.js"/);
+ for(const asset of ['clara-simple.js','clara-simple.css']){
+  assert.ok(sw.includes('./'+asset),'SW não faz precache: '+asset);
+  assert.ok(build.includes("'"+asset+"'"),'Build não copia: '+asset);
+  assert.ok(verify.includes("'"+asset+"'"),'QA não verifica: '+asset);
+ }
+ assert.ok(build.includes("cacheHash.update('sw.js\\n')"),'Código do próprio SW deve mudar cache');
+ assert.ok(verify.includes("hash.update('sw.js\\n')"),'QA deve verificar hash SW');
+ assert.ok(simple.includes('persistSuccess('),'Modo não persiste');
+ assert.match(html,/ClaraSecurity\.flush\(\)/);
+ assert.doesNotMatch(sw,/await self\.skipWaiting\(\)/);
 });
