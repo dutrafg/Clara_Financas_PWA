@@ -1,9 +1,10 @@
 {
   "name": "Clara Finanças",
-  "version": "4.1.4-rc",
+  "version": "4.1.5-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Aviso de atualização com botão Atualizar agora sempre visível; prepara o pacote offline sob demanda e pede confirmação antes da instalação.",
     "Após escolher a pasta de backup, o card de configuração desaparece da Dashboard; o gerenciamento permanece em Configurações, inclusive após recarregar.",
     "Backups externos na pasta local selecionada, com criptografia AES-256-GCM de todas as informações, prevenção de sobrescrita e histórico privado complementar.",
     "Dois novos miniaplicativos integrados à Dashboard: Lembretes, com prioridade, conclusão e notificações; Bloco de notas, com pesquisa e fixação.",
