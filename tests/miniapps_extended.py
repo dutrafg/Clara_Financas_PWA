@@ -132,7 +132,7 @@ async def run():
       result=await page.evaluate("window.__claraQaExports.at(-1)")
       assert await page.evaluate("window.__claraQaExports.length")==before_count+1,widget
       assert result['name'].startswith('Clara_Miniapp_'+widget),result
-      assert result['content'].startswith('\\ufeff') and len(result['content'])>25,widget
+      assert result['content'].startswith('\ufeff') and len(result['content'])>25,widget
       assert result['mime'].startswith('text/csv'),widget
     await page.evaluate("() => {dl=window.__claraQaOriginalDl;delete window.__claraQaOriginalDl;}")
     # Pelo menos um download físico, para aferir integração nativa com o Chromium.
