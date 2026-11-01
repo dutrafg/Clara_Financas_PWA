@@ -21,6 +21,7 @@ function entries(){
   data.get(entry.date).push(entry);
  };
  for(const ev of calendarData())add({id:ev.id,date:ev.date,time:ev.time,title:ev.title,kind:'appointment',done:ev.done,notes:ev.notes});
+ for(const r of (state.reminders||[]))add({id:r.id,date:r.dueDate,time:r.time,title:r.title,kind:'reminder',done:r.done,notes:r.detail,priority:r.priority});
  for(const tx of state.transactions){
   if(tx.status==='Cancelado')continue;
   add({id:tx.id,date:tx.date,time:'',title:tx.description,kind:'tx',done:tx.status==='Realizado',type:tx.kind,amountCents:tx.amountCents});
@@ -50,6 +51,13 @@ function listNotifications(){
  for(const ev of calendarData()){
   const label=appointmentReminder(ev,now);
   if(label)items.push({id:'cal:'+ev.id+':'+label,title:label,detail:ev.title+' · '+labelDate(ev.date)+(ev.time?' às '+ev.time:''),kind:'appointment',ref:ev.id,priority:label==='Compromisso atrasado'?0:1});
+ }
+ for(const r of (state.reminders||[])){
+  if(r.done)continue;
+  const label=appointmentReminder({date:r.dueDate,time:r.time,reminder:r.reminder,done:r.done},now);
+  if(label)items.push({id:'rem:'+r.id+':'+label,title:label.replace('Compromisso','Lembrete'),
+    detail:r.title+' · '+labelDate(r.dueDate)+(r.time?' às '+r.time:''),
+    kind:'reminder',ref:r.id,priority:r.priority==='high'?0:1});
  }
  for(const tx of state.transactions){
   if(tx.status!=='Pendente')continue;
@@ -83,9 +91,11 @@ function markRead(ids){
 function changeDay(day){if(!dateValid(day))return;selected=day;month=day.slice(0,7);render();}
 function dayEntries(data,day){return (data.get(day)||[]).slice().sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99')||a.title.localeCompare(b.title,'pt-BR'));}
 function eventItem(ev){
- const what=ev.kind==='appointment'?'Compromisso':ev.kind==='goal'?'Meta':ev.type==='Receita'?'Recebimento':ev.type==='Transferência'?'Transferência':'Conta / lançamento';
+ const what=ev.kind==='appointment'?'Compromisso':ev.kind==='reminder'?'Lembrete':ev.kind==='goal'?'Meta':ev.type==='Receita'?'Recebimento':ev.type==='Transferência'?'Transferência':'Conta / lançamento';
  const actions=ev.kind==='appointment'
   ? `<button type="button" data-ca-toggle="${safe(ev.id)}">${ev.done?'Reabrir':'Concluir'}</button><button type="button" data-ca-edit="${safe(ev.id)}">Editar</button>`
+  :ev.kind==='reminder'
+  ? `<button type="button" data-ca-reminder="${safe(ev.id)}">Ver lembrete</button>`
   :ev.kind==='goal'
   ? `<button type="button" data-ca-goal="${safe(ev.id)}">Abrir meta</button>`
   : `<button type="button" data-ca-tx="${safe(ev.id)}">Ver lançamento</button>`;
@@ -188,6 +198,11 @@ function alertAction(id){
  if(n.kind==='budget'){go('plan');return;}
  if(n.kind==='tx'){modal('editTransaction',n.ref);return;}
  if(n.kind==='goal'){modal('editGoal',n.ref);return;}
+ if(n.kind==='reminder'){
+  const reminder=(state.reminders||[]).find(r=>r.id===n.ref);
+  if(reminder){selected=reminder.dueDate;month=selected.slice(0,7);go('painel');window.ClaraExtras?.showForm('reminder',reminder.id);}
+  return;
+ }
  if(n.kind==='appointment'){
   const event=calendarData().find(ev=>ev.id===n.ref);
   if(event){selected=event.date;month=selected.slice(0,7);go('painel');formOpen(event.id);}
@@ -214,6 +229,7 @@ document.addEventListener('click',e=>{
   else if('caToggle' in ds){const ev=calendarData().find(x=>x.id===ds.caToggle);if(ev){ev.done=!ev.done;persistSuccess(ev.done?'Compromisso concluído.':'Compromisso reaberto.');}}
   else if('caTx' in ds){modal('editTransaction',ds.caTx);}
   else if('caGoal' in ds){modal('editGoal',ds.caGoal);}
+  else if('caReminder' in ds){window.ClaraExtras?.showForm('reminder',ds.caReminder);}
   else if('caClose' in ds){closeDialog();}
   else if('caDelete' in ds){deleteEvent();}
  }catch(error){showToast(error.message,true);}
