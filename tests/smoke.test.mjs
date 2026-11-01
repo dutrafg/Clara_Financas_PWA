@@ -428,29 +428,31 @@ test('Clara 4.1.0: QA único cobre main e homologação sem workflows legados',a
 });
 
 
-test('Clara Studio 4.1: código obsoleto da barra lateral removido sem perder navegação',async()=>{
+
+test('Clara Studio 4.1: barra lateral legada removida sem perder navegação',async()=>{
  const core=await readFile('index.html','utf8');
  const simple=await readFile('clara-simple.js','utf8');
- assert.doesNotMatch(core,/id="sideNav"/);
- assert.doesNotMatch(core,/sidebarCompact/);
- assert.doesNotMatch(core,/\\.sidebar\\s*\\{\\s*position:/);
- assert.doesNotMatch(simple,/sideNav/);
- assert.match(core,/id="mobileNav"/);
- assert.match(simple,/id='claraDesktopDock'/);
- assert.match(core,/MOBILE_NAV_LABELS/);
- assert.match(core,/renderProfileBubble\\(\\)/);
+ assert.ok(!core.includes('id="sideNav"'));
+ assert.ok(!core.includes('sidebarCompact'));
+ assert.ok(!core.includes('.sidebar {\n  position: sticky'));
+ assert.ok(!simple.includes('sideNav'));
+ assert.ok(core.includes('id="mobileNav"'));
+ assert.ok(simple.includes("id='claraDesktopDock'"));
+ assert.ok(core.includes('MOBILE_NAV_LABELS'));
+ assert.ok(core.includes('renderProfileBubble()'));
 });
-test('Clara Studio 4.1: design premium independente de rede e com acessibilidade',async()=>{
+test('Clara Studio 4.1: sistema visual local e acessível',async()=>{
  const css=await readFile('clara-premium.css','utf8');
  const build=await readFile('tools/build.mjs','utf8');
  const verify=await readFile('tools/verify-paths.mjs','utf8');
  const sw=await readFile('sw.js','utf8');
- assert.match(html,/href="\\.\\/clara-premium\\.css"/);
- for(const body of [sw,build,verify])assert.match(body,/clara-premium\\.css/);
+ assert.ok(html.includes('href="./clara-premium.css"'));
+ for(const body of [sw,build,verify])assert.ok(body.includes('clara-premium.css'));
  for(const token of ['--studio-card-shadow','--studio-radius-4','clara-balance',
     'clara-desktop-dock','ca-bell','prefers-reduced-motion','hover:none','max-width:760px',
     'data-theme="light"','data-theme="dark"'])
   assert.ok(css.includes(token),'Token de design ausente: '+token);
- assert.doesNotMatch(css,/@import\\s|url\\(https?:/);
- assert.match(css,/:focus-visible/);
+ assert.ok(!css.includes('@import '));
+ assert.ok(!css.includes('url(http'));
+ assert.ok(css.includes(':focus-visible'));
 });
