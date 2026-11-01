@@ -4752,7 +4752,8 @@ const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const HOUR=60*60*1000, RESUME=15*60*1000, DISMISS_KEY='clara-update-dismissed-v1';
  let registration=null, initialPromise=null, checking=null, applying=false, observed=false;
- let installRequested=false, installPromise=null;
+ let installRequested=false, installPromise=null, prepareTimer=null;
+ const PREPARE_TIMEOUT=25000;
  let status='Aguardando', message='Verificação automática ao desbloquear.', lastCheck=0;
  let remoteVersion='', releaseNotes=[], ready=false;
  const get=id=>document.getElementById(id);
@@ -4764,6 +4765,17 @@ const ClaraUpdate=(()=>{
  };
  const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===remoteVersion;}catch{return false;}};
  function setStatus(next,msg){status=next;message=msg;paint();}
+ function clearPreparation(){installRequested=false;if(prepareTimer)clearTimeout(prepareTimer);prepareTimer=null;}
+ function startPreparation(){
+  if(prepareTimer)clearTimeout(prepareTimer);
+  prepareTimer=setTimeout(()=>{
+   prepareTimer=null;
+   if(installRequested&&!registration?.waiting){
+    installRequested=false;
+    setStatus('Falha ao preparar','O pacote ainda não está disponível. Confira a conexão e tente Atualizar agora novamente.');
+   }
+  },PREPARE_TIMEOUT);
+ }
  function paint(){
   const version=get('claraUpdateInstalled'),last=get('claraUpdateLast');
   if(version)version.textContent=INSTALLED_VERSION;
@@ -4778,12 +4790,12 @@ const ClaraUpdate=(()=>{
   const notice=get('claraUpdateNotice');
   if(notice){
    const available=remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
-   const show=available&&!dismissed()&&!applying&&(ready||status==='Preparando atualização'||installRequested);
+   const show=available&&!dismissed()&&!applying&&(ready||status==='Preparando atualização'||status==='Falha ao preparar'||installRequested);
    notice.hidden=!show;
    const title=get('claraUpdateNoticeTitle'),description=get('claraUpdateNoticeText');
-   if(title)title.textContent=ready?'Atualização pronta para instalar':'Nova versão encontrada';
+   if(title)title.textContent=ready?'Atualização pronta para instalar':status==='Falha ao preparar'?'Atualização ainda não pronta':'Nova versão encontrada';
    if(description)description.textContent='Clara '+remoteVersion+'. '+
-     (ready?'O pacote está pronto. Seus dados serão preservados.':installRequested?'Preparando seu pedido de atualização. A instalação será confirmada quando o pacote estiver pronto.':'Preparando os arquivos para uso offline.')+
+     (ready?'O pacote está pronto. Seus dados serão preservados.':installRequested?'Preparando seu pedido de atualização. A instalação será confirmada quando o pacote estiver pronto.':status==='Falha ao preparar'?'Não foi possível finalizar o pacote. Tente atualizar novamente.':'Preparando os arquivos para uso offline.')+
      (releaseNotes.length?' '+releaseNotes[0]:'');
    const button=get('claraUpdateNoticeInstall');
    if(button){
@@ -4798,7 +4810,7 @@ const ClaraUpdate=(()=>{
   if(ready){
    setStatus('Atualização disponível','Versão '+(remoteVersion||'nova')+' pronta. Confira as novidades e escolha Atualizar agora.');
    if(installRequested){
-    installRequested=false;
+    clearPreparation();
     // A instalação exige confirmação e o salvamento do cofre; nunca ativar o SW sem ambos.
     void installReady(registration).catch(error=>showToast(error.message,true));
    }
@@ -4886,7 +4898,7 @@ const ClaraUpdate=(()=>{
  async function installReady(r){
   if(installPromise)return installPromise;
   installPromise=(async()=>{
-   if(!r?.waiting)return false;
+   if(!r?.waiting||applying)return false;
    if(!canInstall())return false;
    if(!window.confirm('Instalar a atualização '+(remoteVersion||'disponível')+'? O Clara será reaberto, sem apagar o cofre nem os seus registros.'))return false;
    await window.ClaraSecurity.flush();
@@ -4904,9 +4916,10 @@ const ClaraUpdate=(()=>{
   if(!canInstall())return false;
   const r=await ensureRegistration();
   if(!r)return false;
-  if(r.waiting){installRequested=false;return installReady(r);}
+  if(r.waiting){clearPreparation();return installReady(r);}
   if(!navigator.onLine){setStatus('Sem conexão','Conecte-se à internet para preparar a atualização.');return false;}
   installRequested=true;
+  startPreparation();
   setStatus('Preparando atualização','Atualização solicitada. Preparando o pacote offline antes de confirmar a instalação.');
   await check(false);
   if(r.waiting){
@@ -4914,7 +4927,7 @@ const ClaraUpdate=(()=>{
    return installReady(r);
   }
   if(status==='Sem confirmação'||status==='Sem conexão'||status==='Atualizado'){
-   installRequested=false;
+   clearPreparation();
    paint();
    showToast('O pacote ainda não pôde ser preparado. Verifique a conexão e tente novamente.',true);
    return false;
@@ -4923,7 +4936,7 @@ const ClaraUpdate=(()=>{
   return true;
  }
  function dismiss(){
-  installRequested=false;
+  clearPreparation();
   try{if(remoteVersion)localStorage.setItem(DISMISS_KEY,remoteVersion);}catch{}
   const banner=get('claraUpdateNotice');if(banner)banner.hidden=true;
  }
