@@ -325,7 +325,7 @@ test('Clara 4.0.3: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/const PREF_BOOL_KEYS = [^\n]*'reloadLock'/);
  assert.match(html,/prefSwitch\('reloadLock','Proteger contra recarregamento'/);
  assert.match(html,/id="clara-reload-guard"/);
- assert.match(html,/event\.key/);
+ assert.match(html,/const key=String\(e\.key/);
  assert.match(html,/key==='f5'/);
  assert.match(html,/key==='r'&&\(e\.ctrlKey\|\|e\.metaKey\)/);
  assert.match(html,/event\.preventDefault\(\)/);
