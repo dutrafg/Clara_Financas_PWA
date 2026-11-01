@@ -6,7 +6,7 @@ const ClaraUpdate=(()=>{
  const HOUR=60*60*1000,RESUME=15*60*1000,DISMISS_KEY='clara-update-dismissed-v1';
  const PREPARE_TIMEOUT=120000, NETWORK_TIMEOUT=10000,PROGRESS_POLL=5000;
  let registration=null,initialPromise=null,checking=null,installPromise=null;
- let applying=false,installRequested=false,ready=false,reopenReady=false,observed=false;
+ let applying=false,ready=false,reopenReady=false,observed=false;
  let status='Aguardando',message='Verificação automática ao desbloquear.',lastCheck=0;
  let remoteVersion='',releaseNotes=[],prepareTimer=null,activationTimer=null;
  let preparationStartedAt=0,lastProgressAt=0,lastProgressDone=-1,installProgress=null;
@@ -42,11 +42,10 @@ const ClaraUpdate=(()=>{
   })]).finally(()=>clearTimeout(timer));
  };
  function setStatus(next,detail){status=next;message=detail;paint();}
- function clearPreparation(){installRequested=false;preparationStartedAt=0;lastProgressAt=0;lastProgressDone=-1;installProgress=null;clearTimeout(prepareTimer);prepareTimer=null;}
+ function clearPreparation(){preparationStartedAt=0;lastProgressAt=0;lastProgressDone=-1;installProgress=null;clearTimeout(prepareTimer);prepareTimer=null;}
  function startPreparation(){
   if(!preparationStartedAt)preparationStartedAt=Date.now();
   clearTimeout(prepareTimer);
-  const elapsed=Date.now()-preparationStartedAt;
   const idle=Date.now()-(lastProgressAt||preparationStartedAt);
   const worker=registration?.installing;
   if(registration?.waiting){handleWaiting();return;}
@@ -280,9 +279,9 @@ const ClaraUpdate=(()=>{
   if(reopenReady||await activatedPackageReady(r)){clearPreparation();return reopenInstalled(r);}
   if(!navigator.onLine){setStatus('Sem conexão','Conecte-se para preparar a atualização.');return false;}
   if(r.installing){watchInstalling(r.installing);startPreparation();return false;}
-  installRequested=true;startPreparation();
+  startPreparation();
   setStatus('Preparando atualização','Nova tentativa solicitada. Não limpe os dados do site.');
-  const result=await check(false);
+  await check(false);
   if(r.waiting){clearPreparation();return installReady(r);}
   if(reopenReady){clearPreparation();return reopenInstalled(r);}
   if(status==='Falha ao preparar'||status==='Sem conexão'||status==='Atualizado'){
