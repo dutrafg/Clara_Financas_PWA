@@ -1,4 +1,4 @@
-"""Clara Finanças 4.0.4: calendário/agenda, sino e integração financeira em três viewports."""
+"""Clara Finanças 4.0.5: calendário/agenda, sino e integração financeira em três viewports."""
 import asyncio
 from playwright.async_api import async_playwright
 
@@ -27,6 +27,53 @@ async def main():
             await page.locator('#claraCalendar').wait_for(timeout=12000)
             assert await page.locator('#claraCalendar [data-ca-day]').count() in (28,30,35,42)
             assert await page.locator('#claraNotificationButton').is_visible()
+            bell=await page.evaluate("""() => {
+                const el=document.getElementById('claraNotificationButton'),r=el.getBoundingClientRect();
+                return {position:getComputedStyle(el).position,right:innerWidth-r.right,top:r.top,
+                        inBody:el.parentElement===document.body,styled:!!el.querySelector('.ca-apple-bell')};
+            }""")
+            assert bell['position']=='fixed' and bell['inBody'] and bell['styled'],bell
+            assert 7<=bell['right']<=35 and 7<=bell['top']<=50,bell
+            dock=await page.evaluate("""() => {
+                const sidebar=document.querySelector('.sidebar'),
+                      wide=document.getElementById('claraDesktopDock'),
+                      mobile=document.querySelector('.mobile-dock'),
+                      r=wide.getBoundingClientRect(),
+                      styles=getComputedStyle(wide);
+                return {sidebarHidden:getComputedStyle(sidebar).display==='none',
+                        wideVisible:styles.display!=='none'&&r.height>0,
+                        desktopCount:wide.querySelectorAll('button[data-view]').length,
+                        mobileVisible:getComputedStyle(mobile).display!=='none'};
+            }""")
+            assert dock['sidebarHidden'] and dock['desktopCount']==8,dock
+            if width>760:
+                assert dock['wideVisible'] and not dock['mobileVisible'],dock
+                assert await page.locator('#claraDesktopDock [data-view="conf"]').is_visible()
+                assert await page.locator('#claraDesktopDock [data-view="historico"]').is_visible()
+                assert await page.locator('#claraDesktopDock [data-view="ajustes"]').is_visible()
+                await page.locator('#claraDesktopDock [data-view="conf"]').click()
+                assert await page.locator('#view-conf').is_visible()
+                await page.locator('#claraDesktopDock [data-view="historico"]').click()
+                assert await page.locator('#view-historico').is_visible()
+                await page.locator('#claraDesktopDock [data-view="painel"]').click()
+            else:
+                assert not dock['wideVisible'] and dock['mobileVisible'],dock
+            await page.evaluate("""() => {
+                const e=document.createElement('div');e.id='claraScrollProbe';
+                e.style.height='1700px';e.setAttribute('aria-hidden','true');
+                document.body.appendChild(e);
+                window.scrollTo(0,document.documentElement.scrollHeight);
+            }""")
+            moved=await page.evaluate("""() => {
+                const e=document.getElementById('claraNotificationButton'),r=e.getBoundingClientRect();
+                return {right:innerWidth-r.right,top:r.top,scroll:scrollY};
+            }""")
+            assert moved['scroll']>100 and abs(moved['right']-bell['right'])<2 and abs(moved['top']-bell['top'])<2,(bell,moved)
+            await page.evaluate("""() => {
+                document.getElementById('claraScrollProbe').remove();
+                window.scrollTo(0,0);
+            }""")
+
             assert await page.locator('#claraCalendar .ca-agenda').is_visible()
             assert await page.evaluate('window.ClaraAgenda?.entries.length') == 0
             await page.locator('[data-ca-new]').first.click()
@@ -42,6 +89,7 @@ async def main():
             assert await page.evaluate('window.ClaraAgenda.notifications.some(n=>n.kind==="appointment")')
             await page.locator('#claraNotificationButton').click()
             assert await page.locator('#claraNotificationPanel').is_visible()
+            assert await page.evaluate("getComputedStyle(document.getElementById('claraNotificationPanel')).position")=='fixed'
             assert await page.locator('#claraNotificationPanel .ca-notification').count()>=1
             await page.locator('#claraNotificationPanel [data-ca-readall]').click()
             assert await page.evaluate('state.notificationsRead.length')>=1
