@@ -1,4 +1,4 @@
-# Clara Finanças RC4.1.1 — Design Clara Studio
+# Clara Finanças RC4.1.2 — Design Clara Studio
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
@@ -93,10 +93,19 @@ O protocolo manual está em [docs/QA-RC3.6.10.md](docs/QA-RC3.6.10.md). Homologa
 - Critérios de qualidade: contraste, responsividade em 320/390/768/1024/1440/1920 px, temas claro/escuro, teclado/foco, movimento reduzido, atualização offline, UX de cofre e nenhuma regressão nos 15 miniaplicativos.
 - O pacote visual é local e pré-cacheado; não usa dependências externas de CDN nem fontes descarregadas pela rede.
 
-## Clara Studio RC4.1.1 — demonstração e desktop em largura útil
+## Clara Studio RC4.1.2 — demonstração e desktop em largura útil
 
 - A opção **Conhecer a Clara sem criar senha** só aparece quando não existe cofre nem armazenamento legado. O usuário pode navegar por informações financeiras **fictícias em memória**, sem criar lançamentos reais, sem acesso aos dados de outra pessoa e sem salvar a demonstração.
 - Ações de cadastro, edição, importação e gravação exigem a criação do cofre com senha local de pelo menos 12 caracteres. Ao escolher **Criar meu cofre**, a demonstração é descartada e o banco financeiro começa vazio.
 - No desktop (largura a partir de 1024 px), o dock dos oito módulos fica flutuante na lateral esquerda, centralizado verticalmente; o conteúdo principal ocupa toda a largura útil à direita, sem o limite central fixo de 1000/1460 px. Há espaço reservado de 105 px para evitar sobreposição.
 - No tablet (761–1023 px), a dock continua horizontal na parte inferior. No smartphone, o menu compacto original é mantido.
 - Dados do cofre, Service Worker, backup e recursos de biometria não são alterados pela demonstração; ela não permite persistir dados sem a senha.
+
+
+## Lembretes, notas e backups offline — RC4.1.2
+
+- **Lembretes**: miniaplicativo na Dashboard de ambos os modos, com prioridade, data/hora, conclusão, edição e integração à agenda e ao sino.
+- **Bloco de notas**: anotações privadas criptografadas com busca, fixação, edição e exclusão. A demonstração utiliza registros fictícios sem gravá-los.
+- **Backup offline**: cartões na Dashboard e em Segurança, exportação .clara e retenção de até 30 cópias automáticas locais, guardadas em pasta privada OPFS, ou IndexedDB quando indisponível.
+- **2h da manhã**: verificação diária local enquanto a Clara estiver aberta. Se estiver fechada, a cópia automática será tentada quando abrir após as 02:00 e desbloquear o cofre. Navegadores não garantem execução agendada com o PWA totalmente encerrado.
+- **Limitação essencial**: backups no próprio navegador podem ser apagados junto com os dados do site. É recomendado exportar regularmente um arquivo criptografado para armazenamento externo.
