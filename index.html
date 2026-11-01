@@ -4109,18 +4109,34 @@ document.addEventListener('change',async e=>{
 });
 let floatOpen = false;
 function setFloatMenu(open) {
+  const wasOpen=floatOpen;
   floatOpen = !!open && matchMedia('(max-width: 760px)').matches;
-  $('floatMenu').classList.toggle('open', floatOpen);
-  $('floatMenu').setAttribute('aria-hidden', String(!floatOpen));
-  $('floatTrigger').setAttribute('aria-expanded', String(floatOpen));
-  $('floatTrigger').setAttribute('aria-label', floatOpen ? 'Fechar lista de módulos' : 'Abrir todos os módulos');
-  if (floatOpen) $('mobileNav').querySelector('.navlink.active')?.focus();
+  const menu=$('floatMenu'), trigger=$('floatTrigger'), nav=$('mobileNav');
+  menu.classList.toggle('open', floatOpen);
+  menu.setAttribute('aria-hidden', String(!floatOpen));
+  trigger.setAttribute('aria-expanded', String(floatOpen));
+  trigger.setAttribute('aria-label', floatOpen ? 'Fechar lista de módulos' : 'Abrir todos os módulos');
+  // Bloquear a rolagem do conteúdo atrás do painel, sem alterar o cofre.
+  document.body.classList.toggle('clara-menu-open',floatOpen);
+  if(floatOpen)nav.querySelector('.navlink.active')?.focus();
+  else if(wasOpen&&nav.contains(document.activeElement))trigger.focus();
 }
 function closeFloatMenu() { if (floatOpen) setFloatMenu(false); }
 $('floatTrigger').addEventListener('click', () => setFloatMenu(!floatOpen));
 $('floatBackdrop').addEventListener('click', () => { closeFloatMenu(); $('floatTrigger').focus(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && floatOpen) { closeFloatMenu(); $('floatTrigger').focus(); }
+  if (e.key === 'Escape' && floatOpen) {
+    e.preventDefault();closeFloatMenu();$('floatTrigger').focus();
+  }
+  if (e.key !== 'Tab'||!floatOpen)return;
+  const links=[...$('mobileNav').querySelectorAll('button:not([disabled])')];
+  if(!links.length)return;
+  const first=links[0],last=links[links.length-1],focused=document.activeElement;
+  if(e.shiftKey&&(focused===first||!links.includes(focused))){
+    e.preventDefault();last.focus();
+  }else if(!e.shiftKey&&(focused===last||!links.includes(focused))){
+    e.preventDefault();first.focus();
+  }
 });
 matchMedia('(max-width: 760px)').addEventListener('change', () => closeFloatMenu());
 // Configurações permanece acessível exclusivamente como módulo de navegação.
