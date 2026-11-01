@@ -4,9 +4,10 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
 const updaterSource=await readFile('clara-updater.js','utf8');
-const workerSource=await readFile('dist/sw.js','utf8');
-const candidateCacheName=workerSource.match(/const CACHE_NAME = '([^']+)'/)?.[1];
-assert.ok(candidateCacheName,'build gerou cache versionado');
+const workerTemplate=await readFile('sw.js','utf8');
+const candidateCacheName='clara-financas-4-2-5-rc-unit-test';
+const workerSource=workerTemplate.replace('__CLARA_CACHE_NAME__',candidateCacheName);
+assert.ok(!workerSource.includes('__CLARA_CACHE_NAME__'),'fixture criou um nome de cache concreto');
 
 function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{}}={}){
  let now=1_000,nextId=0;
