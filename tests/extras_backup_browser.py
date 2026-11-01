@@ -63,13 +63,38 @@ async def run():
             await page.evaluate('window.ClaraSecurity.flush()')
             vault=await page.evaluate("localStorage.getItem('clara-financas-vault-aesgcm-v1')")
             assert vault and 'Pagar conta fictícia' not in vault and 'Conteúdo privado' not in vault
+            # Seleção explícita de uma pasta (substituto OPFS para o seletor nativo no Chromium CI).
+            await page.evaluate("""async () => {
+              const root=await navigator.storage.getDirectory();
+              const chosen=await root.getDirectoryHandle('ClaraDestinoExternoQA',{create:true});
+              window.showDirectoryPicker=async()=>chosen;
+              await window.ClaraBackups.chooseFolder();
+            }""")
+            assert await page.evaluate("window.ClaraBackups.folderReady") is True
+            assert await page.evaluate("window.ClaraBackups.folder")=='ClaraDestinoExternoQA'
             assert await page.evaluate("pref('autoBackup')") is True
             assert await page.evaluate("window.ClaraBackups.next.getHours()")==2
+            await page.evaluate("window.ClaraBackups.create('manual')")
             await page.evaluate("window.ClaraBackups.create('manual')")
             await page.evaluate("window.ClaraBackups.create('daily')")
             names=await page.evaluate("window.ClaraBackups.entries.map(x=>x.name)")
             assert any(x.startswith('daily-') for x in names),names
-            assert any(x.startswith('manual-') for x in names),names
+            assert len([x for x in names if x.startswith('manual-')])==2,names
+            assert len(set(names))==len(names),names
+            # Todas as categorias do cofre (incluindo nota, perfil, preferências) saem cifradas.
+            external=await page.evaluate("""async () => {
+              const root=await navigator.storage.getDirectory();
+              const dest=await root.getDirectoryHandle('ClaraDestinoExternoQA');
+              const files=[];
+              for await(const [name,handle] of dest.entries()){
+                const raw=await (await handle.getFile()).text();
+                files.push({name,encrypted:raw.includes('CLARA-VAULT-1')
+                  &&!raw.includes('Conteúdo privado')&&!raw.includes('Pagar conta fictícia')
+                  &&!raw.includes('Nota de exemplo')});
+              }
+              return files;
+            }""")
+            assert len(external)==3 and all(x['encrypted'] for x in external),external
             backup=await page.evaluate("""async()=>{
                const root=await navigator.storage.getDirectory();
                const folder=await root.getDirectoryHandle('ClaraFinancas');
@@ -95,6 +120,7 @@ async def run():
             await page.evaluate('window.ClaraSecurity.flush()')
             assert await page.evaluate('state.quickNotes.length')==1
             await page.reload(wait_until='load')
+            await page.wait_for_function('window.ClaraBackups.folderReady',timeout=10000)
             if await page.locator('#securityCover').is_visible():
                 await page.locator('#securityPassword').fill(PASSWORD)
                 await page.locator('#securitySubmit').click()
