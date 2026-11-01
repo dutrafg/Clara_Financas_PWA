@@ -4337,6 +4337,7 @@ const qaSpecs = [
     qaAssert(accountPendingCard('card1') === 18000 && totalCardOpenInvoice() === 18000);
   })],
   ['QA-083', 'Renderização e filtro textual da tabela de Movimentações no DOM', () => qaFixture(() => {
+    state.settings.simpleMode=false;
     state.transactions.push(qaTx('Padaria Central', 'Despesa', 'Pendente', 3500, '2026-10-11'), qaTx('Salário Outubro', 'Receita', 'Realizado', 300000, '2026-10-05', '2026-10-05'));
     search = 'Padaria';
     renderMov();
