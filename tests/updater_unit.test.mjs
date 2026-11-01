@@ -191,7 +191,7 @@ test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato
  let responsePromise;
  await h.fire('fetch',{request:{method:'GET',url:h.scope,mode:'navigate',cache:'default'},respondWith(promise){responsePromise=promise;}});
  assert.equal(await (await responsePromise).text(),'stable shell');
- await h.message('CLARA_RETRY_CANDIDATE');
+ await h.message('CLARA_RETRY_CANDIDATE','clara-financas-4-2-4-old');
  assert.equal((await h.readState()).rolledBack,false);
  assert.ok(h.stores.has('clara-financas-4-2-4-old'));
 });

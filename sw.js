@@ -119,9 +119,10 @@ self.addEventListener('message',event=>{
  if(type==='SKIP_WAITING'){self.skipWaiting();return;}
  event.waitUntil((async()=>{
   const state=await readUpdateState();
+  if(!state||state.current!==CACHE_NAME)return;
   // A página que disparou a atualização ainda executa o pacote anterior.
   // Só a nova shell pode confirmar ou reprovar o boot deste cache.
-  if(!state||state.current!==CACHE_NAME||event.data.cacheName!==CACHE_NAME)return;
+  if((type==='CLARA_BOOT_OK'||type==='CLARA_BOOT_FAILED')&&event.data.cacheName!==CACHE_NAME)return;
   if(type==='CLARA_BOOT_OK'&&!state.rolledBack){
    state.confirmed=true;
    await writeUpdateState(state);
