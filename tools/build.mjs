@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 
 const root = new URL('../',import.meta.url);
 const dist = new URL('../dist/',import.meta.url);
-const files = ['index.html','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
+const files = ['index.html','clara-simple.css','clara-simple.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
 const file = name => new URL(name,root);
 const load = async name => readFile(file(name));
 const pkg=JSON.parse((await load('package.json')).toString('utf8'));
@@ -43,6 +43,9 @@ for(const ref of referenced) await load(ref);
 const cacheHash=createHash('sha256');
 cacheHash.update(pkg.version+'\n');
 for(const name of files) {cacheHash.update(name+'\n');cacheHash.update(await load(name));}
+// Mudanças apenas no motor do SW também forçam uma nova identidade de cache.
+cacheHash.update('sw.js\n');cacheHash.update(await load('sw.js'));
+
 const revision=cacheHash.digest('hex').slice(0,16);
 const cacheName='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
 
