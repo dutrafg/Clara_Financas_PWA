@@ -63,12 +63,12 @@ async def main():
             assert bell['position']=='fixed' and bell['inBody'] and bell['styled'],bell
             assert 7<=bell['right']<=35 and 7<=bell['top']<=50,bell
             dock=await page.evaluate("""() => {
-                const sidebar=document.querySelector('.sidebar'),
+                const sidebarRemoved=!document.querySelector('.sidebar,#sideNav'),
                       wide=document.getElementById('claraDesktopDock'),
                       mobile=document.querySelector('.mobile-dock'),
                       r=wide.getBoundingClientRect(),
                       styles=getComputedStyle(wide);
-                return {sidebarHidden:getComputedStyle(sidebar).display==='none',
+                return {sidebarHidden:sidebarRemoved,
                         wideVisible:styles.display!=='none'&&r.height>0,
                         desktopCount:wide.querySelectorAll('button[data-view]').length,
                         mobileVisible:getComputedStyle(mobile).display!=='none'};
