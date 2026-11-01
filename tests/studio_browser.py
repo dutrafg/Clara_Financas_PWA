@@ -144,7 +144,11 @@ async def run():
       if width>760:
         notification_placement=await page.evaluate("""() => {
           const bell=document.getElementById('claraNotificationButton').getBoundingClientRect();
-          const notice=document.getElementById('claraUpdateNotice').getBoundingClientRect();
+          const element=document.getElementById('claraUpdateNotice');
+          const wasHidden=element.hidden;
+          element.hidden=false;
+          const notice=element.getBoundingClientRect();
+          element.hidden=wasHidden;
           return {bellBottom:bell.bottom,noticeTop:notice.top};
         }""")
         assert notification_placement['noticeTop']>notification_placement['bellBottom'],notification_placement
