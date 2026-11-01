@@ -28,19 +28,27 @@ function entries(){
  for(const goal of state.goals)if(goal.dueDate)add({id:goal.id,date:goal.dueDate,time:'',title:goal.name,kind:'goal',done:goal.savedCents>=goal.targetCents,amountCents:goal.targetCents});
  return data;
 }
+// Lembretes por hora exigem horário explícito, antes do alerta genérico do dia.
+// O relógio pode ser injetado no QA; o cálculo usa datas locais, sem converter para UTC.
+function appointmentReminder(ev,instant=new Date()){
+ if(ev.done||!dateValid(ev.date))return '';
+ const now=new Date(instant);
+ const localDay=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const diff=Math.round((new Date(ev.date+'T12:00:00')-new Date(localDay+'T12:00:00'))/86400000);
+ const hasClock=!!ev.time&&validTime(ev.time);
+ const diffMinutes=hasClock?(minDate(ev.date,ev.time)-now)/60000:Infinity;
+ if(diff<0||(hasClock&&diffMinutes<0))return 'Compromisso atrasado';
+ if(hasClock&&diffMinutes>0&&diffMinutes<=60&&(ev.reminder==='hour'||ev.reminder==='both'))return 'Compromisso em até 1 hora';
+ if(diff===0)return 'Compromisso de hoje';
+ if(diff===1&&(ev.reminder==='day'||ev.reminder==='both'))return 'Compromisso amanhã';
+ return '';
+}
 function listNotifications(){
  if(!window.ClaraSecurity?.unlocked)return [];
- const now=new Date(),base=today(),items=[];
+ const now=new Date(),items=[];
  for(const ev of calendarData()){
-  if(ev.done)continue;
-  const diff=countdown(ev.date),hasClock=!!ev.time;
-  const diffMinutes=(minDate(ev.date,ev.time||'09:00')-now)/60000;
-  let label='';
-  if(diff<0||diff===0&&hasClock&&diffMinutes<0)label='Compromisso atrasado';
-  else if(diff===0)label='Compromisso de hoje';
-  else if((ev.reminder==='hour'||ev.reminder==='both')&&hasClock&&diffMinutes>0&&diffMinutes<=60)label='Compromisso em até 1 hora';
-  else if((ev.reminder==='day'||ev.reminder==='both')&&diff===1)label='Compromisso amanhã';
-  if(label)items.push({id:'cal:'+ev.id+':'+label,title:label,detail:ev.title+' · '+labelDate(ev.date)+(ev.time?' às '+ev.time:''),kind:'appointment',ref:ev.id,priority:diff<0?0:1});
+  const label=appointmentReminder(ev,now);
+  if(label)items.push({id:'cal:'+ev.id+':'+label,title:label,detail:ev.title+' · '+labelDate(ev.date)+(ev.time?' às '+ev.time:''),kind:'appointment',ref:ev.id,priority:label==='Compromisso atrasado'?0:1});
  }
  for(const tx of state.transactions){
   if(tx.status!=='Pendente')continue;
@@ -229,6 +237,6 @@ if(nativeCheck)window.ClaraUpdate.check=async function(...args){const result=awa
 window.addEventListener('focus',renderBell);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderBell();});
 window.setInterval(()=>{if(!document.hidden&&window.ClaraSecurity?.unlocked)renderBell();},60000);
-window.ClaraAgenda={render:paint,get entries(){return calendarData()},get notifications(){return listNotifications()},select:changeDay,open:formOpen};
+window.ClaraAgenda={render:paint,get entries(){return calendarData()},get notifications(){return listNotifications()},reminderFor:appointmentReminder,select:changeDay,open:formOpen};
 paint();
 })();
