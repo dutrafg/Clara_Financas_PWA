@@ -1825,6 +1825,108 @@ function claraWidgetDifference(current,previous) {
  return previous===0?'Sem comparação anterior':`${current>=previous?'+':''}${pct((current-previous)/Math.abs(previous))}`;
 }
 
+// Consultas locais reutilizadas pelo painel e pelas exportações.
+// Somente comandos explícitos de edição/gravação modificam o cofre.
+function claraWidgetBudgets(p=state.settings.period){
+ const rows=budgetRows(p).filter(r=>!claraWidgetUI.onlyRisk||(r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100));
+ if(claraWidgetUI.budgetSort==='Nome')return rows.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+ if(claraWidgetUI.budgetSort==='Gasto')return rows.sort((a,b)=>b.planned-a.planned);
+ return rows.sort((a,b)=>b.ratio-a.ratio);
+}
+function claraWidgetGoals(){
+ return state.goals.filter(g=>!claraWidgetUI.goalOverdue||(g.dueDate&&g.dueDate<todayISO()&&g.savedCents<g.targetCents));
+}
+function claraWidgetAccounts(){
+ return state.accounts.filter(a=>!claraWidgetUI.onlyCards||a.type==='Cartão');
+}
+function claraWidgetRecent(){
+ return state.transactions.filter(t=>(claraWidgetUI.recentStatus==='Todos'||t.status===claraWidgetUI.recentStatus)&&
+  (claraWidgetUI.recentKind==='Todos'||t.kind===claraWidgetUI.recentKind))
+  .slice().sort((a,b)=>effective(b).localeCompare(effective(a)));
+}
+function claraWidgetInsights(p=state.settings.period){
+ const current=stat(p),previous=stat(plusMonth(p+'-01',-1).slice(0,7)),notes=[];
+ const add=(text,important=false)=>notes.push({text,important});
+ if(previous.expense>0&&current.expense>previous.expense*1.05)add('Os gastos realizados estão acima dos gastos do mês anterior.',true);
+ if(previous.expense>0&&current.expense<previous.expense*.95)add('Os gastos realizados estão abaixo dos gastos do mês anterior.');
+ if(current.income+current.expense>0&&current.net<0)add('O resultado realizado do mês está negativo.',true);
+ if(future30()>totalBalance(state.settings.cutoff))add('Despesas pendentes até 30 dias ultrapassam o saldo realizado, sem considerar recebimentos futuros.',true);
+ const budgets=budgetRows(p),alerts=budgets.filter(r=>r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100);
+ if(alerts.length)add(alerts.length+' categoria(s) atingiram o nível configurado para alerta de orçamento.',true);
+ const biggest=budgets.filter(r=>r.done>0).sort((a,b)=>b.done-a.done)[0];
+ if(biggest)add('Categoria com maior gasto realizado: '+biggest.name+'.');
+ return claraWidgetUI.insightsImportant?notes.filter(x=>x.important):notes;
+}
+function claraWidgetForecast(){
+ const rows=forecast(pref('forecastMonths'));
+ return claraWidgetUI.onlyDeficits?rows.filter(x=>x.balance<0):rows;
+}
+function claraWidgetAudits(){
+ return state.reconciliations.filter(r=>!claraWidgetUI.auditOnlyDifference||
+  accountBalance(r.accountId,r.date)!==r.statementCents);
+}
+function claraWidgetCategoryRows(p=state.settings.period){
+ return budgetRows(p).map(r=>({...r,done:claraWidgetUI.categoryMetric==='Previsto'?r.planned:r.done}));
+}
+function claraWidgetHistory(){
+ const months=[...new Set(state.transactions.map(t=>effective(t).slice(0,7)).filter(Boolean))].sort().reverse();
+ return months.filter(m=>!claraWidgetUI.historyOnlyNegative||stat(m).net<0).slice(0,10);
+}
+// CSV gerado sob demanda, sem rede e com escape contra fórmulas de planilha.
+function exportClaraWidget(id){
+ if(!CLARA_WIDGETS.some(w=>w.id===id))throw Error('Miniaplicativo inválido.');
+ const p=state.settings.period,today=todayISO(),fmt=csvAmount,rows=[];
+ const tx=t=>[t.date,t.kind,t.status,t.description,fmt(t.amountCents)];
+ if(id==='attention'){
+  rows.push(['Tipo','Descrição','Detalhe']);
+  const overdue=state.transactions.filter(t=>t.status==='Pendente'&&t.kind!=='Transferência'&&t.date<today);
+  if(['Todos','Atrasos'].includes(claraWidgetUI.attention))rows.push(...overdue.map(t=>['Vencido',t.description,t.date+' · '+fmt(t.amountCents)]));
+  if(['Todos','Limites'].includes(claraWidgetUI.attention))rows.push(...budgetRows(p).filter(r=>r.limitCents>0&&r.ratio>=pref('budgetWarningPct')/100).map(r=>['Orçamento',r.name,fmt(r.planned)+' / '+fmt(r.limitCents)]));
+  if(['Todos','Metas'].includes(claraWidgetUI.attention))rows.push(...state.goals.filter(g=>g.dueDate&&g.dueDate<today&&g.savedCents<g.targetCents).map(g=>['Meta',g.name,g.dueDate]));
+ }else if(id==='agenda'){
+  rows.push(['Data','Tipo','Situação','Descrição','Valor (R$)']);
+  rows.push(...state.transactions.filter(t=>t.status==='Pendente'&&t.kind!=='Transferência'&&t.date>=today&&t.date<=addDays(today,claraWidgetUI.agendaDays)&&
+   (claraWidgetUI.agendaKind==='Todos'||t.kind===claraWidgetUI.agendaKind)).sort((a,b)=>a.date.localeCompare(b.date)).map(tx));
+ }else if(id==='budgets'){
+  rows.push(['Categoria','Limite (R$)','Realizado (R$)','Pendente (R$)','Previsto (R$)']);
+  rows.push(...claraWidgetBudgets(p).map(r=>[r.name,fmt(r.limitCents),fmt(r.done),fmt(r.pending),fmt(r.planned)]));
+ }else if(id==='goals'){
+  rows.push(['Meta','Total (R$)','Acumulado (R$)','Prazo','Falta (R$)']);
+  rows.push(...claraWidgetGoals().map(g=>[g.name,fmt(g.targetCents),fmt(g.savedCents),g.dueDate||'',fmt(Math.max(0,g.targetCents-g.savedCents))]));
+ }else if(id==='accounts'){
+  rows.push(['Conta','Tipo','Saldo (R$)','Fatura pendente (R$)']);
+  rows.push(...claraWidgetAccounts().map(a=>[a.name,a.type,fmt(accountBalance(a.id,state.settings.cutoff)),
+   fmt(a.type==='Cartão'?accountPendingCard(a.id):0)]));
+ }else if(id==='comparison'){
+  const pp=plusMonth(p+'-01',-claraWidgetUI.compareOffset).slice(0,7),a=stat(p),b=stat(pp);
+  rows.push(['Indicador',p+' (R$)',pp+' (R$)','Diferença (R$)']);
+  for(const [label,key] of [['Receitas','income'],['Despesas','expense'],['Resultado','net']])
+   rows.push([label,fmt(a[key]),fmt(b[key]),fmt(a[key]-b[key])]);
+ }else if(id==='recent'){
+  rows.push(['Data','Tipo','Situação','Descrição','Valor (R$)']);
+  rows.push(...claraWidgetRecent().slice(0,5).map(tx));
+ }else if(id==='insights'){
+  rows.push(['Tipo','Observação']);
+  rows.push(...claraWidgetInsights(p).map(n=>[n.important?'Alerta':'Informação',n.text]));
+ }else if(id==='forecast'){
+  rows.push(['Mês','Saldo projetado (R$)','Entradas pendentes (R$)','Saídas pendentes (R$)']);
+  rows.push(...claraWidgetForecast().map(x=>[x.p,fmt(x.balance),fmt(x.incomes),fmt(x.outcomes)]));
+ }else if(id==='audit'){
+  rows.push(['Conta','Data','Extrato (R$)','Saldo calculado (R$)','Diferença (R$)']);
+  rows.push(...claraWidgetAudits().map(r=>{const actual=accountBalance(r.accountId,r.date);return [
+   state.accounts.find(a=>a.id===r.accountId)?.name||'Conta',r.date,fmt(r.statementCents),fmt(actual),fmt(r.statementCents-actual)];}));
+ }else if(id==='categories'){
+  rows.push(['Categoria','Situação','Despesas (R$)']);
+  rows.push(...claraWidgetCategoryRows(p).filter(r=>r.done>0).map(r=>[r.name,claraWidgetUI.categoryMetric,fmt(r.done)]));
+ }else if(id==='history'){
+  rows.push(['Mês','Receitas (R$)','Despesas (R$)','Resultado (R$)']);
+  rows.push(...claraWidgetHistory().map(m=>{const st=stat(m);return [m,fmt(st.income),fmt(st.expense),fmt(st.net)];}));
+ }else if(id==='recurring'){
+  rows.push(['Descrição','Tipo','Meses','Ocorrências','Próxima referência','Último valor (R$)']);
+  rows.push(...recurringItems(claraWidgetUI.recurringKind).map(r=>[r.name,r.kind,r.months,r.count,r.next,fmt(r.amount)]));
+ }else throw Error('Exportação não disponível neste miniaplicativo.');
+ dl('Clara_Miniapp_'+id+'_'+today+'.csv',makeCSV(rows),'text/csv;charset=utf-8');
+}
 function renderClaraMiniapps(p) {
  const today=todayISO(), in14=addDays(today,claraWidgetUI.agendaDays);
  const pending=state.transactions.filter(t=>t.status==='Pendente' && t.kind!=='Transferência');
