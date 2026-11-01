@@ -25,6 +25,15 @@ async def run():
    assert await page.evaluate("state.transactions.length")>=4
    assert await page.evaluate("state.goals.length")>=1
    assert await page.locator('#claraCalendar').is_visible()
+   assert await page.locator('#claraNotificationButton').is_visible()
+   assert await page.evaluate("window.ClaraAgenda.notifications.length")>=1
+   await page.locator('#claraNotificationButton').click()
+   assert await page.locator('#claraNotificationPanel').is_visible()
+   before=await page.evaluate("state.notificationsRead.length")
+   await page.locator('[data-ca-readall]').click()
+   assert await page.evaluate("state.notificationsRead.length")==before
+   await page.locator('#claraNotificationButton').click()
+
    await page.evaluate("go('mov')")
    assert await page.locator('#view-mov').is_visible()
    start=await page.evaluate("state.transactions.length")
