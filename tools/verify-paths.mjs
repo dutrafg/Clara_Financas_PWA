@@ -6,7 +6,7 @@ const root=new URL('../',import.meta.url);
 const dist=new URL('../dist/',import.meta.url);
 const get=(base,path)=>readFile(new URL(path,base));
 const text=(base,path)=>get(base,path).then(b=>b.toString('utf8'));
-const files=['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
+const files=['index.html','clara-simple.css','clara-simple.js','clara-biometric.css','clara-biometric.js','clara-storage-ui.css','clara-storage-ui.js','clara-agenda.css','clara-agenda.js','clara-premium.css','manifest.webmanifest','version.json','assets/icon-192.png','assets/icon-512.png'];
 const pkg=JSON.parse(await text(root,'package.json'));
 const meta=JSON.parse(await text(root,'version.json'));
 const manifest=JSON.parse(await text(dist,'manifest.webmanifest'));
@@ -39,7 +39,7 @@ assert.ok(!sw.includes("'.'+url.pathname"),'Não reintroduzir caminhos quebrados
 const match=sw.match(/const APP_FILES = (\[[^\n]+\]);/);
 assert.ok(match,'Lista de precache ausente');
 const items=[...match[1].matchAll(/'([^']+)'/g)].map(m=>m[1]);
-assert.deepEqual(items,['./','./index.html','./clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js','./manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png']);
+assert.deepEqual(items,['./','./index.html','./clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js','./clara-premium.css','./manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png']);
 for(const path of items.filter(p=>p!=='./'))await stat(new URL(path,dist));
 for(const icon of manifest.icons)await stat(new URL(icon.src,dist));
 const refs=[...html.matchAll(/<(?:link|script|img|source)\b[^>]*>/gi)]
