@@ -3539,7 +3539,7 @@ function modal(kind, itemId = '') {
           <label class="btn" for="m_photo" style="cursor:pointer">Escolher foto</label>
           <input id="m_photo" type="file" accept="image/jpeg,image/png,image/webp" hidden>
           <button type="button" class="btn" id="removeProfilePhoto">Remover foto</button>
-          <small class="muted">Imagem de até 2 MB, salva dentro do cofre.</small>
+          <small class="muted">Foto original de até 10 MB. A Clara reduz a imagem antes de guardar no cofre.</small>
         </div>
       </div>
       <div class="field-grid two">
@@ -3702,9 +3702,10 @@ function setFieldError(name, msg) {
 
 let pendingProfilePhoto=null;
 async function loadProfilePhoto(file){
- if(!file||file.size>2000000)throw Error('Selecione uma foto menor que 2 MB.');
+ if(!file||file.size>10*1024*1024)throw Error('Selecione uma foto de até 10 MB.');
  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Formato de foto não suportado.');
- const picture=await createImageBitmap(file);
+ let picture;
+ try{picture=await createImageBitmap(file);}catch{throw Error('Não foi possível abrir a foto. Escolha uma imagem JPG, PNG ou WebP válida.');}
  const canvas=document.createElement('canvas');
  const scale=Math.min(1,192/Math.max(picture.width,picture.height));
  canvas.width=Math.max(1,Math.round(picture.width*scale));
