@@ -466,6 +466,15 @@ body{
 :root[data-motion="reduced"] .float-menu.open .mobile-nav,
 :root[data-motion="reduced"] .float-menu.open .float-backdrop{animation:none!important;}
 
+/* A faixa de atualização abre abaixo do sino fixo, não por trás dele.
+   Em telas estreitas, mantém a área de ações rolável e acima da dock. */
+@media screen and (min-width:761px){
+  .clara-update-notice{top:calc(74px + env(safe-area-inset-top,0px));}
+}
+@media screen and (max-width:760px){
+  .clara-update-notice{max-height:calc(100dvh - 124px);overflow-y:auto;box-sizing:border-box;}
+}
+
 /* Sobreposições: navegação < notificações < menus/modal < diálogos especiais.
    Quando o menu estiver aberto, cobre o sino; a dock continua como controle superior.
    O toast de validação deve permanecer visível também acima dos diálogos. */
