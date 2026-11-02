@@ -2280,8 +2280,9 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
-const CLARA_APP_VERSION='4.2.5-rc';
+const CLARA_APP_VERSION='4.2.6-rc';
 const CLARA_RELEASE_NOTES=Object.freeze([
+  "Correção de atualização com mesma versão, identificação real do cache offline e recargas que mantêm HTML e módulos do pacote aprovado.",
   "Atualizador modular: progresso real, timeout que respeita downloads ativos, comparação SemVer correta e rollback automático de pacote que não inicializa.",
   "A nova versão mantém o pacote anterior até confirmar a inicialização dos módulos críticos; atualização continua protegida por backup cifrado e confirmação.",
   "Verificar atualizações funciona no modo demonstração; ações de gravação e aplicação continuam exigindo o cofre desbloqueado.",
