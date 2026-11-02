@@ -200,6 +200,10 @@
  }
  async function safetySnapshot(){
   if(!unlocked())throw Error('Desbloqueie o cofre para criar ponto de segurança.');
+  // Uma restauração pode ser solicitada logo após editar um lançamento:
+  // aguardar a cifra/OPFS e os microbackups antes de capturar o estado atual.
+  await window.ClaraSecurity.flush();
+  if(!unlocked())throw Error('O cofre foi bloqueado antes do ponto de segurança.');
   await microWrites;
   const raw=readVault();validateVault(raw);
   const name=uniqueName('safety',new Date());
