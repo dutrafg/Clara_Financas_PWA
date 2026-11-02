@@ -237,6 +237,18 @@ test('Recarga forçada mantém HTML e JS do cache aprovado até a ativação',as
  }
 });
 
+test('Requisição explícita no-store pode buscar versão fresca',async()=>{
+ const h=createWorkerHarness();
+ await h.fire('install');
+ await h.fire('activate');
+ const cache=await h.caches.open(candidateCacheName);
+ await cache.put(new URL('./index.html',h.scope),new Response('versão antiga'));
+ let response;
+ await h.fire('fetch',{request:{method:'GET',url:new URL('./index.html',h.scope).href,mode:'cors',cache:'no-store',destination:''},
+  respondWith(value){response=value;}});
+ assert.equal(await(await response).text(),'network /app/index.html');
+});
+
 test('Download inválido descarta apenas o candidato e preserva o pacote anterior',async()=>{
  const h=createWorkerHarness({failPath:'clara-updater.js'});
  const old=await h.caches.open('clara-financas-4-2-4-old');
