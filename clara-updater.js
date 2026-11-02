@@ -34,7 +34,11 @@ const ClaraUpdate=(()=>{
   return 0;
  };
  const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===remoteVersion;}catch{return false;}};
- const newer=()=>!!remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)>0;
+ // Além de SemVer, verificar revisões: o mesmo número de versão pode
+ // possuir um pacote offline novo enquanto o aplicativo instalado ainda usa o antigo.
+ const newer=()=>!!remoteVersion&&(
+  compare(remoteVersion,INSTALLED_VERSION)>0||!!registration?.waiting||
+  (!!registration?.active&&!!registration?.installing)||reopenReady);
  const bounded=(task,ms,reason)=>{
   let timer;
   return Promise.race([Promise.resolve(task),new Promise((_,reject)=>{
@@ -64,10 +68,12 @@ const ClaraUpdate=(()=>{
  async function activatedPackageReady(r){
   // Uma segunda aba pode já ter ativado o novo SW, sem recarregar esta aba.
   // Não confiar só na versão remota: exigir cache completo e HTML de destino.
-  if(!r?.active||r.active.state!=='activated'||!newer())return false;
+  if(!r?.active||r.active.state!=='activated'||!remoteVersion)return false;
+  const prefix='clara-financas-'+remoteVersion.replace(/[^a-z\d-]/gi,'-')+'-';
+  const runningCache=typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:null;
   try{
    const names=await caches.keys();
-   for(const name of names.filter(n=>n.startsWith('clara-financas-'+remoteVersion+'-'))){
+   for(const name of names.filter(n=>n.startsWith(prefix)&&n!==runningCache)){
     const response=await (await caches.open(name)).match(new URL('./index.html',r.scope));
     if(response?.ok&&(await response.text()).includes("const CLARA_APP_VERSION='"+remoteVersion+"'"))return true;
    }
