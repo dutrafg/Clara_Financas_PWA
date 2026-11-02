@@ -36,9 +36,9 @@ const ClaraUpdate=(()=>{
  const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===remoteVersion;}catch{return false;}};
  // Além de SemVer, verificar revisões: o mesmo número de versão pode
  // possuir um pacote offline novo enquanto o aplicativo instalado ainda usa o antigo.
- const newer=()=>!!remoteVersion&&(
-  compare(remoteVersion,INSTALLED_VERSION)>0||!!registration?.waiting||
-  (!!registration?.active&&!!registration?.installing)||reopenReady);
+ const newer=()=>!!registration?.waiting||reopenReady||(
+  !!remoteVersion&&(compare(remoteVersion,INSTALLED_VERSION)>0||
+  (!!registration?.active&&!!registration?.installing)));
  const bounded=(task,ms,reason)=>{
   let timer;
   return Promise.race([Promise.resolve(task),new Promise((_,reject)=>{
