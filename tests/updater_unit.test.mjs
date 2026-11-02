@@ -29,8 +29,9 @@ function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async(
  const win={ClaraSecurity:{unlocked:true,flush:async()=>{}},ClaraBackups:{beforeUpdate:async()=>({local:true,external:true})},
   ClaraReloadGuard:{allowOfficialUpdate(){}},confirm:()=>true,addEventListener(){},setInterval(){return 1;}};
  const clock=class extends Date{static now(){return now;}};
+ const browserNavigator={onLine:true,serviceWorker};
  const sandbox={
-  window:win,document:doc,navigator:{onLine:true,serviceWorker},location:{protocol:'https:',reload(){}},
+  window:win,document:doc,navigator:browserNavigator,location:{protocol:'https:',reload(){}},
   CLARA_APP_VERSION:appVersion,CLARA_BOOT_CACHE:runningCache,
   localStorage:{getItem(){return null;},setItem(){}},
   caches:{keys:async()=>availableCaches,
@@ -54,7 +55,7 @@ function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async(
   }
   now=end;await Promise.resolve();
  }
- return {api:win.ClaraUpdate,registration,worker,elements,advance,now:()=>now,swEvents,regEvents};
+ return {api:win.ClaraUpdate,registration,worker,elements,advance,now:()=>now,swEvents,regEvents,browserNavigator};
 }
 
 test('SemVer ordena releases e pré-releases sem esconder atualizações RC',()=>{
@@ -78,6 +79,18 @@ test('Pacote com revisão nova e mesma SemVer continua visível e aplicável',as
  await h.api.check(true);
  assert.equal(h.api.ready,true);
  assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Versão igual não deve esconder atualização por hash');
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
+});
+
+test('Pacote já baixado permanece aplicável sem conexão com a consulta de versão',async()=>{
+ const h=createUpdaterHarness({remote:appVersion,installing:true});
+ h.registration.waiting=h.worker;
+ h.registration.installing=null;
+ h.worker.state='installed';
+ h.browserNavigator.onLine=false;
+ await h.api.check(true);
+ assert.equal(h.api.ready,true,'Worker pronto deve permanecer disponível offline');
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Não ocultar pacote pronto por falta da consulta da versão');
  assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
 });
 
