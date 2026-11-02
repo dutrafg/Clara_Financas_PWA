@@ -1,9 +1,10 @@
 {
   "name": "Clara Finanças",
-  "version": "4.2.5-rc",
+  "version": "4.2.6-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Correção de atualização com mesma versão, identificação real do cache offline e recargas que mantêm HTML e módulos do pacote aprovado.",
     "Atualizador modular: progresso real, timeout que respeita downloads ativos, comparação SemVer correta e rollback automático de pacote que não inicializa.",
     "A nova versão mantém o pacote anterior até confirmar a inicialização dos módulos críticos; atualização continua protegida por backup cifrado e confirmação.",
     "Verificar atualizações funciona no modo demonstração; ações de gravação e aplicação continuam exigindo o cofre desbloqueado.",
