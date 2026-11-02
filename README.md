@@ -1,10 +1,10 @@
-# Clara Finanças RC4.2.5 — Atualizador transacional e Clara Studio
+# Clara Finanças RC4.2.6 — Atualizador transacional e Clara Studio
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
 
-## O que mudou na RC4.2.5
+## O que mudou na RC4.2.6
 
 - O atualizador saiu do HTML principal para `clara-updater.js`, com comparação SemVer, metadados remotos limitados e mensagens de estado em texto seguro.
 - A preparação mostra a contagem real de arquivos em cache e só expira depois de dois minutos sem progresso. O avanço de download renova esse prazo; uma falha vira retentativa explícita.

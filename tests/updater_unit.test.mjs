@@ -5,11 +5,12 @@ import vm from 'node:vm';
 
 const updaterSource=await readFile('clara-updater.js','utf8');
 const workerTemplate=await readFile('sw.js','utf8');
-const candidateCacheName='clara-financas-4-2-5-rc-unit-test';
+const appVersion=JSON.parse(await readFile('version.json','utf8')).version;
+const candidateCacheName='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-unit-test';
 const workerSource=workerTemplate.replace('__CLARA_CACHE_NAME__',candidateCacheName);
 assert.ok(!workerSource.includes('__CLARA_CACHE_NAME__'),'fixture criou um nome de cache concreto');
 
-function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{}}={}){
+function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{},availableCaches=[],runningCache='clara-financas-previous-revision'}={}){
  let now=1_000,nextId=0;
  const timers=new Map(),swEvents=new Map(),regEvents=new Map(),workerEvents=new Map();
  const elements=new Map();
@@ -28,10 +29,16 @@ function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async(
  const win={ClaraSecurity:{unlocked:true,flush:async()=>{}},ClaraBackups:{beforeUpdate:async()=>({local:true,external:true})},
   ClaraReloadGuard:{allowOfficialUpdate(){}},confirm:()=>true,addEventListener(){},setInterval(){return 1;}};
  const clock=class extends Date{static now(){return now;}};
+ const browserNavigator={onLine:true,serviceWorker};
  const sandbox={
-  window:win,document:doc,navigator:{onLine:true,serviceWorker},location:{protocol:'https:',reload(){}},
-  CLARA_APP_VERSION:'4.2.5-rc',
-  localStorage:{getItem(){return null;},setItem(){}},caches:{keys:async()=>[],open:async()=>({match:async()=>null})},
+  window:win,document:doc,navigator:browserNavigator,location:{protocol:'https:',reload(){}},
+  CLARA_APP_VERSION:appVersion,CLARA_BOOT_CACHE:runningCache,
+  localStorage:{getItem(){return null;},setItem(){}},
+  caches:{keys:async()=>availableCaches,
+   open:async name=>({match:async()=>{
+    if(!availableCaches.includes(name))return null;
+    return {ok:true,text:async()=>`<script>const CLARA_APP_VERSION='${remote}';</script>`};
+   }})},
   fetch:async()=>({ok:true,json:async()=>({version:remote,notes:['Atualização de teste.']})}),
   showToast(){},Date:clock,URL,AbortController,Promise,WeakSet,BigInt,Math,
   setTimeout(fn,delay=0){const id=++nextId;timers.set(id,{at:now+delay,fn});return id;},
@@ -48,7 +55,7 @@ function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async(
   }
   now=end;await Promise.resolve();
  }
- return {api:win.ClaraUpdate,registration,worker,elements,advance,now:()=>now,swEvents,regEvents};
+ return {api:win.ClaraUpdate,registration,worker,elements,advance,now:()=>now,swEvents,regEvents,browserNavigator};
 }
 
 test('SemVer ordena releases e pré-releases sem esconder atualizações RC',()=>{
@@ -64,6 +71,38 @@ test('SemVer ordena releases e pré-releases sem esconder atualizações RC',()=
  ];
  for(const [left,right,result] of ordered)assert.equal(compare(left,right),result,`${left} vs ${right}`);
  assert.equal(compare('4.2.4-rc.01','4.2.4-rc.2'),0,'Identificador numérico com zero inicial deve ser inválido');
+});
+
+test('Pacote com revisão nova e mesma SemVer continua visível e aplicável',async()=>{
+ const h=createUpdaterHarness({remote:appVersion,installing:true});
+ h.registration.waiting=h.worker;h.registration.installing=null;h.worker.state='installed';
+ await h.api.check(true);
+ assert.equal(h.api.ready,true);
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Versão igual não deve esconder atualização por hash');
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
+});
+
+test('Pacote já baixado permanece aplicável sem conexão com a consulta de versão',async()=>{
+ const h=createUpdaterHarness({remote:appVersion,installing:true});
+ h.registration.waiting=h.worker;
+ h.registration.installing=null;
+ h.worker.state='installed';
+ h.browserNavigator.onLine=false;
+ await h.api.check(true);
+ assert.equal(h.api.ready,true,'Worker pronto deve permanecer disponível offline');
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Não ocultar pacote pronto por falta da consulta da versão');
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
+});
+
+test('Cache de revisão ativa é reconhecido após ativação com SemVer igual',async()=>{
+ const runningCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-old-hash';
+ const readyCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-new-hash';
+ const h=createUpdaterHarness({remote:appVersion,installing:false,
+  availableCaches:[runningCache,readyCache],runningCache});
+ assert.equal(await h.api.check(true),true);
+ assert.equal(h.api.reopenReady,true);
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,false);
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Reabrir atualizado');
 });
 
 test('Verificação não chama pacote pronto antes do evento installed',async()=>{
@@ -194,6 +233,33 @@ test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato
  await h.message('CLARA_RETRY_CANDIDATE','clara-financas-4-2-4-old');
  assert.equal((await h.readState()).rolledBack,false);
  assert.ok(h.stores.has('clara-financas-4-2-4-old'));
+});
+
+test('Recarga forçada mantém HTML e JS do cache aprovado até a ativação',async()=>{
+ const h=createWorkerHarness();
+ await h.fire('install');await h.fire('activate');
+ const cache=await h.caches.open(candidateCacheName);
+ await cache.put(new URL('./index.html',h.scope),new Response('shell aprovada'));
+ await cache.put(new URL('./clara-updater.js',h.scope),new Response('JS aprovado'));
+ for(const [url,mode] of [['./index.html','navigate'],['./clara-updater.js','cors']]){
+  let responsePromise;
+  await h.fire('fetch',{request:{method:'GET',url:new URL(url,h.scope).href,mode,cache:'reload'},
+   respondWith(promise){responsePromise=promise;}});
+  const result=await(await responsePromise).text();
+  assert.equal(result,mode==='navigate'?'shell aprovada':'JS aprovado','Não misturar revisões em Ctrl+F5');
+ }
+});
+
+test('Requisição explícita no-store pode buscar versão fresca',async()=>{
+ const h=createWorkerHarness();
+ await h.fire('install');
+ await h.fire('activate');
+ const cache=await h.caches.open(candidateCacheName);
+ await cache.put(new URL('./index.html',h.scope),new Response('versão antiga'));
+ let response;
+ await h.fire('fetch',{request:{method:'GET',url:new URL('./index.html',h.scope).href,mode:'cors',cache:'no-store',destination:''},
+  respondWith(value){response=value;}});
+ assert.equal(await(await response).text(),'network /app/index.html');
 });
 
 test('Download inválido descarta apenas o candidato e preserva o pacote anterior',async()=>{
