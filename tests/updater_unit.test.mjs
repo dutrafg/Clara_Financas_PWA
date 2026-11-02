@@ -10,7 +10,7 @@ const candidateCacheName='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')
 const workerSource=workerTemplate.replace('__CLARA_CACHE_NAME__',candidateCacheName);
 assert.ok(!workerSource.includes('__CLARA_CACHE_NAME__'),'fixture criou um nome de cache concreto');
 
-function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{}}={}){
+function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{},availableCaches=[],runningCache='clara-financas-previous-revision'}={}){
  let now=1_000,nextId=0;
  const timers=new Map(),swEvents=new Map(),regEvents=new Map(),workerEvents=new Map();
  const elements=new Map();
@@ -31,8 +31,13 @@ function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async(
  const clock=class extends Date{static now(){return now;}};
  const sandbox={
   window:win,document:doc,navigator:{onLine:true,serviceWorker},location:{protocol:'https:',reload(){}},
-  CLARA_APP_VERSION:appVersion,
-  localStorage:{getItem(){return null;},setItem(){}},caches:{keys:async()=>[],open:async()=>({match:async()=>null})},
+  CLARA_APP_VERSION:appVersion,CLARA_BOOT_CACHE:runningCache,
+  localStorage:{getItem(){return null;},setItem(){}},
+  caches:{keys:async()=>availableCaches,
+   open:async name=>({match:async()=>{
+    if(!availableCaches.includes(name))return null;
+    return {ok:true,text:async()=>`<script>const CLARA_APP_VERSION='${remote}';</script>`};
+   }})},
   fetch:async()=>({ok:true,json:async()=>({version:remote,notes:['Atualização de teste.']})}),
   showToast(){},Date:clock,URL,AbortController,Promise,WeakSet,BigInt,Math,
   setTimeout(fn,delay=0){const id=++nextId;timers.set(id,{at:now+delay,fn});return id;},
@@ -76,14 +81,15 @@ test('Pacote com revisão nova e mesma SemVer continua visível e aplicável',as
  assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
 });
 
-test('Cache de revisão efetiva é reconhecido após ativação, inclusive SemVer igual',async()=>{
- const h=createUpdaterHarness({remote:appVersion,installing:false});
- const cacheName='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-other-revision';
- // Sem simular pacote já ativado na API, o nome precisa usar a mesma normalização do build.
- const html='<script>const CLARA_APP_VERSION=\\''+appVersion+'\\';</script>';
- const original=h.api.status;
- assert.equal(typeof cacheName,'string');
- assert.equal(original,'Aguardando');
+test('Cache de revisão ativa é reconhecido após ativação com SemVer igual',async()=>{
+ const runningCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-old-hash';
+ const readyCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-new-hash';
+ const h=createUpdaterHarness({remote:appVersion,installing:false,
+  availableCaches:[runningCache,readyCache],runningCache});
+ assert.equal(await h.api.check(true),true);
+ assert.equal(h.api.reopenReady,true);
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,false);
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Reabrir atualizado');
 });
 
 test('Verificação não chama pacote pronto antes do evento installed',async()=>{
