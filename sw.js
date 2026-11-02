@@ -93,6 +93,12 @@ self.addEventListener('fetch', event => {
       try { return await fetch(new Request(request, {cache:'no-store'})); }
       catch { return Response.error(); }
     }
+    // Fetch explícito de diagnóstico (destination vazia) pede rede fresca.
+    // Navegação e recursos executáveis continuam presos à revisão aprovada.
+    if (request.cache === 'no-store' && !request.destination) {
+      try { return await fetch(request); }
+      catch { return Response.error(); }
+    }
     // Inclusive em Ctrl+F5, servir o shell do pacote aprovado. Buscar index.html
     // na rede antes da troca consentida misturava HTML novo e JS antigo.
     if (request.mode === 'navigate') {
