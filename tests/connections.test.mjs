@@ -68,10 +68,12 @@ test('Referências relativas e atualizador vinculados à distribuição atual',(
  assert.doesNotMatch(html,/(?:href|src)=["'](?:\.\.\/|\/)(?:release|v[0-9]+|rc[0-9]+)[^"']*/i);
 });
 
-test('Atualização de recursos ignora o cache anterior',async()=>{
+test('Recarga forçada conserva o pacote aprovado, mas atualizador consulta versão na rede',async()=>{
  const sw=await readFile('sw.js','utf8');
- assert.match(sw,/request\.cache === 'reload' \|\| request\.cache === 'no-store'/);
- assert.match(sw,/return await fetch\(request\)/);
+ assert.doesNotMatch(sw,/request\.cache === 'reload' \|\| request\.cache === 'no-store'/);
+ assert.match(sw,/const installed = await cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
+ assert.match(sw,/const hit = await cache\.match\(request, \{ignoreSearch:true\}\)/);
+ assert.match(sw,/try \{ return await fetch\(request\); \}/);
 });
 
 test('Service Worker não confirma versão antiga quando a rede falha',async()=>{
@@ -81,8 +83,8 @@ test('Service Worker não confirma versão antiga quando a rede falha',async()=>
  assert.match(versionBranch[1],/new Request\(request, \{cache:'no-store'\}\)/);
  assert.match(versionBranch[1],/catch \{ return Response\.error\(\); \}/);
  assert.doesNotMatch(versionBranch[1],/cache\.match/);
- assert.ok(sw.indexOf('if (url.pathname === versionPath)')<sw.indexOf("if (request.cache === 'reload'"),
-  'A versão precisa ser verificada antes do fallback para recursos offline');
+ assert.ok(sw.indexOf('if (url.pathname === versionPath)')<sw.indexOf("if (request.mode === 'navigate'"),
+  'A versão precisa ser verificada antes do fallback para o shell instalado');
  const vercel=JSON.parse(await readFile('vercel.json','utf8'));
  for(const path of ['/sw.js','/version.json']){
   const headers=vercel.headers.find(x=>x.source===path)?.headers||[];
