@@ -93,12 +93,8 @@ self.addEventListener('fetch', event => {
       try { return await fetch(new Request(request, {cache:'no-store'})); }
       catch { return Response.error(); }
     }
-    // Pedidos explícitos de recarga procuram a rede e só os recursos estáticos
-    // (nunca version.json) podem ter fallback offline para o cache ativo.
-    if (request.cache === 'reload' || request.cache === 'no-store') {
-      try { return await fetch(request); }
-      catch { return await cache.match(request, {ignoreSearch:true}) || Response.error(); }
-    }
+    // Inclusive em Ctrl+F5, servir o shell do pacote aprovado. Buscar index.html
+    // na rede antes da troca consentida misturava HTML novo e JS antigo.
     if (request.mode === 'navigate') {
       // Não substituir silenciosamente um PWA instalado: a nova shell só é
       // servida depois que o usuário confirma a troca de Service Worker.
@@ -107,6 +103,8 @@ self.addEventListener('fetch', event => {
       try { return await fetch(request); }
       catch { return Response.error(); }
     }
+    // Arquivos estáticos pertencem a uma única revisão atômica, mesmo quando
+    // o navegador envia cache:reload/no-store. Apenas version.json verifica a rede.
     const hit = await cache.match(request, {ignoreSearch:true});
     if (hit) return hit;
     try { return await fetch(request); }
