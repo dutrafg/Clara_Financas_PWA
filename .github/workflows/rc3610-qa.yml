@@ -105,6 +105,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/agenda_browser.py 2>&1 | tee /tmp/clara-agenda-browser.log
+      - name: Validar experiência simples: saldo, meses, filtros e lançamentos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-simple-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/simple_clean_browser.py 2>&1 | tee /tmp/clara-simple-browser.log
       - name: QA visual Clara Studio em seis resoluções
         shell: bash
         run: |
@@ -156,6 +164,8 @@ jobs:
             /tmp/clara-agenda-browser.log
             /tmp/clara-guest-browser.log
             /tmp/clara-extras-browser.log
+            /tmp/clara-simple-browser.log
+            /tmp/clara-simple-server.log
             /tmp/clara-studio-browser.log
             /tmp/clara-studio-shots/
           if-no-files-found: ignore
