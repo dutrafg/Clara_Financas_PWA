@@ -1,135 +1,96 @@
-"""Verifica no Chromium a recuperação integrada após falha de módulo crítico."""
+"""QA v2: falha fatal de script na nova revisão provoca rollback ao build anterior."""
 import asyncio
 import json
-import re
 from pathlib import Path
 from playwright.async_api import async_playwright
 
-BASE = 'http://127.0.0.1:8765/'
-PASSWORD = 'Clara-QA-Senha-2026!'
-FILES = [Path('dist/sw.js'), Path('dist/version.json'), Path('dist/clara-updater.js'), Path('dist/index.html')]
+BASE="http://127.0.0.1:8765/"
+PASSWORD="Clara-Rollback-V2-2026!"
+FILES=[Path("dist/sw.js"),Path("dist/version.json"),
+       Path("dist/clara-updater.js"),Path("dist/index.html")]
 
-
-async def main():
-    originals = {path: path.read_text(encoding='utf-8') for path in FILES}
-    expected_boot_error = 'Simulated critical updater module failure'
+async def run():
+    original={path:path.read_text() for path in FILES}
+    cache=json.loads(original[FILES[1]])["cache"]
+    candidate="clara-v2-9-9-9-rc-qa-rollback"
+    error="Simulated critical updater module failure"
     try:
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True)
-            context = await browser.new_context(viewport={'width': 390, 'height': 844})
-            page = await context.new_page()
-            page_errors = []
-            dialog_messages = []
-            page.on('pageerror', lambda error: page_errors.append(str(error)))
-            async def accept_dialog(dialog):
-                dialog_messages.append(dialog.message)
+        async with async_playwright() as p:
+            browser=await p.chromium.launch(headless=True)
+            context=await browser.new_context(viewport={"width":390,"height":844})
+            page=await context.new_page()
+            dialogs=[]
+            async def accept(dialog):
+                dialogs.append(dialog.message)
                 await dialog.accept()
-            await page.add_init_script("""(() => {
-              const key='__claraRollbackQaHistory';
-              const add=(event,detail)=>{
-                try {
-                  const history=JSON.parse(sessionStorage.getItem(key)||'[]');
-                  history.push({event,detail,time:Date.now()});
-                  sessionStorage.setItem(key,JSON.stringify(history.slice(-30)));
-                } catch {}
-              };
-              navigator.serviceWorker?.addEventListener('controllerchange',()=>add('controllerchange',navigator.serviceWorker.controller?.state));
-              navigator.serviceWorker?.addEventListener('message',event=>add('message',event.data));
-              window.addEventListener('load',()=>{
-                const loads=Number(sessionStorage.getItem('__claraRollbackQaLoads')||0)+1;
-                sessionStorage.setItem('__claraRollbackQaLoads',String(loads));
-                add('load',{loads,updater:window.ClaraUpdate?.status||null,bootCache:document.querySelector('#clara-update-boot-guard')?.textContent.match(/CLARA_BOOT_CACHE='([^']+)'/)?.[1]||null});
-              });
-            })();""")
-            await page.goto(BASE, wait_until='load')
-            if await page.locator('#securityCover').is_visible():
-                await page.locator('#securityPassword').fill(PASSWORD)
-                if await page.locator('#securityConfirmWrap').is_visible():
-                    await page.locator('#securityConfirm').fill(PASSWORD)
-                await page.locator('#securitySubmit').click()
-                await page.wait_for_function("document.documentElement.dataset.unlocked==='true'", timeout=30000)
-            await page.wait_for_function('navigator.serviceWorker.controller !== null', timeout=30000)
-            await page.wait_for_function("window.ClaraUpdate.status==='Atualizado'", timeout=30000)
-            baseline_loads = int(await page.evaluate("sessionStorage.getItem('__claraRollbackQaLoads')||'0'"))
-
-            metadata = json.loads(originals[FILES[1]])
-            metadata['version'] = '99.9.9-rc'
-            metadata['notes'] = ['Falha de boot simulada para validar rollback.']
-            FILES[1].write_text(json.dumps(metadata), encoding='utf-8')
-            FILES[2].write_text(f"throw new Error('{expected_boot_error}');\n", encoding='utf-8')
-            worker = originals[FILES[0]]
-            current_name = re.search(r"const CACHE_NAME = '([^']+)'", worker).group(1)
-            candidate_name = 'clara-financas-4-2-5-rc-qa-rollback'
-            FILES[0].write_text(worker.replace(current_name, candidate_name, 1), encoding='utf-8')
-            FILES[3].write_text(originals[FILES[3]].replace(current_name, candidate_name, 1), encoding='utf-8')
-
-            page.on('dialog', accept_dialog)
-            await page.evaluate('window.ClaraUpdate.check(true)')
-            await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc'", timeout=15000)
-            await page.wait_for_function('navigator.serviceWorker.ready.then(registration => !!registration.waiting)', timeout=30000)
-            await page.evaluate('window.ClaraUpdate.check(false)')
-            await page.wait_for_function('window.ClaraUpdate.ready', timeout=10000)
-            staged_name = 'clara-stage-' + candidate_name.removeprefix('clara-financas-')
-            candidate_source = await page.evaluate("""async name => {
-              const cache = await caches.open(name);
-              return (await (await cache.match(new URL('./clara-updater.js', location.href))).text());
-            }""", staged_name)
-            assert expected_boot_error in candidate_source, 'O pacote candidato precisa conter o módulo defeituoso simulado.'
-            candidate_html = await page.evaluate("""async name => {
-              const cache = await caches.open(name);
-              return (await (await cache.match(new URL('./index.html', location.href))).text());
-            }""", staged_name)
-            assert f"const CLARA_BOOT_CACHE='{candidate_name}'" in candidate_html
-            await page.evaluate("""() => {
-              const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
-              window.__qaApplyPromise=null;
-              window.ClaraUpdate.apply=()=>{
-                window.__qaApplyPromise=apply();
-                return window.__qaApplyPromise;
-              };
-            }""")
-            await page.locator('#claraUpdateNoticeInstall').click()
-            apply_result = await page.evaluate('window.__qaApplyPromise')
-            assert apply_result is True, f'Instalação não foi aceita: status={await page.evaluate("ClaraUpdate.status")!r}; dialogs={dialog_messages!r}'
-
-            # Aguarda a navegação para a shell candidata e o reload para a shell recuperada.
-            await page.wait_for_function(
-                "baseline => Number(sessionStorage.getItem('__claraRollbackQaLoads')||0) >= baseline + 2",
-                arg=baseline_loads,
-                timeout=45000,
-            )
-
-            await page.wait_for_function("""async () => {
-              const stateCache = await caches.open('clara-update-system-v1');
-              const stateResponse = await stateCache.match(new URL('./__clara_update_state__', location.href));
-              if (!stateResponse) return false;
-              const state = await stateResponse.json();
-              if (!state.rolledBack || !state.previous) return false;
-              const source = await (await fetch('./clara-updater.js')).text();
-              return !source.includes('Simulated critical updater module failure') && !!window.ClaraUpdate;
-            }""", timeout=45000)
-            state = await page.evaluate("""async () => {
-              const cache = await caches.open('clara-update-system-v1');
-              return (await (await cache.match(new URL('./__clara_update_state__', location.href))).json());
-            }""")
-            if not (state['rolledBack'] and state['previous']):
-                diagnostics = await page.evaluate("""async candidate => ({
-                  cacheNames: await caches.keys(),
-                  activeWorker: (await navigator.serviceWorker.getRegistration())?.active?.scriptURL,
-                  activeState: (await navigator.serviceWorker.getRegistration())?.active?.state,
-                  waitingState: (await navigator.serviceWorker.getRegistration())?.waiting?.state || null,
-                  currentPageBootCache: window.CLARA_BOOT_CACHE || null,
-                  currentUpdater: window.ClaraUpdate?.status || null,
-                  bootHistory: JSON.parse(sessionStorage.getItem('__claraRollbackQaHistory')||'[]'),
-                  candidateHtml: (await (await caches.open(candidate)).match(new URL('./index.html', location.href)))?.headers.get('content-type') || null
-                })""", candidate_name)
-                raise AssertionError(f'Rollback não ficou ativo; state={state!r}; diagnostics={diagnostics!r}; page_errors={page_errors!r}; dialogs={dialog_messages!r}')
-            print('QA ROLLBACK DE BOOT OK: módulo crítico falhou, shell anterior voltou e o cache do candidato foi isolado.')
-            await context.close()
-            await browser.close()
+            page.on("dialog",accept)
+            try:
+                await page.goto(BASE,wait_until="load")
+                await page.locator("#securityPassword").fill(PASSWORD)
+                if await page.locator("#securityConfirmWrap").is_visible():
+                    await page.locator("#securityConfirm").fill(PASSWORD)
+                await page.locator("#securitySubmit").click()
+                await page.wait_for_function("ClaraSecurity.unlocked",timeout=30000)
+                await page.wait_for_function(
+                    "navigator.serviceWorker.controller!==null",timeout=30000)
+                await page.evaluate("ClaraUpdate.check(false)")
+                previous=await page.evaluate("CLARA_BOOT_CACHE")
+                assert previous==cache,previous
+                await page.evaluate("""async () => {
+                    state.accounts[0].openingCents=112233;
+                    save();await ClaraSecurity.flush();
+                }""")
+                meta=json.loads(original[FILES[1]])
+                meta["version"]="9.9.9-rc"
+                meta["cache"]=candidate
+                meta["notes"]=["Rollback de QA"]
+                FILES[1].write_text(json.dumps(meta))
+                FILES[2].write_text(f"throw new Error('{error}');\n")
+                FILES[0].write_text(
+                    original[FILES[0]].replace(f"const CACHE_NAME = '{cache}';",
+                                                f"const CACHE_NAME = '{candidate}';",1))
+                FILES[3].write_text(
+                    original[FILES[3]].replace(
+                        f"const CLARA_BOOT_CACHE='{cache}';",
+                        f"const CLARA_BOOT_CACHE='{candidate}';",1).replace(
+                        "const CLARA_APP_VERSION='4.4.0-rc';",
+                        "const CLARA_APP_VERSION='9.9.9-rc';",1))
+                # O próprio botão de atualização aciona registro e instalação.
+                await page.evaluate("ClaraUpdate.check(true)")
+                await page.wait_for_function("""() =>
+                    ClaraUpdate.ready && !!navigator.serviceWorker.controller
+                """,timeout=45000)
+                result=await page.evaluate("ClaraUpdate.apply()")
+                assert result is True,{"result":result,"dialogs":dialogs}
+                await page.wait_for_function("""async (oldCache) => {
+                    const keys=await caches.keys();
+                    if(!keys.includes('clara-v2-metadata'))return false;
+                    const cache=await caches.open('clara-v2-metadata');
+                    const response=await cache.match(new URL('./__clara_v2_state__',location.href));
+                    if(!response)return false;
+                    const state=await response.json();
+                    return state.rolledBack===true&&state.previous===oldCache;
+                }""",arg=cache,timeout=60000)
+                # Navegação posterior deve ser atendida pelo pacote anterior,
+                # mesmo com o servidor contendo o script defeituoso.
+                new_page=await context.new_page()
+                await new_page.goto(BASE,wait_until="load")
+                await new_page.wait_for_function(
+                    "window.ClaraUpdate && typeof CLARA_BOOT_CACHE==='string'",timeout=20000)
+                state=await new_page.evaluate("""() => ({
+                    cache:CLARA_BOOT_CACHE,
+                    version:CLARA_APP_VERSION,
+                    hasUpdater:!!window.ClaraUpdate
+                })""")
+                assert state["cache"]==cache,state
+                assert state["hasUpdater"],state
+                assert error not in await new_page.content()
+                print("QA ROLLBACK V2 OK: falha crítica da shell nova preservou pacote anterior.")
+            finally:
+                await context.close()
+                await browser.close()
     finally:
-        for path, content in originals.items():
-            path.write_text(content, encoding='utf-8')
+        for path,content in original.items():
+            path.write_text(content)
 
-
-asyncio.run(main())
+asyncio.run(run())
