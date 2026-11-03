@@ -194,10 +194,8 @@ self.addEventListener('message',event=>{
    // atualização mais nova que já esteja sendo baixada ou aguardando.
    if(state.previous&&state.previous!==CACHE_NAME)
     await caches.delete(state.previous);
-   // Reter staging desta revisão como rota offline de último recurso;
-   // limpar somente staging das revisões anteriores após boot confirmado.
-   const names=await caches.keys();
-   await Promise.all(names.filter(n=>n.startsWith('clara-stage-')&&n!==STAGING_CACHE).map(n=>caches.delete(n)));
+   // Não limpar outros stagings aqui: um worker futuro pode estar instalando
+   // enquanto este BOOT_OK termina. Uma limpeza tardia repetiria a corrida.
    event.source?.postMessage({type:'CLARA_BOOT_CONFIRMED'});
   }else if(type==='CLARA_BOOT_FAILED'){
    if(state.previous&&await caches.has(state.previous)){
