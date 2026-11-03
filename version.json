@@ -1,9 +1,12 @@
 {
   "name": "Clara Finanças",
-  "version": "4.2.7-rc",
+  "version": "4.2.8-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Estabilização do cofre: restauração externa .clara cria ponto de segurança cifrado antes de substituir qualquer informação.",
+    "Histórico financeiro distingue despesas a pagar de receitas e transferências pendentes; regressão contábil com 1.000 operações.",
+    "Atualizador verifica a rede real sem depender apenas de navigator.onLine, prevenindo avisos falsos de offline.",
     "Dock com vidro suave de 20%, reflexo controlado e contornos arredondados sem comprometer os ícones.",
     "Interface essencial mais clean: saldo, receitas, despesas pagas e contas a pagar com hierarquia visual e leitura simplificadas.",
     "Correção de atualização com mesma versão, identificação real do cache offline e recargas que mantêm HTML e módulos do pacote aprovado.",
