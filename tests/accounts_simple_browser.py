@@ -103,9 +103,17 @@ async def run():
                     await page.locator("#m_type").select_option("Reserva")
                     await page.locator("#m_opening").fill("120,25")
                     await page.locator("#modalForm button[type=submit]").click()
-                    await page.wait_for_function(
-                        "state.accounts.some(a=>a.name==='Reserva QA')"
-                    )
+                    saved_reserve = await page.evaluate("""() => ({
+                        names: state.accounts.map(a => a.name),
+                        modalKind: document.getElementById('modalBg').dataset.kind,
+                        errors: [...document.querySelectorAll('#modalForm .field-error')]
+                            .map(el => el.textContent).filter(Boolean),
+                        toast: document.getElementById('toast').textContent,
+                        modalOpen: document.getElementById('modalBg').classList.contains('show'),
+                        vaultUnlocked: window.ClaraSecurity.unlocked,
+                        conflict: storageConflict
+                    })""")
+                    assert "Reserva QA" in saved_reserve["names"], (width, saved_reserve)
                     account_section = root.locator(".clara-account-manage-section").first
                     assert await account_section.locator(
                         ".clara-account-manage-row"
