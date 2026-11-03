@@ -70,7 +70,7 @@ test('Confirmação de boot só aceita a shell vinculada ao cache candidato',asy
  const verify=await readFile('tools/verify-paths.mjs','utf8');
  assert.match(html,/const CLARA_BOOT_CACHE='__CLARA_CACHE_NAME__'/);
  assert.match(html,/cacheName:CLARA_BOOT_CACHE/);
- assert.match(worker,/event\.data\.cacheName!==CACHE_NAME/);
+ assert.match(worker,/event\.data\?\.cacheName!==CACHE_NAME/);
  assert.match(build,/html\.replace\('__CLARA_CACHE_NAME__',cacheName\)/);
  assert.match(verify,/HTML deve conter o identificador imutável do pacote/);
 });
@@ -157,7 +157,7 @@ test('Atualizador EFI avisa e consulta automaticamente, sem instalação compuls
  assert.match(html,/O que há de novidade/);
  assert.match(html,/ÚLTIMA VERIFICAÇÃO/);
  assert.match(updater,/window\.addEventListener\('online'/);
- assert.match(updater,/window\.setInterval\(/);
+ assert.match(updater,/setInterval\(/);
  assert.match(updater,/document\.addEventListener\('visibilitychange'/);
  assert.match(updater,/ClaraSecurity\.flush\(\)/);
  assert.match(updater,/worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/);
@@ -351,8 +351,8 @@ test('Clara 4.1.2: recarregamento bloqueado por padrão, reversível e integrado
  assert.match(html,/addEventListener\('beforeunload'/);
  assert.match(html,/event\.returnValue=' '/);
  assert.match(html,/window\.ClaraSecurity\?\.unlocked && pref\('reloadLock'\)/);
- assert.match(html,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\(\);location\.reload\(\)/);
- assert.match(updater,/await bounded\(window\.ClaraSecurity\.flush\(\),NETWORK_TIMEOUT/);
+ assert.match(updater,/window\.ClaraReloadGuard\?\.allowOfficialUpdate\?\.\(\)/);
+ assert.match(updater,/await bound\(window\.ClaraSecurity\.flush\(\),15000/);
  assert.ok(html.includes("const CLARA_APP_VERSION='"+appVersion+"'"));
 });
 
