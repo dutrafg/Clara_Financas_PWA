@@ -45,8 +45,14 @@ async def main():
     old_cache = cache_name(OLD)
     new_cache = cache_name(NEW)
     assert old_cache != new_cache, "Atualização precisa ter pacote e cache distintos"
-    shutil.rmtree(SITE, ignore_errors=True)
-    shutil.copytree(OLD, SITE)
+    # O servidor de QA passa a apontar para um release imutável.
+    # Nunca copiar arquivos de uma versão sobre a outra em funcionamento:
+    # Vercel troca a revisão como pacote, não arquivo por arquivo.
+    if SITE.is_symlink():
+        SITE.unlink()
+    elif SITE.exists():
+        shutil.rmtree(SITE)
+    SITE.symlink_to(OLD.resolve(), target_is_directory=True)
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
@@ -95,8 +101,13 @@ async def main():
             assert original["vaultPresent"] and original["encrypted"], original
             assert old_cache in original["caches"], original
 
-            # Substituição da versão no servidor, SEM remover caches ou arquivos do cofre.
-            shutil.copytree(NEW, SITE, dirs_exist_ok=True)
+            # Publicação atômica do build novo. O servidor resolve o link
+            # somente por requisição, logo nunca observa um pacote parcial.
+            candidate_link = ROOT / "candidate-ready"
+            if candidate_link.exists() or candidate_link.is_symlink():
+                candidate_link.unlink()
+            candidate_link.symlink_to(NEW.resolve(), target_is_directory=True)
+            candidate_link.replace(SITE)
 
             # Uma navegação antes do consentimento deve continuar na shell antiga.
             await page.reload(wait_until="load")
