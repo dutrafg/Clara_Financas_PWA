@@ -75,6 +75,18 @@ test('SemVer ordena releases e pré-releases sem esconder atualizações RC',()=
  assert.equal(compare('4.2.4-rc.01','4.2.4-rc.2'),0,'Identificador numérico com zero inicial deve ser inválido');
 });
 
+test('Primeira instalação passa de preparando para atualizado quando o worker ativa',async()=>{
+ const h=createUpdaterHarness({remote:appVersion,installing:true});
+ await h.api.check(false);
+ assert.equal(h.api.status,'Preparando atualização');
+ h.registration.installing=null;
+ h.registration.active.state='activated';
+ h.swEvents.get('controllerchange')?.();
+ await h.advance(5001);
+ assert.equal(h.api.status,'Atualizado');
+ assert.equal(h.elements.get('applyClaraUpdate').hidden,true);
+});
+
 test('Pacote com revisão nova e mesma SemVer continua visível e aplicável',async()=>{
  const h=createUpdaterHarness({remote:appVersion,installing:true});
  h.registration.waiting=h.worker;h.registration.installing=null;h.worker.state='installed';
