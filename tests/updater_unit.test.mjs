@@ -358,4 +358,8 @@ test('Download inválido descarta apenas o candidato e preserva o pacote anterio
  await assert.rejects(h.fire('install'),/Instalação do Clara não concluída/);
  assert.ok(h.stores.has('clara-financas-4-2-4-old'));
  assert.equal(await h.caches.has(candidateCacheName),false);
+ const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
+ assert.equal(await h.caches.has(staging),true,
+  'erro isolado mantém staging para não apagar download concorrente');
+ assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html');
 });
