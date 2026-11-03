@@ -194,6 +194,76 @@
      <button type="button" class="btn" data-mode-toggle="${mode()?'advanced':'simple'}">${mode()?'Ativar modo avançado':'Voltar ao modo simples'}</button></section>
    </section>`;
  }
+
+ // Gestão simples: reaproveita os mesmos cadastros do motor, sem dados paralelos.
+ const accountManageRows=(items,isCard)=>{
+   if(!items.length)return '<div class="clara-account-empty"><strong>Nenhum cartão ainda</strong><p>Adicione seu primeiro cartão para acompanhar despesas pendentes em um só lugar.</p></div>';
+   const rank={Conta:0,Dinheiro:1,Reserva:2,Cartão:3};
+   const ordered=items.slice().sort((a,b)=>
+     (rank[a.type]??4)-(rank[b.type]??4)||a.name.localeCompare(b.name,'pt-BR'));
+   return ordered.map(a=>{
+     const pending=isCard?accountPendingCard(a.id):0;
+     const amount=isCard?pending:accountBalance(a.id,state.settings.cutoff);
+     const linked=state.transactions.filter(t=>t.accountId===a.id||t.toAccountId===a.id).length+
+       state.reconciliations.filter(r=>r.accountId===a.id).length;
+     const subtitle=isCard
+       ?pending>0?'Despesas pendentes':'Nenhuma despesa pendente'
+       :a.type==='Reserva'?'Reserva financeira':'Saldo até a data de corte';
+     return \`<article class="clara-account-manage-row">
+       <div class="clara-account-manage-info">
+         <span class="clara-compact-mark" aria-hidden="true">${isCard?'▤':a.type==='Reserva'?'◈':'▣'}</span>
+         <span class="clara-account-manage-label"><strong>${esc(a.name)}</strong>
+           <small>${esc(a.type)} · ${esc(subtitle)}</small></span>
+       </div>
+       <div class="clara-account-manage-finance">
+         <strong>${brl(amount)}</strong><small>${isCard?'Fatura em aberto':'Saldo atual'}</small>
+       </div>
+       <div class="clara-account-manage-actions">
+         <button type="button" data-edit-account="${esc(a.id)}" aria-label="Editar ${esc(a.name)}">Editar</button>
+         <button type="button" data-del-account="${esc(a.id)}" aria-label="Excluir ${esc(a.name)}">Excluir</button>
+       </div>
+       ${linked?'<p class="clara-account-link-hint">Vinculada a '+linked+' registro(s): exclua ou transfira os vínculos antes de remover.</p>':''}
+     </article>\`;
+   }).join('');
+ };
+ const accountManage=()=>{
+   const accounts=state.accounts.filter(a=>a.type!=='Cartão');
+   const cards=state.accounts.filter(a=>a.type==='Cartão');
+   const bankTotal=accounts.reduce((sum,a)=>sum+accountBalance(a.id,state.settings.cutoff),0);
+   const dueTotal=cards.reduce((sum,a)=>sum+accountPendingCard(a.id),0);
+   const limits=state.categories.filter(c=>c.group==='Despesa').map(c=>
+      \`<label class="clara-account-limit-row">
+         <span>${esc(c.name)}</span>
+         <span class="field"><small>Limite (R$)</small>
+           <input class="editable limit-input" data-category="${esc(c.name)}"
+             inputmode="decimal" value="${numField(c.limitCents||0)}" aria-label="Limite ${esc(c.name)}"></span>
+       </label>\`).join('');
+   return \`<div class="clara-accounts-manage" aria-label="Gerenciamento de contas e cartões">
+     <header class="clara-accounts-head"><h3>Contas e cartões</h3>
+       <p>Organize seus saldos e acompanhe o que falta pagar, sem perder seus lançamentos.</p></header>
+     <div class="clara-accounts-totals">
+       <div><span>Saldo nas contas</span><strong>${brl(bankTotal)}</strong></div>
+       <div><span>Despesas pendentes em cartões</span><strong>${brl(dueTotal)}</strong></div>
+     </div>
+     <section class="clara-simple-card clara-account-manage-section" aria-label="Contas e reservas">
+       <header><div><h3>Contas e reservas</h3><p>${accounts.length} cadastrada(s)</p></div>
+         <button type="button" class="clara-quiet" data-open="account">+ Nova conta</button></header>
+       ${accountManageRows(accounts,false)}
+       ${accounts.length===1?'<p class="clara-account-empty-tip">Sua conta principal já está pronta. Adicione outras contas ou reservas quando precisar.</p>':''}
+     </section>
+     <section class="clara-simple-card clara-account-manage-section" aria-label="Cartões">
+       <header><div><h3>Cartões</h3><p>${cards.length} cadastrado(s)</p></div>
+         <button type="button" class="clara-quiet" data-simple-new-card>+ Adicionar cartão</button></header>
+       ${accountManageRows(cards,true)}
+     </section>
+     <details class="clara-simple-card clara-account-limit-section">
+       <summary>Limites por categoria <span>Ajustar orçamento</span></summary>
+       <p class="clara-muted">Esses valores alimentam o planejamento e os avisos de limite.</p>
+       <div class="clara-account-limit-grid">${limits}</div>
+       <button type="button" class="btn primary" id="saveLimits">Salvar limites</button>
+     </details>
+   </div>\`;
+ };
  renderPainel=function(){return mode()?home():native.painel();};
  renderMov=function(){return mode()?lancar():native.mov();};
  renderPlan=function(){return mode()?planejar():native.plan();};
@@ -203,6 +273,10 @@
    document.querySelectorAll('#view-ajustes [data-config-tab]').forEach(el=>{
       if(!['aparencia','dados','contas'].includes(el.dataset.configTab))el.hidden=true;
    });
+   if(configTab==='contas'){
+      const el=document.querySelector('#view-ajustes .config-content');
+      if(el)el.innerHTML=accountManage();
+   }
    if(configTab==='aparencia'){
       const el=document.querySelector('#view-ajustes .config-content');
       if(el)el.innerHTML=`<section class="clara-simple-card"><h3>Visual do aplicativo</h3><p class="clara-muted">Escolha o que for mais confortável.</p><label class="field"><span>Tema</span><select id="themeSelect">
