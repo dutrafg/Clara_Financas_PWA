@@ -162,8 +162,10 @@ test('Preparação sem instalação termina com falha recuperável e não deixa 
  const h=createUpdaterHarness({remote:nextRemoteVersion,installing:false});
  assert.equal(await h.api.check(true),false);
  assert.equal(h.api.status,'Preparando atualização');
- await h.advance(120_001);
- assert.equal(h.api.status,'Falha ao preparar');
+ await h.advance(14_999);
+ assert.equal(h.api.status,'Preparando atualização','prazo curto não deve abortar antes de 15s');
+ await h.advance(2);
+ assert.equal(h.api.status,'Falha ao preparar','sem instalador, não aguardar 2 minutos');
  assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
  assert.equal(h.elements.get('applyClaraUpdate').textContent,'Tentar novamente');
 });
