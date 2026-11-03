@@ -44,6 +44,9 @@ async def run():
                     await root.locator("[data-simple-new-card]").click()
                     assert await page.locator("#modalBg").is_visible()
                     assert await page.locator("#m_type").input_value() == "Cartão"
+                    assert await page.locator("#modalTitle").inner_text() == "Adicionar cartão"
+                    assert "limite de crédito" in await page.locator("#claraAccountFormHint").inner_text()
+                    assert await page.locator("#modalForm button[type=submit]").inner_text() == "Adicionar cartão"
                     await page.locator("#m_name").fill("Cartão de QA")
                     await page.locator("#m_opening").fill("0,00")
                     await page.locator("#modalForm button[type=submit]").click()
@@ -63,6 +66,11 @@ async def run():
                     )
                     await card.locator("[data-edit-account]").click()
                     assert await page.locator("#m_type").input_value() == "Cartão"
+                    assert await page.locator("#modalTitle").inner_text() == "Editar cartão"
+                    await page.locator("#m_type").select_option("Conta")
+                    assert await page.locator("#modalTitle").inner_text() == "Editar conta"
+                    await page.locator("#m_type").select_option("Cartão")
+                    assert await page.locator("#modalTitle").inner_text() == "Editar cartão"
                     await page.locator("#m_name").fill("Cartão renomeado")
                     await page.locator("#modalForm button[type=submit]").click()
                     await page.wait_for_function(
@@ -77,6 +85,8 @@ async def run():
                     await root.locator(".clara-account-manage-section").first.locator(
                         '[data-open="account"]'
                     ).click()
+                    assert await page.locator("#modalTitle").inner_text() == "Adicionar conta"
+                    assert await page.locator("#modalForm button[type=submit]").inner_text() == "Adicionar conta"
                     await page.locator("#m_name").fill("Reserva QA")
                     await page.locator("#m_type").select_option("Reserva")
                     await page.locator("#m_opening").fill("120,25")
@@ -108,14 +118,38 @@ async def run():
                     }""")
                     shown = await card.inner_text()
                     assert "73,51" in shown, (width, shown)
-                    await card.locator("[data-del-account]").click()
-                    await page.locator("#confirmModalBtn").click()
+                    assert await card.locator("[data-del-account]").is_disabled()
+                    assert "vinculado" in await card.inner_text()
+                    assert await page.evaluate(
+                        "(id)=>deleteAccount(id)", card_id
+                    ) is False
                     await page.wait_for_function(
                         "document.getElementById('toast').textContent.includes('vinculados')"
                     )
                     assert await page.evaluate(
                         "(id)=>state.accounts.some(a=>a.id===id)", card_id
                     )
+
+                    # Exclusão de cartão sem vínculos continua funcionando.
+                    await card.locator("[data-simple-new-card]").click()
+                    await page.locator("#m_name").fill("Cartão descartável QA")
+                    await page.locator("#modalForm button[type=submit]").click()
+                    await page.wait_for_function(
+                        "state.accounts.some(a=>a.name==='Cartão descartável QA')"
+                    )
+                    unlinked_id = await page.evaluate(
+                        "state.accounts.find(a=>a.name==='Cartão descartável QA').id"
+                    )
+                    assert await card.locator(".clara-account-manage-row").count() == 2
+                    await card.locator(
+                        f'[data-del-account="{unlinked_id}"]'
+                    ).click()
+                    await page.locator("#confirmModalBtn").click()
+                    await page.wait_for_function(
+                        "(id)=>!state.accounts.some(a=>a.id===id)",
+                        arg=unlinked_id
+                    )
+                    assert await card.locator(".clara-account-manage-row").count() == 1
 
                     # Edição dos limites mantém o mesmo mecanismo central.
                     await root.locator(".clara-account-limit-section summary").click()
