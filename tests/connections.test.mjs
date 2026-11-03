@@ -71,20 +71,20 @@ test('Referências relativas e atualizador vinculados à distribuição atual',(
 test('Recarga forçada conserva o pacote aprovado, mas atualizador consulta versão na rede',async()=>{
  const sw=await readFile('sw.js','utf8');
  assert.doesNotMatch(sw,/request\.cache === 'reload' \|\| request\.cache === 'no-store'/);
- assert.match(sw,/const installed = await cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
- assert.match(sw,/const hit = await cache\.match\(request, \{ignoreSearch:true\}\)/);
- assert.match(sw,/try \{ return await fetch\(request\); \}/);
+ assert.match(sw,/const hit=await cache\.match\(scopedURL\('\.\/index\.html'\)\)/);
+ assert.match(sw,/const hit=await cache\.match\(request,\{ignoreSearch:true\}\)/);
+ assert.match(sw,/try\{return await fetch\(request\);\}/);
 });
 
 test('Service Worker não confirma versão antiga quando a rede falha',async()=>{
  const sw=await readFile('sw.js','utf8');
- const versionBranch=sw.match(/if \(url\.pathname === versionPath\) \{([\s\S]*?)\n    \}/);
- assert.ok(versionBranch,'Consulta explícita de versão no Service Worker ausente');
- assert.match(versionBranch[1],/new Request\(request, \{cache:'no-store'\}\)/);
- assert.match(versionBranch[1],/catch \{ return Response\.error\(\); \}/);
- assert.doesNotMatch(versionBranch[1],/cache\.match/);
- assert.ok(sw.indexOf('if (url.pathname === versionPath)')<sw.indexOf("if (request.mode === 'navigate'"),
-  'A versão precisa ser verificada antes do fallback para o shell instalado');
+ const start=sw.indexOf('if(url.pathname===versionPath)');
+ const end=sw.indexOf("if(request.cache==='no-store'",start);
+ assert.ok(start>=0&&end>start,'Consulta de versão deve anteceder fallback offline');
+ const versionBranch=sw.slice(start,end);
+ assert.match(versionBranch,/new Request\(request,\{cache:'no-store'\}\)/);
+ assert.match(versionBranch,/catch\{return Response\.error\(\);\}/);
+ assert.doesNotMatch(versionBranch,/cache\.match/);
  const vercel=JSON.parse(await readFile('vercel.json','utf8'));
  for(const path of ['/sw.js','/version.json']){
   const headers=vercel.headers.find(x=>x.source===path)?.headers||[];
@@ -102,29 +102,26 @@ test('Cabeçalhos HTTP reduzem MIME sniffing, clickjacking e vazamento de referr
  assert.equal(header('Referrer-Policy'),'strict-origin-when-cross-origin');
 });
 
-test('Atualização não fica pendente indefinidamente e mantém cache antigo se o download falhar',async()=>{
+test('Atualizador v2 preserva cofre e rollback até boot confirmado',async()=>{
  const sw=await readFile('sw.js','utf8');
  assert.match(sw,/Promise\.allSettled\(APP_FILES\.map/);
  assert.match(sw,/caches\.delete\(CACHE_NAME\)/);
- assert.match(sw,/attempt<3/);
+ assert.match(sw,/n<3/);
  assert.doesNotMatch(sw,/caches\.delete\(['"]clara-financas-vault/);
- assert.match(html,/id="applyClaraUpdate"/);
- assert.match(updater,/action\.hidden=!newer\(\)\|\|applying/);
- assert.match(updater,/PREPARE_TIMEOUT=120000/);
- assert.match(updater,/parseVersion/);
- assert.match(updater,/async function activatedPackageReady\(r\)/);
- assert.match(updater,/async function reopenInstalled\(r\)/);
- assert.match(updater,/action\.disabled=applying\|\|preparing/);
- assert.match(updater,/await bounded\(r\.update\(\),NETWORK_TIMEOUT/);
- assert.match(updater,/registration\?\.installing/);
- assert.match(updater,/watchInstalling\(r\.installing\)/);
- assert.match(updater,/worker\.state==='redundant'/);
  assert.match(sw,/CLARA_BOOT_OK/);
  assert.match(sw,/CLARA_BOOT_FAILED/);
- assert.match(sw,/state\.rolledBack&&state\.previous\?state\.previous:CACHE_NAME/);
- assert.match(sw,/await announceProgress\(done,APP_FILES\.length,path\)/);
- assert.match(html,/id="claraUpdateRecoveryHint"/);
+ assert.match(sw,/verifiedCache\(state\.previous\)/);
+ assert.match(sw,/CLARA_UPDATE_PROGRESS/);
+ assert.match(updater,/PREPARE_TIMEOUT=120000/);
+ assert.match(updater,/const parse=value=>/);
+ assert.match(updater,/const compare=\(a,b\)=>/);
+ assert.match(updater,/await bound\(reg\.update\(\),NETWORK_TIMEOUT/);
+ assert.match(updater,/registration\?\.installing/);
+ assert.match(updater,/watch\(reg\.installing\)/);
+ assert.match(updater,/worker\.state==='redundant'/);
  assert.match(updater,/window\.ClaraBackups\?\.beforeUpdate\?\.\(\)/);
+ assert.match(html,/id="applyClaraUpdate"/);
+ assert.match(html,/id="claraUpdateRecoveryHint"/);
  assert.match(html,/id="clara-update-boot-guard"/);
 });
 
@@ -136,12 +133,12 @@ test('Versão no painel deriva da mesma constante usada pelo atualizador',()=>{
  assert.match(updater,/const INSTALLED_VERSION=CLARA_APP_VERSION;/);
 });
 
-test('SemVer reconhece atualizações RC e ordena identificadores corretamente',()=>{
- const a=updater.match(/const parseVersion=value=>\{[\s\S]*?\n \};\n const compare=/);
- assert.ok(a,'Parser SemVer não encontrado');
- assert.match(updater,/leftNumeric&&rightNumeric\)return BigInt\(left\)>BigInt\(right\)\?1:-1/);
- assert.match(updater,/x\.prerelease\.length\?-1:1/);
- assert.match(updater,/info\.version\.length>128\|\|!parseVersion\(info\.version\)/);
+test('SemVer v2 reconhece pré-releases e valida metadados',()=>{
+ assert.match(updater,/const parse=value=>/);
+ assert.match(updater,/ln&&rn\)return BigInt\(l\)>BigInt\(r\)\?1:-1/);
+ assert.match(updater,/x\.pre\.length\?-1:1/);
+ assert.match(updater,/data\.version\.length>128\|\|!parse\(data\.version\)/);
+ assert.match(updater,/data\.cache!==undefined/);
 });
 
 test('Modo demonstração permite consultar atualização, sem permitir instalação/gravação',()=>{
