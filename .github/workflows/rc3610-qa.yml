@@ -75,6 +75,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/pwa_browser.py 2>&1 | tee /tmp/clara-pwa-browser.log
+      - name: Testar recuperação Chrome após perda de CacheStorage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-chrome-recovery-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/chrome_navigation_recovery_browser.py 2>&1 | tee /tmp/clara-chrome-recovery-browser.log
       - name: Verificar cofre, migração e conteúdo cifrado
         shell: bash
         run: |
@@ -195,6 +203,8 @@ jobs:
           path: |
             /tmp/clara-http-server.log
             /tmp/clara-pwa-browser.log
+            /tmp/clara-chrome-recovery-browser.log
+            /tmp/clara-chrome-recovery-server.log
             /tmp/clara-security-browser.log
             /tmp/clara-history-browser.log
             /tmp/clara-core-integrity-browser.log
