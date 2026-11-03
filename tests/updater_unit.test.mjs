@@ -40,7 +40,7 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
   setTimeout(){return 1;},clearTimeout(){},setInterval(){return 1;},
   showToast(){}};
  vm.runInNewContext(updaterSource,sandbox,{filename:'clara-updater.js'});
- return {api:win.ClaraUpdate,worker,reg,elements,events,listeners,regListeners,
+ return {api:win.ClaraUpdate,window:win,worker,reg,elements,events,listeners,regListeners,
   get flushes(){return flushes;},get backups(){return backups;}};
 }
 function worker(){
@@ -116,8 +116,9 @@ test('Não ativar sem cofre desbloqueado',async()=>{
  const h=app({waiting:true});
  await h.api.check();
  // O estado do cofre pertence a window; substituí-lo simula o bloqueio.
- const guard=()=>h.api.apply();
- await assert.rejects(guard,/Desbloqueie/).catch(()=>{});
+ h.window.ClaraSecurity.unlocked=false;
+ await assert.rejects(h.api.apply(),/Desbloqueie/);
+ assert.equal(h.worker.sent.length,0);
 });
 
 test('Service Worker instala somente o pacote completo e sem SKIP_WAITING automático',async()=>{
