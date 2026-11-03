@@ -3700,6 +3700,7 @@ function modal(kind, itemId = '') {
   $('modalBg').classList.add('show');
   $('modalBg').dataset.kind = kind;
   if (itemId) $('modalBg').dataset.id = itemId;
+  else delete $('modalBg').dataset.id;
 
   const titles = {
     transaction: 'Novo lançamento',
