@@ -4,7 +4,7 @@
 const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const HOUR=60*60*1000,RESUME=15*60*1000,DISMISS_KEY='clara-update-dismissed-v1';
- const PREPARE_TIMEOUT=120000, NETWORK_TIMEOUT=10000,PROGRESS_POLL=5000;
+ const PREPARE_TIMEOUT=120000,NO_WORKER_TIMEOUT=15000,NETWORK_TIMEOUT=10000,PROGRESS_POLL=5000;
  let registration=null,initialPromise=null,checking=null,installPromise=null;
  let applying=false,ready=false,reopenReady=false,observed=false;
  let status='Aguardando',message='Verificação automática ao desbloquear.',lastCheck=0;
@@ -55,6 +55,10 @@ const ClaraUpdate=(()=>{
   if(registration?.waiting){handleWaiting();return;}
   if(worker?.state==='redundant'){
    clearPreparation();setStatus('Falha ao preparar','O navegador rejeitou o pacote offline. Confira a conexão e tente novamente sem apagar os dados.');return;
+  }
+  // Não ocultar uma falha de início de download atrás de dois minutos de espera.
+  if(!worker&&idle>=NO_WORKER_TIMEOUT){
+   clearPreparation();setStatus('Falha ao preparar','O navegador não iniciou o download. Toque em Verificar agora para tentar novamente sem apagar os seus dados.');return;
   }
   if(idle>=PREPARE_TIMEOUT){
    clearPreparation();setStatus('Falha ao preparar','A preparação ultrapassou 2 minutos sem confirmar o pacote. Você pode tentar novamente; o cofre e os caches anteriores foram preservados.');return;
