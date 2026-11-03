@@ -15,6 +15,13 @@
   ${opts('<span aria-hidden="true">+</span> Receita','data-clw-action="new" data-clw-kind="Receita"')}
   ${opts('<span aria-hidden="true">⇄</span> Transferir','data-clw-action="new" data-clw-kind="Transferência"')}
  </div>`;
+ const monthName=p=>new Date(p+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+ const monthNav=p=>`<nav class="clara-month-nav" aria-label="Escolher mês financeiro">
+   <button type="button" data-simple-month-dir="-1" aria-label="Mês anterior">‹</button>
+   <span aria-live="polite">${esc(monthName(p))}</span>
+   <button type="button" data-simple-month-dir="1" aria-label="Próximo mês">›</button>
+  </nav>`;
+ let txFilter='Todas',txSearch='';
  const listLine=t=>`<div class="clara-simple-line">
    <div class="clara-simple-line-title"><strong>${esc(t.description)}</strong><small>${fmtDay(t.date)} · ${esc(t.category||t.kind)}</small></div>
    <div class="clara-simple-line-value"><b>${t.kind==='Despesa'?'− ':t.kind==='Receita'?'+ ':''}${brl(t.amountCents)}</b><button type="button" class="clara-quiet" data-edit-tx="${esc(t.id)}">Editar</button></div>
@@ -25,34 +32,73 @@
   const recent=state.transactions.slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,4);
   const spend=budgetRows(p).filter(r=>r.done>0).sort((a,b)=>b.done-a.done);
   const insight=spend.length?`Neste mês, sua maior despesa foi em ${spend[0].name}.`:'Registre uma despesa para descobrir onde seu dinheiro está indo.';
-  const monthLabel=new Date(p+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const monthLabel=monthName(p);
+  const accounts=state.accounts.slice(0,3);
   $('view-painel').innerHTML=`<section class="clara-simple-home" aria-label="Seu dinheiro">
-   <div class="clara-clean-heading"><span>Visão geral</span><span>${esc(monthLabel)}</span></div>
-   <div class="clara-balance"><div class="clara-balance-head"><span>Saldo disponível</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
+   <div class="clara-clean-heading"><span>Visão geral</span><span>Seu dinheiro, sem complicação</span></div>
+   <div class="clara-balance"><div class="clara-balance-head"><span>Saldo atual</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
     <strong>${brl(balance)}</strong><p>Saldo das suas contas até ${fmtDay(state.settings.cutoff)}</p></div>
    <div class="clara-simple-stats" aria-label="Resumo financeiro do mês"><article><span>Receitas</span><strong class="positive">${brl(stats.income)}</strong></article>
       <article><span>Despesas pagas</span><strong>${brl(stats.expense)}</strong></article>
       <article class="clara-clean-pending"><span>A pagar no mês</span><strong>${brl(stats.toPay)}</strong></article></div>
+   ${monthNav(p)}
    ${quick()}
    ${state.transactions.length===0?`<section class="clara-welcome"><h3>Vamos começar?</h3><p>Registre uma entrada ou despesa para acompanhar seu dinheiro de forma simples.</p>
      <button type="button" class="btn primary" data-clw-action="new" data-clw-kind="Receita">Registrar primeira entrada</button></section>`:''}
+   <section class="clara-simple-card"><header><h3>Contas</h3><button type="button" class="clara-quiet" data-config-jump="contas">Gerenciar</button></header>
+     ${accounts.map(a=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(a.name)}</strong><small>${esc(a.type)}</small></div><div class="clara-simple-line-value"><b>${brl(accountBalance(a.id,state.settings.cutoff))}</b></div></div>`).join('')}
+     <button type="button" class="clara-inline-add" data-open="account">+ Adicionar conta ou cartão</button>
+   </section>
    <section class="clara-simple-card"><header><h3>Próximos vencimentos</h3><button class="clara-quiet" data-view="mov" type="button">Ver tudo</button></header>
      ${due.length?due.map(t=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(t.description)}</strong><small>${t.date<today?'Venceu · ':''}${fmtDay(t.date)}</small></div><div class="clara-simple-line-value"><b>${brl(t.amountCents)}</b><button class="clara-quiet" type="button" data-toggle="${esc(t.id)}">Pagar</button></div></div>`).join(''):'<p class="clara-muted">Nenhuma conta próxima do vencimento.</p>'}
    </section>
    <section class="clara-simple-card"><header><h3>Movimentações recentes</h3><button class="clara-quiet" type="button" data-view="mov">Ver tudo</button></header>
     ${recent.length?recent.map(listLine).join(''):'<p class="clara-muted">Seus registros aparecerão aqui.</p>'}
    </section>
-   <section class="clara-simple-card clara-simple-tip"><small>Uma dica para você</small><p>${esc(insight)}</p><button type="button" class="clara-quiet" data-view="plan">Ver planejamento</button></section>
+   ${spend.length?`<section class="clara-simple-card clara-simple-tip"><small>Seu resumo</small><p>${esc(insight)}</p><button type="button" class="clara-quiet" data-view="plan">Ver planejamento</button></section>`:''}
   </section>`;
  }
+ function txResults(){
+  const p=state.settings.period;
+  const all=state.transactions.filter(t=>inMonth(t,p));
+  const items=all.filter(t=>{
+   if(txFilter==='Receitas'&&t.kind!=='Receita')return false;
+   if(txFilter==='Despesas'&&t.kind!=='Despesa')return false;
+   if(txFilter==='Transferências'&&t.kind!=='Transferência')return false;
+   if(txFilter==='Pendentes'&&t.status!=='Pendente')return false;
+   const query=txSearch.trim().toLocaleLowerCase('pt-BR');
+   return !query||[t.description,t.category,t.kind].some(x=>String(x||'').toLocaleLowerCase('pt-BR').includes(query));
+  }).sort((a,b)=>effective(b).localeCompare(effective(a))||b.date.localeCompare(a.date));
+  if(items.length)return items.slice(0,80).map(listLine).join('');
+  const empty=all.length===0&&txFilter==='Todas'&&!txSearch.trim();
+  return `<div class="clara-simple-empty">
+    <span class="clara-simple-empty-icon" aria-hidden="true">${SVG_ICONS.mov}</span>
+    <strong>${empty?'Nenhuma transação neste mês':'Nada encontrado'}</strong>
+    <p>${empty?'Registre sua primeira movimentação para acompanhar seu dinheiro.':'Nenhum lançamento corresponde aos filtros selecionados.'}</p>
+    <button type="button" class="clara-simple-empty-action" ${empty?'data-clw-action="new" data-clw-kind="Despesa"':'data-simple-clear-filters'}>${empty?'Criar uma transação':'Limpar filtros e busca'}</button>
+  </div>`;
+ }
  function lancar(){
-  const recent=state.transactions.filter(t=>inMonth(t,state.settings.period)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
-  $('view-mov').innerHTML=`<section class="clara-simple-home">
-   <div class="clara-simple-intro"><h3>O que vamos registrar?</h3><p>Escolha uma opção. Você só precisa informar o valor e o motivo.</p></div>
-   ${quick()}
-   <section class="clara-simple-card"><header><h3>Este mês</h3><button class="clara-quiet" data-view="historico" type="button">Outros meses</button></header>
-     ${recent.length?recent.map(listLine).join(''):'<p class="clara-muted">Ainda não há lançamentos neste mês.</p>'}</section>
-   <button type="button" class="clara-quiet" data-mode-toggle="advanced">Ver filtros e controles avançados</button>
+  const p=state.settings.period,stats=stat(p),periodTotal=stats.income-stats.expense;
+  const filters=['Todas','Receitas','Despesas','Transferências','Pendentes'];
+  $('view-mov').innerHTML=`<section class="clara-simple-home clara-simple-transactions">
+    <div class="clara-simple-intro"><h3>Transações</h3><p>Veja o que entrou, saiu e ainda falta pagar.</p></div>
+    <div class="clara-tx-summary" aria-label="Resumo mensal de lançamentos">
+      <div><span>Receitas</span><strong class="positive">${brl(stats.income)}</strong></div>
+      <div><span>Despesas</span><strong class="negative">${brl(stats.expense)}</strong></div>
+      <div><span>Balanço</span><strong>${brl(periodTotal)}</strong></div>
+    </div>
+    ${monthNav(p)}
+    ${quick()}
+    <div class="clara-tx-filterbar" role="group" aria-label="Filtrar transações">
+      ${filters.map(f=>`<button type="button" data-simple-filter="${f}" aria-pressed="${txFilter===f}" class="${txFilter===f?'active':''}">${f}</button>`).join('')}
+    </div>
+    <label class="clara-tx-search"><span class="clara-sr-only">Buscar transações por descrição, categoria ou tipo</span>
+      <input id="claraSimpleTxSearch" type="search" autocomplete="off" placeholder="Buscar movimentações" value="${esc(txSearch)}"></label>
+    <section class="clara-simple-card clara-simple-tx-results" aria-label="Movimentações filtradas">
+      <div class="clara-simple-tx-items">${txResults()}</div>
+    </section>
+    <button type="button" class="clara-quiet" data-mode-toggle="advanced">Filtros e relatórios avançados</button>
   </section>`;
  }
  function planejar(){
