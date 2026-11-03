@@ -130,8 +130,11 @@ self.addEventListener('message',event=>{
   if(type==='CLARA_BOOT_OK'&&!state.rolledBack){
    state.confirmed=true;
    await writeUpdateState(state);
-   const names=await caches.keys();
-   await Promise.all(names.filter(name=>name.startsWith(cachePrefix)&&name!==CACHE_NAME).map(name=>caches.delete(name)));
+   // Excluir apenas o backup anterior identificado na ativação DESTE pacote.
+   // Um BOOT_OK tardio do worker antigo não pode eliminar o cache de uma
+   // atualização mais nova que já esteja sendo baixada ou aguardando.
+   if(state.previous&&state.previous!==CACHE_NAME)
+    await caches.delete(state.previous);
    event.source?.postMessage({type:'CLARA_BOOT_CONFIRMED'});
   }else if(type==='CLARA_BOOT_FAILED'){
    if(state.previous&&await caches.has(state.previous)){
