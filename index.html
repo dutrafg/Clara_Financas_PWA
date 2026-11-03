@@ -3813,7 +3813,12 @@ function modal(kind, itemId = '') {
   $('modalBg').setAttribute('role', 'dialog');
   $('modalBg').setAttribute('aria-modal', 'true');
   $('modalBg').setAttribute('aria-hidden', 'false');
-  requestAnimationFrame(() => $('modalContent').querySelector('input:not(:disabled),select:not(:disabled),button:not(:disabled)')?.focus());
+  requestAnimationFrame(() => {
+    // Na tela de lançamento simplificado, não abrir o seletor de datas/teclado
+    // imediatamente: o usuário deve ver primeiro o valor e o tipo.
+    const simpleEntry=window.ClaraSimple?.enabled&&['transaction','editTransaction'].includes(kind);
+    (simpleEntry?$('closeModal'):$('modalContent').querySelector('input:not(:disabled),select:not(:disabled),button:not(:disabled)'))?.focus({preventScroll:true});
+  });
 }
 
 function closeModal() {
