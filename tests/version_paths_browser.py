@@ -82,6 +82,15 @@ async def run():
     # O evento 'installed' pode preceder a atualização visual; sincronizar pelo estado do SW.
     await page.evaluate("window.ClaraUpdate.check(false)")
     await page.wait_for_function("window.ClaraUpdate.ready && !document.getElementById('claraUpdateNotice').hidden",timeout=12000)
+    staged=await page.evaluate("""async () => {
+      const cache=await caches.open('clara-stage-qa-upgrade-v2');
+      const r=await cache.match(new URL('./index.html',location.href));
+      const body=r?await r.text():'';
+      return {marker:body.includes('qa-version-two'),size:body.length,
+        caches:await caches.keys(),start:body.slice(0,180)};
+    }""")
+    print('QA STAGED CANDIDATE',staged,flush=True)
+    assert staged['marker'],staged
     assert await page.locator('#claraUpdateNoticeTitle').inner_text()=='Atualização pronta para instalar'
     assert await page.locator('#claraUpdateNotice').is_visible()
     assert await page.locator('#claraUpdateNoticeInstall').is_visible()
@@ -108,8 +117,13 @@ async def run():
       const registration=await navigator.serviceWorker.ready;
       const cache=await caches.open('clara-financas-qa-upgrade-v2');
       const response=await cache.match(new URL('./index.html',location.href));
+      const body=response?await response.text():'';
+      const network=await (await fetch('./index.html',{cache:'no-store'})).text();
       return {active:registration.active?.state,
-        marker:response? (await response.text()).includes('qa-version-two'):false};
+        marker:body.includes('qa-version-two'),
+        cachedBytes:body.length,cachedStart:body.slice(0,180),
+        networkMarker:network.includes('qa-version-two'),
+        names:await caches.keys()};
     }""")
     assert snapshot['active']=='activated' and snapshot['marker'],snapshot
     # Nova navegação offline não deve usar documentos de um controlador antigo.
