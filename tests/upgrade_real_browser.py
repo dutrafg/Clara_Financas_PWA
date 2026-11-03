@@ -168,7 +168,9 @@ async def main():
             # concorrente que poderia substituir o worker aguardando.
             await page.wait_for_function("""async expected => {
                 if(window.ClaraUpdate?.remoteVersion!=='4.3.1-rc' ||
-                   !window.ClaraUpdate.ready)return false;
+                   !window.ClaraUpdate.ready ||
+                   window.ClaraUpdate.status!=='Atualização disponível' ||
+                   document.getElementById('checkClaraUpdate')?.disabled)return false;
                 const registration=await navigator.serviceWorker.ready;
                 if(!registration.waiting)return false;
                 const stage='clara-stage-'+expected.slice('clara-financas-'.length);
