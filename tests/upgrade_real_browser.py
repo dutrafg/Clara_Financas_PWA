@@ -67,6 +67,7 @@ async def main():
             original = await page.evaluate("""async () => {
                 const date=todayISO();
                 state.accounts[0].openingCents=54321;
+                state.transactions=[];
                 state.transactions.push({
                     id:'upgrade-kept-transaction',
                     date,paidAt:date,description:'Conta preservada na atualização',
@@ -127,7 +128,7 @@ async def main():
             await page.locator("#applyClaraUpdate").click()
 
             await page.wait_for_function(
-                "window.CLARA_APP_VERSION === '4.3.1-rc'", timeout=45000
+                "typeof CLARA_APP_VERSION !== 'undefined' && CLARA_APP_VERSION === '4.3.1-rc'", timeout=45000
             )
             await unlock(page)
             upgraded = await page.evaluate("""async () => {
