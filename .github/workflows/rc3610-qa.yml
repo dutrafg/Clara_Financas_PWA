@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Node 20
         uses: actions/setup-node@v4
         with:
@@ -44,6 +46,14 @@ jobs:
         run: npm run build
       - name: Validar caminhos, versão e cache
         run: npm run verify:paths
+      - name: Construir versão publicada 4.3.0-rc para teste real de migração
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-upgrade/old
+          git archive 581cd7af4e614aa4c07a7b07aec6c038a5a2ec26 | tar -x -C qa-upgrade/old
+          (cd qa-upgrade/old && npm run build)
+          cp -a qa-upgrade/old/dist qa-upgrade/site
       - name: Instalar Playwright
         run: |
           python -m pip install --upgrade pip
@@ -89,6 +99,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/version_paths_browser.py 2>&1 | tee /tmp/clara-version-paths-browser.log
+      - name: Atualizar instalação real da 4.3.0-rc para 4.3.1-rc mantendo dados e offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-upgrade-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/upgrade_real_browser.py 2>&1 | tee /tmp/clara-upgrade-browser.log
       - name: Simular atualização travada e validar glass em três resoluções
         shell: bash
         run: |
@@ -184,6 +202,8 @@ jobs:
             /tmp/clara-input-browser.log
             /tmp/clara-miniapps-extended.log
             /tmp/clara-version-paths-browser.log
+            /tmp/clara-upgrade-browser.log
+            /tmp/clara-upgrade-server.log
             /tmp/clara-updater-recovery-browser.log
             /tmp/clara-updater-rollback-browser.log
             /tmp/clara-version-paths-server.log
