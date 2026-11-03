@@ -54,6 +54,10 @@ async def run():
       assert stats['dockCount']==8 and stats['dockVisible']==(width>760),stats
       assert stats['bellFixed'],stats
       assert stats['documentWidth']<=width+2,stats
+      # Resumo clean do modo simples: três indicadores vinculados a dados reais.
+      assert await page.locator('#view-painel .clara-clean-heading').is_visible()
+      assert await page.locator('#view-painel .clara-simple-stats article').count()==3
+      assert 'A pagar no mês' in await page.locator('#view-painel .clara-clean-pending').inner_text()
       assert not errors,errors
       if width in (390,768,1440):
         await page.screenshot(path=str(CAPTURES/f'studio-light-{width}.png'),full_page=True)
@@ -85,6 +89,17 @@ async def run():
       assert dock_geometry['clip']=='hidden',dock_geometry
       assert all(r>=14 for r in dock_geometry['linkRadii']),dock_geometry
       assert dock_geometry['left']>=-2 and dock_geometry['right']<=width+2,dock_geometry
+      glass=await page.evaluate("""() => {
+        const dock=document.querySelector(innerWidth<=760?'.mobile-dock':'#claraDesktopDock');
+        return {opacity:getComputedStyle(dock,'::before').opacity,
+          glow:getComputedStyle(dock,'::before').backgroundImage,
+          pseudo:getComputedStyle(dock,'::before').pointerEvents,
+          blur:getComputedStyle(dock).backdropFilter,
+          radius:parseFloat(getComputedStyle(dock).borderTopLeftRadius)};
+      }""")
+      assert glass['opacity']=='0.2',glass
+      assert 'linear-gradient' in glass['glow'] and glass['pseudo']=='none',glass
+      assert glass['radius']>=30 and 'blur(5px)' in glass['blur'],glass
       if width<=760:
         # Modo avançado: o menu deve bloquear a rolagem de fundo e ficar acima do sino.
         await page.locator('#floatTrigger').click()
