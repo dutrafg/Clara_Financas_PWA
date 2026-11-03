@@ -32,6 +32,13 @@ jobs:
           python-version: '3.12'
       - name: Executar testes de regressão
         run: npm test
+      - name: Verificar sintaxe dos módulos e da suíte Python
+        run: |
+          node --check clara-updater.js
+          node --check clara-simple.js
+          node --check clara-backup.js
+          node --check clara-agenda.js
+          python -m compileall -q tests
       - name: Gerar pacote PWA
         run: npm run build
       - name: Validar caminhos, versão e cache
@@ -57,6 +64,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/security_pwa.py 2>&1 | tee /tmp/clara-security-browser.log
+      - name: Etapa 1 - integridade financeira e recuperação do cofre
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-core-integrity-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/core_integrity_browser.py 2>&1 | tee /tmp/clara-core-integrity-browser.log
       - name: Rejeitar valores inválidos e testar saída contra HTML ativo
         shell: bash
         run: |
@@ -155,6 +170,8 @@ jobs:
             /tmp/clara-pwa-browser.log
             /tmp/clara-security-browser.log
             /tmp/clara-history-browser.log
+            /tmp/clara-core-integrity-browser.log
+            /tmp/clara-core-integrity-server.log
             /tmp/clara-input-browser.log
             /tmp/clara-miniapps-extended.log
             /tmp/clara-version-paths-browser.log
