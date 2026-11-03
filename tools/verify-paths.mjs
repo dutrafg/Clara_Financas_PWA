@@ -42,7 +42,7 @@ assert.ok(!html.includes('__CLARA_CACHE_NAME__'),'Marcador de pacote não pode i
 const found=sw.match(/const CACHE_NAME = '([^']+)';/);
 assert.equal(found?.[1],expected,'Cache não corresponde à versão e ao hash do build');
 assert.ok(!sw.includes('__CLARA_CACHE_NAME__'),'Marcador de template não pode ir para produção');
-assert.ok(sw.includes("fetch(new Request(request, {cache:'no-store'}))"),'Verificação de atualização precisa buscar versão online sem cache');
+assert.ok(sw.includes("fetch(new Request(request,{cache:'no-store'}))"),'Verificação de atualização precisa buscar versão online sem cache');
 assert.ok(sw.includes('new URL(relative, self.registration.scope)'),'URLs offline devem respeitar o escopo');
 assert.ok(sw.includes('event.request') || sw.includes('const request = event.request'),'Roteamento de recursos ausente');
 assert.ok(!sw.includes("'.'+url.pathname"),'Não reintroduzir caminhos quebrados por subpastas');
