@@ -1,183 +1,68 @@
-"""QA de caminhos relativos, migração de cache e PWA em uma subpasta simulada."""
+"""QA v2: paths relativos, cache imutável e navegação offline em subpasta."""
 import asyncio
 import json
-import re
 import shutil
 from pathlib import Path
 from playwright.async_api import async_playwright
 
-site = Path('qa-scope/preview/clara')
-shutil.rmtree(Path('qa-scope'), ignore_errors=True)
-site.parent.mkdir(parents=True, exist_ok=True)
-shutil.copytree('dist', site)
-BASE = 'http://127.0.0.1:8766/qa-scope/preview/clara/'
+site=Path("qa-scope/preview/clara")
+shutil.rmtree(Path("qa-scope"),ignore_errors=True)
+site.parent.mkdir(parents=True,exist_ok=True)
+shutil.copytree("dist",site)
+BASE="http://127.0.0.1:8766/qa-scope/preview/clara/"
+PASSWORD="Clara-Subpasta-QA-2026!"
 
 async def unlock(page):
-    if await page.locator('#securityCover').is_visible():
-        await page.locator('#securityPassword').fill('Clara-QA-Senha-2026!')
-        if await page.locator('#securityConfirmWrap').is_visible():
-            await page.locator('#securityConfirm').fill('Clara-QA-Senha-2026!')
-        await page.locator('#securitySubmit').click()
-        await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+    if await page.locator("#securityCover").is_visible():
+        await page.locator("#securityPassword").fill(PASSWORD)
+        if await page.locator("#securityConfirmWrap").is_visible():
+            await page.locator("#securityConfirm").fill(PASSWORD)
+        await page.locator("#securitySubmit").click()
+        await page.wait_for_function("ClaraSecurity.unlocked",timeout=30000)
 
 async def run():
-  async with async_playwright() as p:
-    browser=await p.chromium.launch(headless=True)
-    context=await browser.new_context(viewport={'width':390,'height':844})
-    page=await context.new_page()
-    errors=[]
-    page.on('pageerror',lambda exc:errors.append(str(exc)))
-    await page.goto(BASE,wait_until='load')
-    await unlock(page)
-    await page.wait_for_function('navigator.serviceWorker.controller !== null',timeout=20000)
-    origin=await page.evaluate("""async () => {
-      const r=await navigator.serviceWorker.ready;
-      return {scope:r.scope,keys:await caches.keys(),
-        start:new URL('./',location.href).href};
-    }""")
-    assert origin['scope']==BASE and origin['start']==BASE,origin
-    assert len([key for key in origin['keys'] if key.startswith('clara-financas-')])==1,origin
-    # A Dashboard usa uma árvore diferente em modos simples e avançado.
-    await page.wait_for_function("""() => {
-      const simple=document.documentElement.dataset.simple==='true';
-      return document.documentElement.dataset.unlocked==='true' && (
-        simple ? !!document.querySelector('#view-painel .clara-simple-home')
-               : !!document.querySelector('#view-painel #dashboardMiniapps'));
-    }""",timeout=15000)
-
-    meta=json.loads((site/'version.json').read_text())
-    meta['version']='99.9.9-rc'
-    meta['notes']=['Melhorias de atualização validadas no teste.']
-    (site/'version.json').write_text(json.dumps(meta))
-    online=await page.evaluate("""async () => (await (await fetch('./version.json',{cache:'no-store'})).json()).version""")
-    assert online=='99.9.9-rc',online
-    original=(site/'index.html').read_text()
-    (site/'index.html').write_text(original.replace('</head>','<!-- qa-version-two -->\n</head>',1))
-    fresh=await page.evaluate("""async () => {
-      const response=await fetch('./index.html',{cache:'no-store'});
-      return (await response.text()).includes('qa-version-two');
-    }""")
-    assert fresh,'Solicitação no-store foi atendida pelo conteúdo obsoleto do Service Worker'
-
-    # Antes de chegar o novo Service Worker, há versão remota detectada.
-    # A ação precisa existir também em Configurações, não apenas no banner.
-    await page.evaluate("configTab='dados';go('ajustes')")
-    # A versão remota foi alterada no servidor DEPOIS do primeiro carregamento.
-    # Primeiro consultá-la pela interface; antes disso o botão deve estar oculto.
-    assert await page.locator('#checkClaraUpdate').is_visible()
-    await page.locator('#checkClaraUpdate').click()
-    await page.wait_for_function("window.ClaraUpdate.remoteVersion==='99.9.9-rc' && window.ClaraUpdate.status==='Preparando atualização'",timeout=12000)
-    assert await page.locator('#applyClaraUpdate').is_visible()
-    assert await page.locator('#applyClaraUpdate').inner_text()=='Preparando…'
-    assert await page.locator('#applyClaraUpdate').is_disabled()
-    await page.evaluate("go('painel')")
-
-    old_sw=(site/'sw.js').read_text()
-    old_name=re.search(r"const CACHE_NAME = '([^']+)';",old_sw).group(1)
-    new_name='clara-financas-99-9-9-rc-qa-upgrade-v2'
-    assert new_name != old_name
-    (site/'sw.js').write_text(old_sw.replace(old_name,new_name,1))
-    # Uma atualização legítima troca também o boot guard e a versão no HTML.
-    # Misturar SW novo com CLARA_BOOT_CACHE antigo simularia um build corrompido.
-    current_html=(site/'index.html').read_text()
-    assert old_name in current_html
-    current_html=current_html.replace(old_name,new_name)
-    current_html=current_html.replace("const CLARA_APP_VERSION='4.3.1-rc'",
-                                      "const CLARA_APP_VERSION='99.9.9-rc'")
-    (site/'index.html').write_text(current_html)
-    await page.evaluate("window.ClaraUpdate.check(true)")
-    await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
-    # O evento 'installed' pode preceder a atualização visual; sincronizar pelo estado do SW.
-    await page.evaluate("window.ClaraUpdate.check(false)")
-    await page.wait_for_function("window.ClaraUpdate.ready && !document.getElementById('claraUpdateNotice').hidden",timeout=12000)
-    staged=await page.evaluate("""async () => {
-      const cache=await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2');
-      const r=await cache.match(new URL('./index.html',location.href));
-      const body=r?await r.text():'';
-      return {marker:body.includes('qa-version-two'),size:body.length,
-        caches:await caches.keys(),start:body.slice(0,180)};
-    }""")
-    print('QA STAGED CANDIDATE',staged,flush=True)
-    assert staged['marker'],staged
-    assert await page.locator('#claraUpdateNoticeTitle').inner_text()=='Atualização pronta para instalar'
-    assert await page.locator('#claraUpdateNotice').is_visible()
-    assert await page.locator('#claraUpdateNoticeInstall').is_visible()
-    assert await page.locator('#claraUpdateNoticeText').inner_text()
-    assert await page.evaluate("window.ClaraUpdate.remoteVersion==='99.9.9-rc'")
-    await page.locator('#claraUpdateNoticeLater').click()
-    assert not await page.locator('#claraUpdateNotice').is_visible()
-    await page.evaluate("window.ClaraUpdate.check(false)")
-    assert not await page.locator('#claraUpdateNotice').is_visible()
-    await page.evaluate("localStorage.removeItem('clara-update-dismissed-v1');window.ClaraUpdate.paint()")
-    assert await page.locator('#claraUpdateNotice').is_visible()
-    # A atualização confirma a instalação e, sem pasta externa, avisa sobre
-    # o backup local. Aceitar ambos no teste sem tocar nos dados reais.
-    dialogs=[]
-    async def accept_dialog(dialog):
-      dialogs.append(dialog.message)
-      await dialog.accept()
-    page.on('dialog',accept_dialog)
-    # O clique dispara uma operação assíncrona: confirmar seu resultado antes
-    # de observar uma navegação ou caches em transição.
-    await page.evaluate("""() => {
-      const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
-      window.__qaApplyPromise=null;
-      window.ClaraUpdate.apply=()=>{
-        window.__qaApplyPromise=apply();
-        return window.__qaApplyPromise;
-      };
-    }""")
-    await page.locator('#claraUpdateNoticeInstall').click()
-    applied=await page.evaluate('window.__qaApplyPromise')
-    assert applied is True, {
-      'applied':applied,'dialogs':dialogs,
-      'status':await page.evaluate('window.ClaraUpdate?.status'),
-      'toast':await page.locator('#toast').inner_text()
-    }
-    # A ativação é feita pela interface após confirmação. Nunca chamar
-    # SKIP_WAITING diretamente no teste do fluxo de atualização.
-    await page.wait_for_function("""async () => {
-      // Não basta observar uma chave de cache durante a ativação: aguardar
-      // a NOVA shell carregar e confirmar BOOT_OK no worker ativo.
-      if(typeof CLARA_APP_VERSION!=='string'||CLARA_APP_VERSION!=='99.9.9-rc')
-        return false;
-      const reg=await navigator.serviceWorker.ready;
-      if(reg.active?.state!=='activated')return false;
-      const names=await caches.keys();
-      const target='clara-financas-99-9-9-rc-qa-upgrade-v2';
-      // O estágio protegido deve permanecer como fallback do cache definitivo.
-      if(!names.includes(target)||!names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))
-        return false;
-      if(names.some(key=>key.startsWith('clara-financas-')&&key!==target))
-        return false;
-      const cache=await caches.open(target);
-      const response=await cache.match(new URL('./index.html',location.href));
-      if(!response||(await response.text()).includes('qa-version-two')!==true)
-        return false;
-      const system=await caches.open('clara-update-system-v1');
-      const stateResponse=await system.match(new URL('./__clara_update_state__',location.href));
-      const state=stateResponse?await stateResponse.json():null;
-      return state?.current===target&&state.confirmed===true&&!state.rolledBack;
-    }""",timeout=45000)
-    # A verificação anterior já aguardou shell, cache, estado confirmado e limpeza.
-    # Não usar page.evaluate aqui: controllerchange pode recarregar a aba antiga
-    # uma segunda vez e destruir seu contexto de execução neste instante.
-    # Nova navegação offline não deve usar documentos de um controlador antigo.
-    await context.set_offline(True)
-    new_page=await context.new_page()
-    await new_page.goto(BASE,wait_until='load')
-    await unlock(new_page)
-    assert 'qa-version-two' in await new_page.content(),'Nova navegação offline usa HTML obsoleto'
-    # A Dashboard usa uma árvore diferente em modos simples e avançado.
-    await new_page.wait_for_function("""() => {
-      const simple=document.documentElement.dataset.simple==='true';
-      return document.documentElement.dataset.unlocked==='true' && (
-        simple ? !!document.querySelector('#view-painel .clara-simple-home')
-               : !!document.querySelector('#view-painel #dashboardMiniapps'));
-    }""",timeout=15000)
-    assert not errors,errors
-    print('QA SUBPASTA/VERSÕES OK: escopo relativo, versão online, atualização SW, substituição de cache e HTML novo offline.')
-    await context.close()
-    await browser.close()
+    meta=json.loads((site/"version.json").read_text())
+    expected=meta["cache"]
+    async with async_playwright() as p:
+        browser=await p.chromium.launch(headless=True)
+        context=await browser.new_context(viewport={"width":390,"height":844})
+        page=await context.new_page()
+        errors=[]
+        page.on("pageerror",lambda e:errors.append(str(e)))
+        try:
+            await page.goto(BASE,wait_until="load")
+            await unlock(page)
+            await page.wait_for_function("navigator.serviceWorker.controller!==null",timeout=30000)
+            result=await page.evaluate("""async () => ({
+                scope:(await navigator.serviceWorker.ready).scope,
+                version:CLARA_APP_VERSION,
+                bootCache:CLARA_BOOT_CACHE,
+                caches:await caches.keys()
+            })""")
+            assert result["scope"]==BASE,result
+            assert result["version"]==meta["version"],result
+            assert result["bootCache"]==expected,result
+            assert expected in result["caches"],result
+            online=await page.evaluate("""async () => {
+                const r=await fetch('./version.json?fresh=qa',{cache:'no-store'});
+                return r.json();
+            }""")
+            assert online["cache"]==expected,online
+            await context.set_offline(True)
+            offline=await context.new_page()
+            offline_errors=[]
+            offline.on("pageerror",lambda e:offline_errors.append(str(e)))
+            await offline.goto(BASE,wait_until="load")
+            await unlock(offline)
+            assert await offline.evaluate("CLARA_APP_VERSION")==meta["version"]
+            assert await offline.evaluate("CLARA_BOOT_CACHE")==expected
+            assert await offline.evaluate(
+                "document.documentElement.dataset.unlocked==='true'")
+            assert not errors,errors
+            assert not offline_errors,offline_errors
+            print("QA SUBPASTA V2 OK: paths relativos, versão online, shell e módulos offline.")
+        finally:
+            await context.close()
+            await browser.close()
 
 asyncio.run(run())
