@@ -133,7 +133,10 @@ async def main():
       for title in ('Contas','Cartões','Metas','Limites'):
         assert await page.locator('#view-painel .clara-compact-panel header h3',has_text=title).count()==1
       assert 'Cartão A QA' in await panels.nth(1).inner_text()
-      assert 'R$ 36,00' in await panels.nth(1).inner_text()
+      assert await page.evaluate("accountPendingCard('qa-card-1')")==3600
+      shown=await page.evaluate("brl(accountPendingCard('qa-card-1'))")
+      assert shown in await panels.nth(1).inner_text(),(width,shown)
+      assert await page.evaluate("pref('hideValues')") is True or shown=='R$ 36,00'
       assert 'Cartão A QA' not in await panels.nth(0).inner_text()
       for idx in (0,1,2,3):
         details=panels.nth(idx).locator('details.clara-compact-more')
