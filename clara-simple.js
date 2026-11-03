@@ -355,6 +355,7 @@
   nativeModal(kind,itemId);
   if(window.ClaraGuest?.active)return;
   const host=$('modalBg');
+  if(!['transaction','editTransaction'].includes(kind))delete host.dataset.claraKind;
   if(mode()&&['account','editAccount'].includes(kind)){
    syncAccountSheet();
    return;
