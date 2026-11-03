@@ -89,6 +89,20 @@ async def main():
                 messages.append(dialog.message)
                 await dialog.accept()
             page.on("dialog",accept)
+            snapshot=await page.evaluate("""async () => {
+                const r=await navigator.serviceWorker.getRegistration();
+                const keys=await caches.keys();
+                return {
+                    status:ClaraUpdate.status,ready:ClaraUpdate.ready,
+                    waiting:r?.waiting?.state||null,
+                    installing:r?.installing?.state||null,
+                    active:r?.active?.state||null,
+                    controller:!!navigator.serviceWorker.controller,
+                    names:keys,
+                    version:ClaraUpdate.remoteVersion
+                };
+            }""")
+            print('V2 UPGRADER SNAPSHOT',snapshot,flush=True)
             applied=await page.evaluate("window.ClaraUpdate.apply()")
             assert applied is True,{"applied":applied,"dialogs":messages,
                                    "status":await page.evaluate("window.ClaraUpdate.status")}
