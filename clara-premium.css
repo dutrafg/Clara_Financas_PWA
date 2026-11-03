@@ -255,12 +255,13 @@ body{
   -webkit-backdrop-filter:blur(26px);
 }
 .ca-notification{transition:background-color .16s ease;}
-/* Vidro discreto na dock: 20% de transparência, desfoque sutil.
- * Preserva contraste dos ícones e textos em ambos os temas.
- * Nunca aplicar opacity ao contêiner: ela apagaria também os controles. */
+/* Dock Glass: 20% de transparência e brilho superficial de 20%.
+ * Formato fixo para preservar o arredondamento durante a animação. */
+:root{--clara-dock-glass-fill:80%;--clara-dock-glass-sheen:.20;}
 .clara-desktop-dock,.mobile-dock{
+  position:relative;
   background:var(--panel);
-  background:color-mix(in srgb,var(--panel) 80%,transparent);
+  background:color-mix(in srgb,var(--panel) var(--clara-dock-glass-fill),transparent);
   border:1px solid color-mix(in srgb,var(--stroke-strong) 40%,transparent);
   border-radius:999px;
   background-clip:padding-box;
@@ -271,12 +272,24 @@ body{
   overflow:hidden;
   transform:translateZ(0);
 }
-@media (prefers-reduced-transparency:reduce) {
+.clara-desktop-dock::before,.mobile-dock::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:0;
+  background:linear-gradient(145deg,#ffffff3a 0%,#ffffff09 34%,transparent 69%);
+  opacity:var(--clara-dock-glass-sheen);
+}
+.clara-desktop-dock>button,.mobile-dock>button{position:relative;z-index:1;}
+@media(prefers-reduced-transparency:reduce){
   .clara-desktop-dock,.mobile-dock{
     background:var(--panel);
     backdrop-filter:none;
     -webkit-backdrop-filter:none;
   }
+  .clara-desktop-dock::before,.mobile-dock::before{display:none;}
 }
 .clara-desktop-link.active,.clara-desktop-link:hover,
 .mobile-dock .dock-link.active,
