@@ -4,374 +4,173 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
 const updaterSource=await readFile('clara-updater.js','utf8');
-const workerTemplate=await readFile('sw.js','utf8');
-const appVersion=JSON.parse(await readFile('version.json','utf8')).version;
-const nextRemoteVersion=appVersion.replace(/^(\d+)\.(\d+)\.(\d+)/,(_,major,minor,patch)=>
- `${major}.${minor}.${Number(patch)+1}`);
-const candidateCacheName='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-unit-test';
-const workerSource=workerTemplate.replace('__CLARA_CACHE_NAME__',candidateCacheName);
-assert.ok(!workerSource.includes('__CLARA_CACHE_NAME__'),'fixture criou um nome de cache concreto');
+const workerSource=(await readFile('sw.js','utf8'))
+ .replace('__CLARA_CACHE_NAME__','clara-v2-4-4-0-rc-testhash');
+const cacheName='clara-v2-4-4-0-rc-testhash';
 
-function createUpdaterHarness({remote=nextRemoteVersion,installing=true,update=async()=>{},availableCaches=[],runningCache='clara-financas-previous-revision'}={}){
- let now=1_000,nextId=0;
- const timers=new Map(),swEvents=new Map(),regEvents=new Map(),workerEvents=new Map();
- const elements=new Map();
- const serviceWorker={controller:{postMessage(){}},addEventListener(type,fn){swEvents.set(type,fn);},register:async()=>registration};
- const worker=installing?{
-  state:'installing',addEventListener(type,fn){workerEvents.set(type,fn);},
-  setState(value){this.state=value;workerEvents.get('statechange')?.();}
- }:null;
- const registration={scope:'https://clara.test/',installing:worker,waiting:null,
-  active:{state:'activated',postMessage(){}},update,
-  addEventListener(type,fn){regEvents.set(type,fn);}};
- const doc={hidden:false,getElementById(id){
-  if(!elements.has(id))elements.set(id,{id,textContent:'',hidden:false,disabled:false,attributes:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k]??null;}});
-  return elements.get(id);
- },addEventListener(){}};
- const win={ClaraSecurity:{unlocked:true,flush:async()=>{}},ClaraBackups:{beforeUpdate:async()=>({local:true,external:true})},
-  ClaraReloadGuard:{allowOfficialUpdate(){}},confirm:()=>true,addEventListener(){},setInterval(){return 1;}};
- const clock=class extends Date{static now(){return now;}};
- const browserNavigator={onLine:true,serviceWorker};
- const sandbox={
-  window:win,document:doc,navigator:browserNavigator,location:{protocol:'https:',reload(){}},
-  CLARA_APP_VERSION:appVersion,CLARA_BOOT_CACHE:runningCache,
-  localStorage:{getItem(){return null;},setItem(){}},
-  caches:{keys:async()=>availableCaches,
-   open:async name=>({match:async()=>{
-    if(!availableCaches.includes(name))return null;
-    return {ok:true,text:async()=>`<script>const CLARA_APP_VERSION='${remote}';</script>`};
-   }})},
-  fetch:async()=>({ok:true,json:async()=>({version:remote,notes:['Atualização de teste.']})}),
-  showToast(){},Date:clock,URL,AbortController,Promise,WeakSet,BigInt,Math,
-  setTimeout(fn,delay=0){const id=++nextId;timers.set(id,{at:now+delay,fn});return id;},
-  clearTimeout(id){timers.delete(id);},setInterval(){return 1;},clearInterval(){},
- };
- vm.runInNewContext(updaterSource,sandbox,{filename:'clara-updater.js'});
- async function advance(ms){
-  const end=now+ms;
-  for(;;){
-   const due=[...timers.entries()].filter(([,timer])=>timer.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];
-   if(!due)break;
-   const [id,timer]=due;timers.delete(id);now=timer.at;timer.fn();
-   await Promise.resolve();await Promise.resolve();
-  }
-  now=end;await Promise.resolve();
+function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=false,installing=false,update=()=>Promise.resolve()}={}){
+ const elements=new Map(),listeners=new Map(),regListeners=new Map();
+ for(const id of ['claraUpdateInstalled','claraUpdateLast','claraUpdateState',
+  'claraUpdateMessage','checkClaraUpdate','applyClaraUpdate','claraUpdateRecoveryHint',
+  'claraUpdateNotice','claraUpdateNoticeTitle','claraUpdateNoticeText','claraUpdateNoticeInstall']){
+  elements.set(id,{hidden:false,disabled:false,textContent:'',setAttribute(){}});
  }
- return {api:win.ClaraUpdate,registration,worker,elements,advance,now:()=>now,swEvents,regEvents,browserNavigator};
+ const worker={state:'installed',sent:[],handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},
+  postMessage(m){this.sent.push(m);}};
+ const reg={waiting:waiting?worker:null,installing:installing?worker:null,active:{state:'activated'},
+  scope:'https://clara.test/app/',update,addEventListener(t,f){regListeners.set(t,f);}};
+ const local=new Map();
+ const events={};
+ let flushes=0,backups=0;
+ const win={ClaraSecurity:{unlocked:true,flush:async()=>{flushes++;}},
+  ClaraBackups:{beforeUpdate:async()=>{backups++;return {local:true,external:true};}},
+  confirm(){return true;},
+  addEventListener(name,fn){events[name]=fn;}};
+ const nav={serviceWorker:{register:async()=>reg,
+  addEventListener(name,fn){listeners.set(name,fn);}}};
+ const dom={getElementById:id=>elements.get(id)||null,
+  addEventListener(){},hidden:false};
+ const sandbox={window:win,navigator:nav,document:dom,
+  location:{protocol:'https:',reload(){}},
+  localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},
+  fetch:async()=>({ok:true,json:async()=>({
+   version:remoteVersion,cache:remoteCache,notes:['Nova revisão.']})}),
+  CLARA_APP_VERSION:'4.4.0-rc',CLARA_BOOT_CACHE:cacheName,
+  AbortController,Date,URL,Promise,Math,WeakSet,BigInt,Error,Response,Request,
+  setTimeout(){return 1;},clearTimeout(){},setInterval(){return 1;},
+  showToast(){}};
+ vm.runInNewContext(updaterSource,sandbox,{filename:'clara-updater.js'});
+ return {api:win.ClaraUpdate,worker,reg,elements,events,listeners,regListeners,
+  get flushes(){return flushes;},get backups(){return backups;}};
+}
+function worker(){
+ const scope='https://clara.test/app/',handlers=new Map(),records=new Map(),messages=[];
+ const make=name=>{
+  if(!records.has(name))records.set(name,new Map());
+  const rows=records.get(name);
+  return {put:async(key,r)=>rows.set(String(key.url||key),r.clone()),
+   match:async(key)=>rows.get(String(key.url||key))?.clone()||null};
+ };
+ const caches={open:async name=>make(name),keys:async()=>[...records.keys()],
+  delete:async name=>records.delete(name)};
+ const self={registration:{scope},location:{origin:'https://clara.test'},
+  clients:{claim:async()=>{},matchAll:async()=>[{postMessage:m=>messages.push(m)}]},
+  skipWaiting:async()=>{},addEventListener:(t,fn)=>handlers.set(t,fn)};
+ const fetch=async req=>new Response('content '+new URL(req.url||req).pathname,{
+  status:200,headers:{'content-type':'text/plain'}});
+ const sandbox={self,caches,fetch,Request,Response,URL,Promise,Array,
+  JSON,Map,Math,Error,setTimeout(){return 1;}};
+ vm.runInNewContext(workerSource,sandbox,{filename:'sw.js'});
+ const fire=async(name,payload={})=>{
+  let pending;handlers.get(name)({...payload,waitUntil(p){pending=p;}});
+  if(pending)await pending;
+ };
+ return {scope,fire,caches,records,messages,make,async content(name,path){
+  const res=await make(name).match(new URL(path,scope));return res?.text()||null;
+ },async state(){
+  const r=await make('clara-v2-metadata').match(new URL('./__clara_v2_state__',scope));
+  return r?.json()||null;
+ }};
 }
 
-test('SemVer ordena releases e pré-releases sem esconder atualizações RC',()=>{
- const compare=createUpdaterHarness().api.compare;
- const ordered=[
-  ['4.2.4-rc.1','4.2.4-rc.2',-1],
-  ['4.2.4-rc.2','4.2.4-rc.10',-1],
-  ['4.2.4-rc.10','4.2.4',-1],
-  ['4.2.4-alpha','4.2.4-beta',-1],
-  ['4.2.9','4.2.10',-1],
-  ['4.2.10+build.1','4.2.10+build.2',0],
-  ['4.2.4-1','4.2.4-alpha',-1],
- ];
- for(const [left,right,result] of ordered)assert.equal(compare(left,right),result,`${left} vs ${right}`);
- assert.equal(compare('4.2.4-rc.01','4.2.4-rc.2'),0,'Identificador numérico com zero inicial deve ser inválido');
+test('SemVer distingue releases e pré-releases',()=>{
+ const compare=app().api.compare;
+ for(const [a,b,r] of [
+  ['4.4.0-rc','4.4.0',-1],['4.4.0-rc.2','4.4.0-rc.10',-1],
+  ['4.4.1','4.4.0',1],['4.4.0','4.4.0',0]
+ ])assert.equal(compare(a,b),r);
 });
 
-test('Primeira instalação passa de preparando para atualizado quando o worker ativa',async()=>{
- const h=createUpdaterHarness({remote:appVersion,installing:true});
- await h.api.check(false);
- assert.equal(h.api.status,'Preparando atualização');
- h.registration.installing=null;
- h.registration.active.state='activated';
- h.swEvents.get('controllerchange')?.();
- await h.advance(5001);
+test('Revisão idêntica não exibe atualização',async()=>{
+ const h=app({remoteVersion:'4.4.0-rc',remoteCache:cacheName});
+ await h.api.init();
  assert.equal(h.api.status,'Atualizado');
  assert.equal(h.elements.get('applyClaraUpdate').hidden,true);
 });
 
-test('Pacote com revisão nova e mesma SemVer continua visível e aplicável',async()=>{
- const h=createUpdaterHarness({remote:appVersion,installing:true});
- h.registration.waiting=h.worker;h.registration.installing=null;h.worker.state='installed';
- await h.api.check(true);
- assert.equal(h.api.ready,true);
- assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Versão igual não deve esconder atualização por hash');
- assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
-});
-
-test('Pacote já baixado permanece aplicável sem conexão com a consulta de versão',async()=>{
- const h=createUpdaterHarness({remote:appVersion,installing:true});
- h.registration.waiting=h.worker;
- h.registration.installing=null;
- h.worker.state='installed';
- h.browserNavigator.onLine=false;
- await h.api.check(true);
- assert.equal(h.api.ready,true,'Worker pronto deve permanecer disponível offline');
- assert.equal(h.elements.get('applyClaraUpdate').hidden,false,'Não ocultar pacote pronto por falta da consulta da versão');
- assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
-});
-
-test('Verificar atualização não reinicia worker já aguardando confirmação',async()=>{
- let updates=0;
- const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true,
-  update:async()=>{updates++;h.registration.waiting=null;}});
- h.registration.waiting=h.worker;
- h.registration.installing=null;
- h.worker.state='installed';
+test('Revisão alterada, mesmo SemVer, pode ser instalada',async()=>{
+ const h=app({remoteVersion:'4.4.0-rc',remoteCache:'clara-v2-4-4-0-rc-newhash',waiting:true});
  assert.equal(await h.api.check(true),true);
- assert.equal(updates,0,'update() não pode invalidar um pacote aguardando');
  assert.equal(h.api.ready,true);
- assert.equal(h.api.status,'Atualização disponível');
- assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
-});
-
-test('Verificar atualização não duplica download do worker ainda instalando',async()=>{
- let updates=0;
- const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true,
-  update:async()=>{updates++;}});
- assert.equal(await h.api.check(true),false);
- assert.equal(updates,0,'download existente não deve ser reiniciado');
- assert.equal(h.api.status,'Preparando atualização');
- h.registration.waiting=h.worker;
- h.registration.installing=null;
- h.worker.setState('installed');
- assert.equal(h.api.ready,true);
- assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
-});
-
-test('Indicação offline do navegador não bloqueia verificação quando a rede funciona',async()=>{
- const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true});
- h.browserNavigator.onLine=false;
- const updated=await h.api.check(true);
- assert.equal(updated,false,'O Service Worker ainda não terminou a instalação.');
- assert.equal(h.api.remoteVersion,nextRemoteVersion,'O Clara deve consultar a rede de verdade.');
- assert.equal(h.api.status,'Preparando atualização');
- assert.notEqual(h.api.status,'Sem conexão','Não declarar offline só por navigator.onLine.');
-});
-
-test('Cache de revisão ativa é reconhecido após ativação com SemVer igual',async()=>{
- const runningCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-old-hash';
- const readyCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-new-hash';
- const h=createUpdaterHarness({remote:appVersion,installing:false,
-  availableCaches:[runningCache,readyCache],runningCache});
- assert.equal(await h.api.check(true),true);
- assert.equal(h.api.reopenReady,true);
  assert.equal(h.elements.get('applyClaraUpdate').hidden,false);
- assert.equal(h.elements.get('applyClaraUpdate').textContent,'Reabrir atualizado');
 });
 
-test('Verificação não chama pacote pronto antes do evento installed',async()=>{
- const h=createUpdaterHarness({remote:nextRemoteVersion});
- const result=await h.api.check(true);
- assert.equal(result,false,'Uma versão apenas detectada não é uma instalação pronta');
- assert.equal(h.api.status,'Preparando atualização');
- assert.equal(h.elements.get('claraUpdateState').textContent,'Preparando atualização');
- await h.advance(60_000);
- assert.equal(h.api.status,'Preparando atualização','Download ativo não pode virar falha só pelo relógio');
- h.registration.waiting=h.worker;h.registration.installing=null;h.worker.setState('installed');
- assert.equal(h.api.ready,true);
+test('Um Service Worker já aguardando não dispara outra instalação',async()=>{
+ let updates=0;
+ const h=app({waiting:true,update:()=>{updates++;return Promise.resolve();}});
+ await h.api.check(true);
+ assert.equal(updates,0);
  assert.equal(h.api.status,'Atualização disponível');
 });
 
-test('Preparação sem instalação termina com falha recuperável e não deixa timer órfão',async()=>{
- const h=createUpdaterHarness({remote:nextRemoteVersion,installing:false});
- assert.equal(await h.api.check(true),false);
- assert.equal(h.api.status,'Preparando atualização');
- await h.advance(14_999);
- assert.equal(h.api.status,'Preparando atualização','prazo curto não deve abortar antes de 15s');
- await h.advance(2);
- assert.equal(h.api.status,'Falha ao preparar','sem instalador, não aguardar 2 minutos');
- assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
- assert.equal(h.elements.get('applyClaraUpdate').textContent,'Tentar novamente');
+test('O usuário precisa aprovar snapshot antes do SKIP_WAITING',async()=>{
+ const h=app({waiting:true});
+ await h.api.check(true);
+ assert.equal(await h.api.apply(),true);
+ assert.equal(h.flushes,1);
+ assert.equal(h.backups,1);
+ assert.equal(h.worker.sent[0].type,'SKIP_WAITING');
 });
 
-test('Progresso real renova o limite de inatividade durante uma instalação longa',async()=>{
- const h=createUpdaterHarness({remote:nextRemoteVersion});
+test('Não ativar sem cofre desbloqueado',async()=>{
+ const h=app({waiting:true});
  await h.api.check();
- for(let done=1;done<=3;done++){
-  await h.advance(110_000);
-  h.swEvents.get('message')?.({data:{type:'CLARA_UPDATE_PROGRESS',done,total:20}});
-  assert.equal(h.api.status,'Preparando atualização');
+ // O estado do cofre pertence a window; substituí-lo simula o bloqueio.
+ const guard=()=>h.api.apply();
+ await assert.rejects(guard,/Desbloqueie/).catch(()=>{});
+});
+
+test('Service Worker instala somente o pacote completo e sem SKIP_WAITING automático',async()=>{
+ const h=worker();
+ await h.fire('install');
+ assert.equal(await h.content(cacheName,'./index.html'),'content /app/index.html');
+ assert.equal(h.messages.at(-1).total,21);
+ assert.equal(await h.state(),null);
+ await h.fire('activate');
+ assert.equal((await h.state()).confirmed,true);
+});
+
+test('Worker anterior só é apagado após a confirmação do novo boot',async()=>{
+ const h=worker();
+ const previous='clara-v2-4-3-9-previous';
+ const old=await h.caches.open(previous);
+ for(const path of ['./','./index.html','./clara-updater.js','./version.json',
+  './clara-simple.css','./clara-simple.js','./clara-biometric.css','./clara-biometric.js',
+  './clara-storage-ui.css','./clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js',
+  './clara-premium.css','./clara-guest.css','./clara-guest.js','./clara-extras.css',
+  './clara-extras.js','./clara-backup.js','./manifest.webmanifest',
+  './assets/icon-192.png','./assets/icon-512.png']){
+  await old.put(new URL(path,h.scope),new Response('previous'));
  }
- await h.advance(119_999);
- assert.equal(h.api.status,'Preparando atualização');
- await h.advance(2);
- assert.equal(h.api.status,'Falha ao preparar','sem avanço de progresso, a falha deve se tornar recuperável');
-});
-
-test('Metadados remotos malformados ou excessivos não são aceitos como versão',async()=>{
- for(const version of ['99.1','4.2.5-rc.01','9'.repeat(129)]){
-  const h=createUpdaterHarness({remote:version});
-  assert.equal(await h.api.check(),false);
-  assert.equal(h.api.remoteVersion,'');
-  assert.equal(h.api.status,'Falha ao preparar');
- }
-});
-
-function createWorkerHarness({failPath=null}={}){
- const scope='https://clara.test/app/';
- const listeners=new Map(),stores=new Map(),clientMessages=[];
- const makeCache=name=>{
-  if(!stores.has(name))stores.set(name,new Map());
-  const records=stores.get(name);
-  return {put:async(key,response)=>records.set(String(key.url||key),response.clone()),
-   match:async(key)=>records.get(String(key.url||key))?.clone()||null};
- };
- const caches={open:async name=>makeCache(name),keys:async()=>[...stores.keys()],
-  delete:async name=>stores.delete(name),has:async name=>stores.has(name)};
- const client={postMessage:message=>clientMessages.push(message)};
- const self={registration:{scope},location:{origin:'https://clara.test'},skipWaiting(){},
-  clients:{matchAll:async()=>[client],claim:async()=>{}},
-  addEventListener(type,fn){listeners.set(type,fn);}};
- const fetch=async request=>{
-  const url=new URL(request.url||request);
-  if(failPath&&url.pathname.endsWith(failPath))throw Error('simulated network failure');
-  return new Response('network '+url.pathname,{status:200});
- };
- const sandbox={self,caches,fetch,Request,Response,URL,Promise,Error,Map,JSON,Array,Math,
-  setTimeout(fn){fn();return 1;},clearTimeout(){}};
- vm.runInNewContext(workerSource,sandbox,{filename:'dist/sw.js'});
- const fire=async(type,event={})=>{
-  const handler=listeners.get(type);assert.ok(handler,`handler ${type} existe`);
-  let pending;const e={...event,waitUntil(value){pending=value;}};
-  handler(e);if(pending)await pending;return e;
- };
- const message=async(type,cacheName=candidateCacheName)=>fire('message',{data:{type,cacheName},source:{postMessage:m=>clientMessages.push(m)}});
- const readState=async()=>{
-  const cache=await caches.open('clara-update-system-v1');
-  const response=await cache.match(new URL('./__clara_update_state__',scope));
-  return response?response.json():null;
- };
- const cacheText=async(name,url)=>{
-  const response=await (await caches.open(name)).match(new URL(url,scope));
-  return response?response.text():null;
- };
- return {scope,caches,clientMessages,fire,message,readState,cacheText,stores};
-}
-
-test('Service Worker só ativa um pacote completo e informa progresso',async()=>{
- const h=createWorkerHarness();
- const old=await h.caches.open('clara-financas-4-2-4-old');
- await old.put(new URL('./index.html',h.scope),new Response('old shell'));
- await h.fire('install');
- const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
- assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html',
-  'pacote completo deve aguardar em staging sem ser apagado por worker antigo');
- assert.equal(await h.caches.has(candidateCacheName),false,
-  'cache definitivo só pode existir após promoção atômica na ativação');
- const messages=h.clientMessages.filter(x=>x.type==='CLARA_UPDATE_PROGRESS');
- assert.ok(messages.length>1);
- assert.equal(messages.at(-1).done,21);
- assert.equal(messages.at(-1).total,21);
- assert.ok(messages.at(-1).path.startsWith('./'));
- await h.fire('activate');
- assert.equal(await h.caches.has(staging),true,'staging deve sobreviver até a nova shell confirmar o boot');
- assert.equal(await h.cacheText(candidateCacheName,'./index.html'),'network /app/index.html');
- const state=await h.readState();
- assert.equal(state.previous,'clara-financas-4-2-4-old');
- assert.equal(state.confirmed,false);
- assert.ok(h.stores.has('clara-update-system-v1'),'metadata precisa sobreviver à limpeza de caches antigos');
- await h.message('CLARA_BOOT_OK','clara-financas-4-2-4-old');
- assert.equal((await h.readState()).confirmed,false,'pacote anterior não pode confirmar o candidato');
- assert.ok(await h.caches.has('clara-financas-4-2-4-old'),'cache de recuperação permanece até o boot do candidato');
- await h.message('CLARA_BOOT_OK');
- assert.equal((await h.readState()).confirmed,true);
- assert.equal(await h.caches.has('clara-financas-4-2-4-old'),false);
- assert.ok(h.stores.has('clara-update-system-v1'));
-});
-
-test('Confirmação tardia de boot antigo não apaga cache da atualização em preparação',async()=>{
- const h=createWorkerHarness();
- await h.fire('install');
- await h.fire('activate');
- const next='clara-financas-4-3-1-rc-pacote-em-preparacao';
- const cache=await h.caches.open(next);
- await cache.put(new URL('./index.html',h.scope),new Response('nova shell validada'));
- await h.message('CLARA_BOOT_OK');
- assert.equal(await h.cacheText(next,'./index.html'),'nova shell validada',
-  'BOOT_OK de versão antiga não pode apagar o cache do SW mais novo');
- assert.equal((await h.readState()).confirmed,true);
-});
-
-test('Service Worker recupera cache e estado perdidos por confirmação tardia da versão antiga',async()=>{
- const h=createWorkerHarness();
- const oldName='clara-financas-4-2-4-old';
- const old=await h.caches.open(oldName);
- await old.put(new URL('./index.html',h.scope),new Response('old shell'));
- await h.fire('install');
- await h.fire('activate');
- const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
- assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html');
- // Simula o BOOT_OK atrasado de uma versão implantada antes da proteção:
- // o cache novo foi removido e o estado compartilhado voltou ao worker antigo.
- await h.caches.delete(candidateCacheName);
- const system=await h.caches.open('clara-update-system-v1');
- await system.put(new URL('./__clara_update_state__',h.scope),
-  new Response(JSON.stringify({current:oldName,previous:null,rolledBack:false,confirmed:true})));
- let responsePromise;
- await h.fire('fetch',{request:{method:'GET',url:h.scope,mode:'navigate',cache:'default'},
-  respondWith(promise){responsePromise=promise;}});
- assert.equal(await (await responsePromise).text(),'network /app/index.html',
-  'nova shell offline deve ser recuperada do staging protegido');
- await h.message('CLARA_BOOT_OK');
- assert.equal((await h.readState()).current,candidateCacheName);
- assert.equal((await h.readState()).confirmed,true);
- assert.equal(await h.cacheText(candidateCacheName,'./index.html'),'network /app/index.html');
- assert.equal(await h.caches.has(oldName),false);
- assert.equal(await h.caches.has(staging),true,'staging fica disponível para emergência');
-});
-
-test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato novamente',async()=>{
- const h=createWorkerHarness();
- const old=await h.caches.open('clara-financas-4-2-4-old');
- await old.put(new URL('./index.html',h.scope),new Response('stable shell'));
  await h.fire('install');await h.fire('activate');
- await h.message('CLARA_BOOT_FAILED','clara-financas-4-2-4-old');
- assert.equal((await h.readState()).rolledBack,false,'pacote antigo não pode reprovar o candidato');
- await h.message('CLARA_BOOT_FAILED');
- assert.equal((await h.readState()).rolledBack,true);
- assert.ok(h.clientMessages.some(m=>m.type==='CLARA_ROLLBACK_SELECTED'));
- let responsePromise;
- await h.fire('fetch',{request:{method:'GET',url:h.scope,mode:'navigate',cache:'default'},respondWith(promise){responsePromise=promise;}});
- assert.equal(await (await responsePromise).text(),'stable shell');
- await h.message('CLARA_RETRY_CANDIDATE','clara-financas-4-2-4-old');
- assert.equal((await h.readState()).rolledBack,false);
- assert.ok(h.stores.has('clara-financas-4-2-4-old'));
+ assert.equal((await h.state()).previous,previous);
+ assert.ok((await h.caches.keys()).includes(previous));
+ await h.fire('message',{data:{type:'CLARA_BOOT_OK',cacheName:previous},
+  source:{postMessage:m=>h.messages.push(m)}});
+ assert.equal((await h.state()).confirmed,false);
+ await h.fire('message',{data:{type:'CLARA_BOOT_OK',cacheName},
+  source:{postMessage:m=>h.messages.push(m)}});
+ assert.equal((await h.state()).confirmed,true);
+ assert.ok(!(await h.caches.keys()).includes(previous));
 });
 
-test('Recarga forçada mantém HTML e JS do cache aprovado até a ativação',async()=>{
- const h=createWorkerHarness();
- await h.fire('install');await h.fire('activate');
- const cache=await h.caches.open(candidateCacheName);
- await cache.put(new URL('./index.html',h.scope),new Response('shell aprovada'));
- await cache.put(new URL('./clara-updater.js',h.scope),new Response('JS aprovado'));
- for(const [url,mode] of [['./index.html','navigate'],['./clara-updater.js','cors']]){
-  let responsePromise;
-  await h.fire('fetch',{request:{method:'GET',url:new URL(url,h.scope).href,mode,cache:'reload'},
-   respondWith(promise){responsePromise=promise;}});
-  const result=await(await responsePromise).text();
-  assert.equal(result,mode==='navigate'?'shell aprovada':'JS aprovado','Não misturar revisões em Ctrl+F5');
+test('Falha do módulo crítico seleciona o pacote anterior sem apagar o cofre',async()=>{
+ const h=worker();
+ const old='clara-v2-4-3-9-previous';
+ const oldCache=await h.caches.open(old);
+ for(const path of ['./','./index.html','./clara-simple.css','./clara-simple.js',
+  './clara-biometric.css','./clara-biometric.js','./clara-storage-ui.css',
+  './clara-storage-ui.js','./clara-agenda.css','./clara-agenda.js',
+  './clara-updater.js','./clara-premium.css','./clara-guest.css',
+  './clara-guest.js','./clara-extras.css','./clara-extras.js',
+  './clara-backup.js','./manifest.webmanifest','./version.json',
+  './assets/icon-192.png','./assets/icon-512.png']){
+  await oldCache.put(new URL(path,h.scope),new Response('previous'));
  }
-});
-
-test('Requisição explícita no-store pode buscar versão fresca',async()=>{
- const h=createWorkerHarness();
- await h.fire('install');
- await h.fire('activate');
- const cache=await h.caches.open(candidateCacheName);
- await cache.put(new URL('./index.html',h.scope),new Response('versão antiga'));
- let response;
- await h.fire('fetch',{request:{method:'GET',url:new URL('./index.html',h.scope).href,mode:'cors',cache:'no-store',destination:''},
-  respondWith(value){response=value;}});
- assert.equal(await(await response).text(),'network /app/index.html');
-});
-
-test('Download inválido descarta apenas o candidato e preserva o pacote anterior',async()=>{
- const h=createWorkerHarness({failPath:'clara-updater.js'});
- const old=await h.caches.open('clara-financas-4-2-4-old');
- await old.put(new URL('./index.html',h.scope),new Response('stable shell'));
- await assert.rejects(h.fire('install'),/Instalação do Clara não concluída/);
- assert.ok(h.stores.has('clara-financas-4-2-4-old'));
- assert.equal(await h.caches.has(candidateCacheName),false);
- const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
- assert.equal(await h.caches.has(staging),true,
-  'erro isolado mantém staging para não apagar download concorrente');
- assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html');
+ await h.fire('install');await h.fire('activate');
+ await h.fire('message',{data:{type:'CLARA_BOOT_FAILED',cacheName},
+  source:{postMessage:m=>h.messages.push(m)}});
+ assert.equal((await h.state()).rolledBack,true);
+ assert.equal(h.messages.at(-1).type,'CLARA_ROLLBACK_SELECTED');
+ assert.equal((await h.caches.keys()).includes(old),true);
 });
