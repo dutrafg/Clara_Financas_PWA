@@ -209,12 +209,18 @@ test('Service Worker só ativa um pacote completo e informa progresso',async()=>
  const old=await h.caches.open('clara-financas-4-2-4-old');
  await old.put(new URL('./index.html',h.scope),new Response('old shell'));
  await h.fire('install');
+ const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
+ assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html',
+  'pacote completo deve aguardar em staging sem ser apagado por worker antigo');
+ assert.equal(await h.caches.has(candidateCacheName),false,
+  'cache definitivo só pode existir após promoção atômica na ativação');
  const messages=h.clientMessages.filter(x=>x.type==='CLARA_UPDATE_PROGRESS');
  assert.ok(messages.length>1);
  assert.equal(messages.at(-1).done,21);
  assert.equal(messages.at(-1).total,21);
  assert.ok(messages.at(-1).path.startsWith('./'));
  await h.fire('activate');
+ assert.equal(await h.caches.has(staging),false,'staging deve ser descartado após ativação');
  assert.equal(await h.cacheText(candidateCacheName,'./index.html'),'network /app/index.html');
  const state=await h.readState();
  assert.equal(state.previous,'clara-financas-4-2-4-old');
