@@ -46,14 +46,14 @@ jobs:
         run: npm run build
       - name: Validar caminhos, versão e cache
         run: npm run verify:paths
-      - name: Construir versão publicada 4.3.0-rc para teste real de migração
+      - name: Criar dois builds completos para upgrade futuro do motor v2
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p qa-upgrade/old
-          git archive 581cd7af4e614aa4c07a7b07aec6c038a5a2ec26 | tar -x -C qa-upgrade/old
-          (cd qa-upgrade/old && npm run build)
-          cp -a qa-upgrade/old/dist qa-upgrade/site
+          mkdir -p qa-upgrade/old qa-upgrade/next
+          cp -a dist qa-upgrade/old/dist
+          git archive HEAD | tar -x -C qa-upgrade/next
+          python tests/build_future_fixture.py
       - name: Instalar Playwright
         run: |
           python -m pip install --upgrade pip
@@ -179,7 +179,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/miniapps_extended.py 2>&1 | tee /tmp/clara-miniapps-extended.log
-      - name: Atualizar instalação real da 4.3.0-rc para 4.3.1-rc mantendo dados e offline
+      - name: Validar upgrade do PWA v2 entre duas versões futuras e offline
         shell: bash
         run: |
           set -euo pipefail
