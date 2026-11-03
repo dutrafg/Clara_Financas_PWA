@@ -158,35 +158,9 @@ async def run():
       const state=stateResponse?await stateResponse.json():null;
       return state?.current===target&&state.confirmed===true&&!state.rolledBack;
     }""",timeout=45000)
-    snapshot=await page.evaluate("""async () => {
-      const registration=await navigator.serviceWorker.ready;
-      const names=await caches.keys();
-      const cache=names.includes('clara-financas-99-9-9-rc-qa-upgrade-v2')
-        ?await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2'):null;
-      const response=cache?await cache.match(new URL('./index.html',location.href)):null;
-      const body=response?await response.text():'';
-      const network=await (await fetch('./index.html',{cache:'no-store'})).text();
-      const system=await caches.open('clara-update-system-v1');
-      const stateResponse=await system.match(new URL('./__clara_update_state__',location.href));
-      const staged=names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2')
-        ?await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2'):null;
-      const stagedResponse=staged?await staged.match(new URL('./index.html',location.href)):null;
-      const stagedBody=stagedResponse?await stagedResponse.text():'';
-      return {active:registration.active?.state,
-        waiting:registration.waiting?.state||null,
-        installing:registration.installing?.state||null,
-        marker:body.includes('qa-version-two'),
-        cachedBytes:body.length,cachedStart:body.slice(0,180),
-        stagedMarker:stagedBody.includes('qa-version-two'),
-        stagedBytes:stagedBody.length,
-        state:stateResponse?await stateResponse.json():null,
-        bootCache:typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:null,
-        appVersion:typeof CLARA_APP_VERSION==='string'?CLARA_APP_VERSION:null,
-        updaterStatus:window.ClaraUpdate?.status||null,
-        networkMarker:network.includes('qa-version-two'),
-        names};
-    }""")
-    assert snapshot['active']=='activated' and snapshot['marker'],snapshot
+    # A verificação anterior já aguardou shell, cache, estado confirmado e limpeza.
+    # Não usar page.evaluate aqui: controllerchange pode recarregar a aba antiga
+    # uma segunda vez e destruir seu contexto de execução neste instante.
     # Nova navegação offline não deve usar documentos de um controlador antigo.
     await context.set_offline(True)
     new_page=await context.new_page()
