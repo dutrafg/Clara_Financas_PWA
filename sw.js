@@ -85,11 +85,16 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
 
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
  const names=await caches.keys();
- const candidates=names.filter(name=>name!==CACHE_NAME&&RELEASE_PREFIXES.some(p=>name.startsWith(p)));
+ const candidates=names.filter(name=>name!==CACHE_NAME&&name!==META_CACHE&&
+  RELEASE_PREFIXES.some(p=>name.startsWith(p)));
  const previous=(await stateRead())?.current;
- const fallback=previous&&candidates.includes(previous)&&await verifiedCache(previous)
-  ?previous
-  :candidates.at(-1)||null;
+ let fallback=previous&&candidates.includes(previous)&&await verifiedCache(previous)
+  ?previous:null;
+ if(!fallback){
+  for(const name of candidates.reverse()){
+   if(await verifiedCache(name)){fallback=name;break;}
+  }
+ }
  await stateWrite({current:CACHE_NAME,previous:fallback,confirmed:!fallback,rolledBack:false});
  await self.clients.claim();
 })()));
