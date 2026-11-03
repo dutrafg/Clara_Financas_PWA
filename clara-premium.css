@@ -1064,3 +1064,24 @@ body{
 @media(prefers-reduced-motion:reduce){
   :root[data-simple="true"] .clara-account-manage-actions button{transition:none;}
 }
+
+/* Acabamento contextual: mensagens discretas e exclusão indisponível. */
+:root[data-simple="true"] .clara-account-manage-actions button:disabled{
+  opacity:.52;
+  cursor:not-allowed;
+  background:var(--panel2);
+  color:var(--muted);
+  box-shadow:none;
+}
+:root[data-simple="true"] .clara-account-manage-actions button:disabled:hover{
+  background:var(--panel2);
+}
+:root[data-simple="true"] .clara-account-form-hint{
+  margin:5px 0 12px;
+  padding:12px 14px;
+  border-radius:12px;
+  background:color-mix(in srgb,var(--teal) 5%,var(--panel));
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
