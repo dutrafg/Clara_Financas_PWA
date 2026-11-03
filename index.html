@@ -1592,11 +1592,18 @@ const CLARA_BOOT_CACHE='__CLARA_CACHE_NAME__';
    window.ClaraReloadGuard?.allowOfficialUpdate();location.reload();
   }
  });
- window.addEventListener('load',()=>{
-  const worker=controller();if(!worker)return;
+ let pageLoaded=false,lastConfirmedController=null;
+ const confirmBoot=()=>{
+  // O worker pode assumir a primeira aba DEPOIS do evento load.
+  // Confirmar apenas quando a página terminou de carregar seus módulos.
+  const worker=controller();
+  if(!pageLoaded||!worker||worker===lastConfirmedController)return;
+  lastConfirmedController=worker;
   const healthy=!!(window.ClaraSecurity&&window.ClaraUpdate&&window.ClaraSimple&&window.ClaraBackups);
   worker.postMessage({type:healthy?'CLARA_BOOT_OK':'CLARA_BOOT_FAILED',cacheName:CLARA_BOOT_CACHE});
- },{once:true});
+ };
+ window.addEventListener('load',()=>{pageLoaded=true;confirmBoot();},{once:true});
+ navigator.serviceWorker.addEventListener('controllerchange',confirmBoot);
 })();
 </script>
 <link rel="stylesheet" href="./clara-simple.css">
