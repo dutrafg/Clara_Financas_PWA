@@ -26,6 +26,8 @@ async def run():
                     # A checagem inicial termina antes do cenário de rede travada.
                     await page.evaluate("ClaraUpdate.check(false)")
                     baseline=await page.evaluate("JSON.stringify(state)")
+                    await page.evaluate("() => {configTab='dados';go('ajustes');}")
+                    assert await page.locator("#applyClaraUpdate").count()==1
                     await page.evaluate("""() => {
                         const nativeFetch=window.fetch.bind(window);
                         window.fetch=(input,options)=>
