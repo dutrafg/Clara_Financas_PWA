@@ -203,10 +203,16 @@ const ClaraUpdate=(()=>{
     remoteVersion=info.version;
     releaseNotes=info.notes;
     lastCheck=Date.now();
-    try{
-     await bounded(r.update(),NETWORK_TIMEOUT,'A consulta do Service Worker não respondeu.');
-    }catch(e){
-     if(!r.waiting&&!(await activatedPackageReady(r)))throw e;
+    // Um worker instalado/aguardando já é um pacote preparado. Forçar outro
+    // registration.update() neste instante pode invalidar o candidato e
+    // deixar o botão preso em "Preparando..." durante a troca de releases.
+    // A verificação da versão remota (acima) continua sempre pela rede.
+    if(!r.waiting&&!r.installing){
+     try{
+      await bounded(r.update(),NETWORK_TIMEOUT,'A consulta do Service Worker não respondeu.');
+     }catch(e){
+      if(!r.waiting&&!(await activatedPackageReady(r)))throw e;
+     }
     }
     ready=!!r.waiting;
     reopenReady=!ready&&await activatedPackageReady(r);
