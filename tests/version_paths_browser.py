@@ -127,14 +127,17 @@ async def run():
     }""",timeout=30000)
     snapshot=await page.evaluate("""async () => {
       const registration=await navigator.serviceWorker.ready;
-      const cache=await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2');
-      const response=await cache.match(new URL('./index.html',location.href));
+      const names=await caches.keys();
+      const cache=names.includes('clara-financas-99-9-9-rc-qa-upgrade-v2')
+        ?await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2'):null;
+      const response=cache?await cache.match(new URL('./index.html',location.href)):null;
       const body=response?await response.text():'';
       const network=await (await fetch('./index.html',{cache:'no-store'})).text();
       const system=await caches.open('clara-update-system-v1');
       const stateResponse=await system.match(new URL('./__clara_update_state__',location.href));
-      const staged=await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2');
-      const stagedResponse=await staged.match(new URL('./index.html',location.href));
+      const staged=names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2')
+        ?await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2'):null;
+      const stagedResponse=staged?await staged.match(new URL('./index.html',location.href)):null;
       const stagedBody=stagedResponse?await stagedResponse.text():'';
       return {active:registration.active?.state,
         waiting:registration.waiting?.state||null,
@@ -148,7 +151,7 @@ async def run():
         appVersion:typeof CLARA_APP_VERSION==='string'?CLARA_APP_VERSION:null,
         updaterStatus:window.ClaraUpdate?.status||null,
         networkMarker:network.includes('qa-version-two'),
-        names:await caches.keys()};
+        names};
     }""")
     assert snapshot['active']=='activated' and snapshot['marker'],snapshot
     # Nova navegação offline não deve usar documentos de um controlador antigo.
