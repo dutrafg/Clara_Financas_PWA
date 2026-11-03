@@ -120,17 +120,17 @@ async def main():
                 "window.ClaraUpdate?.remoteVersion === '4.3.1-rc'",
                 timeout=30000
             )
-            await page.wait_for_function(
-                "navigator.serviceWorker.ready.then(r=>!!r.waiting)", timeout=30000
-            )
-            await page.evaluate("window.ClaraUpdate.check(false)")
-            # Durante a navegação, o SW pode passar de waiting para active.
-            # O atualizador deve oferecer Instalar OU Reabrir, sem perder dados.
+            # Não executar uma segunda verificação enquanto a instalação recém
+            # preparada aguarda: o SW antigo pode alterar o ciclo de vida.
+            await page.wait_for_function("""async () => {
+                const reg=await navigator.serviceWorker.ready;
+                return !!reg.waiting || window.ClaraUpdate.ready ||
+                  window.ClaraUpdate.reopenReady;
+            }""",timeout=30000)
             candidate = await page.evaluate("""async () => {
                 const reg=await navigator.serviceWorker.ready;
                 return {
-                    waiting:!!reg.waiting,
-                    active:reg.active?.state,
+                    waiting:!!reg.waiting, active:reg.active?.state,
                     ready:window.ClaraUpdate.ready,
                     reopenReady:window.ClaraUpdate.reopenReady,
                     status:window.ClaraUpdate.status,
@@ -138,9 +138,26 @@ async def main():
                     caches:await caches.keys()
                 };
             }""")
-            assert candidate["ready"] or candidate["reopenReady"] or candidate["waiting"], candidate
-            assert await page.locator("#applyClaraUpdate").is_visible(), candidate
+            print('QA UPGRADE CANDIDATE',candidate,flush=True)
+            await page.wait_for_function("""() => {
+                const action=document.getElementById('applyClaraUpdate');
+                return action && !action.hidden && !action.disabled;
+            }""",timeout=15000)
+            # Confirmar o resultado do clique: não interpretar apenas troca de cache.
+            await page.evaluate("""() => {
+                const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
+                window.__qaApplyPromise=null;
+                window.ClaraUpdate.apply=()=>{
+                    window.__qaApplyPromise=apply();
+                    return window.__qaApplyPromise;
+                };
+            }""")
             await page.locator("#applyClaraUpdate").click()
+            applied=await page.evaluate("window.__qaApplyPromise")
+            assert applied is True, {
+                'applied':applied,'candidate':candidate,'dialogs':dialogs,
+                'status':await page.evaluate('window.ClaraUpdate?.status')
+            }
 
             await page.wait_for_function(
                 "typeof CLARA_APP_VERSION !== 'undefined' && CLARA_APP_VERSION === '4.3.1-rc'", timeout=45000
