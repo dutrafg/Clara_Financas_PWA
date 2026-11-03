@@ -2281,7 +2281,8 @@ const categoryColor = (name, idx = 0) => CATEGORY_COLORS[name] || FALLBACK_COLOR
 const KEY = 'clara-html-preview-planilha-optio-v2'; // mesma chave: preserva dados das revisões anteriores
 // Fonte única para o número exibido na tela e a versão instalada pelo atualizador.
 const CLARA_APP_VERSION='4.4.0-rc';
-const CLARA_RELEASE_NOTES=Object.freeze([\n "Atualizador v2 reescrito: versões por hash, pré-cache íntegro, consentimento, snapshot cifrado e rollback do pacote.",
+const CLARA_RELEASE_NOTES=Object.freeze([
+ "Atualizador v2 reescrito: versões por hash, pré-cache íntegro, consentimento, snapshot cifrado e rollback do pacote.",
   "Atualizador mais confiável: o novo pacote é preparado em cache isolado, com ativação validada e proteção contra limpeza tardia do cache.",
   "Gestão de contas e cartões mais clara: edição contextual, exclusão bloqueada quando há vínculos e cadastro sem herdar IDs anteriores.",
   "Regressão ampliada de segurança e de migração do PWA a partir da 4.3.0-rc, com conferência do cofre e da operação offline.",
