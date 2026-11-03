@@ -251,6 +251,19 @@ const ClaraUpdate=(()=>{
   })();
   return checking;
  }
+ async function stableWaiting(reg){
+  // Caso outra verificação tenha substituído o worker em espera, só ativar
+  // quando o navegador concluir o último install. Evita SKIP_WAITING enviado
+  // para um worker que se tornou redundante na corrida entre verificações.
+  const deadline=Date.now()+45000;
+  while(Date.now()<deadline){
+   const worker=reg?.waiting;
+   if(worker&&!reg.installing&&worker.state==='installed')return worker;
+   if(!worker&&!reg.installing)return null;
+   await new Promise(resolve=>setTimeout(resolve,150));
+  }
+  return null;
+ }
  function canApply(){
   if(!window.ClaraSecurity?.unlocked)throw Error('Desbloqueie o cofre antes de atualizar.');
   const modal=get('modalBg');
@@ -274,7 +287,8 @@ const ClaraUpdate=(()=>{
   if(applying)return false;
   if(!canApply())return false;
   const reg=await register();if(!reg)return false;
-  if(!reg.waiting){
+  let worker=await stableWaiting(reg);
+  if(!worker){
    if(await activatedRemote(reg)){
     if(!await preflight())return false;
     reg.active?.postMessage({type:'CLARA_RETRY_CANDIDATE'});
@@ -282,19 +296,13 @@ const ClaraUpdate=(()=>{
     return true;
    }
    await check(true);
-   if(!reg.waiting){
-    if(await activatedRemote(reg)){
-     if(!await preflight())return false;
-     reg.active?.postMessage({type:'CLARA_RETRY_CANDIDATE'});
-     window.ClaraReloadGuard?.allowOfficialUpdate?.();location.reload();
-     return true;
-    }
-    return false;
-   }
+   worker=await stableWaiting(reg);
+   if(!worker)return false;
   }
   if(!await preflight())return false;
-  // Conferir novamente depois do snapshot: outro tab pode ter ativado o worker.
-  const worker=reg.waiting;
+  // O snapshot pode levar segundos; nesse intervalo o navegador pode trocar
+  // o candidato aguardando. Escolher apenas o último worker instalado.
+  worker=await stableWaiting(reg);
   if(!worker){setStatus('Falha ao preparar','O pacote mudou durante o backup. Verifique novamente.');return false;}
   stopPreparing();ready=false;applying=true;
   setStatus('Aplicando atualização','Snapshot confirmado. Ativando pacote validado…');
