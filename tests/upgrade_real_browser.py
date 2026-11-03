@@ -70,6 +70,15 @@ async def main():
                 };
             }""")
             assert original=={"cents":1234,"balance":80000,"encrypted":True},original
+            # A primeira checagem/registro precisa terminar antes do deploy.
+            # Caso contrário, duas buscas de sw.js disputam a instalação.
+            await page.evaluate("window.ClaraUpdate.check(false)")
+            await page.wait_for_function(
+                "window.ClaraUpdate.status==='Atualizado'",timeout=30000)
+            await page.evaluate("""async () => {
+                const r=await navigator.serviceWorker.ready;
+                if(r.installing||r.waiting)throw Error('Instalação inicial inconclusa');
+            }""")
 
             switch_to(NEXT)
             # Apenas um pedido do atualizador da revisão instalada.
