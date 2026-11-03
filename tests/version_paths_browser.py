@@ -74,16 +74,24 @@ async def run():
 
     old_sw=(site/'sw.js').read_text()
     old_name=re.search(r"const CACHE_NAME = '([^']+)';",old_sw).group(1)
-    new_name='clara-financas-qa-upgrade-v2'
+    new_name='clara-financas-99-9-9-rc-qa-upgrade-v2'
     assert new_name != old_name
     (site/'sw.js').write_text(old_sw.replace(old_name,new_name,1))
+    # Uma atualização legítima troca também o boot guard e a versão no HTML.
+    # Misturar SW novo com CLARA_BOOT_CACHE antigo simularia um build corrompido.
+    current_html=(site/'index.html').read_text()
+    assert old_name in current_html
+    current_html=current_html.replace(old_name,new_name)
+    current_html=current_html.replace("const CLARA_APP_VERSION='4.3.1-rc'",
+                                      "const CLARA_APP_VERSION='99.9.9-rc'")
+    (site/'index.html').write_text(current_html)
     await page.evaluate("window.ClaraUpdate.check(true)")
     await page.wait_for_function("navigator.serviceWorker.ready.then(r=>!!r.waiting)",timeout=20000)
     # O evento 'installed' pode preceder a atualização visual; sincronizar pelo estado do SW.
     await page.evaluate("window.ClaraUpdate.check(false)")
     await page.wait_for_function("window.ClaraUpdate.ready && !document.getElementById('claraUpdateNotice').hidden",timeout=12000)
     staged=await page.evaluate("""async () => {
-      const cache=await caches.open('clara-stage-qa-upgrade-v2');
+      const cache=await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2');
       const r=await cache.match(new URL('./index.html',location.href));
       const body=r?await r.text():'';
       return {marker:body.includes('qa-version-two'),size:body.length,
@@ -110,16 +118,16 @@ async def run():
     # SKIP_WAITING diretamente no teste do fluxo de atualização.
     await page.wait_for_function("""async () => {
       const names=await caches.keys();
-      if(!names.includes('clara-financas-qa-upgrade-v2') ||
-         names.includes('clara-stage-qa-upgrade-v2'))return false;
-      const cache=await caches.open('clara-financas-qa-upgrade-v2');
+      if(!names.includes('clara-financas-99-9-9-rc-qa-upgrade-v2') ||
+         names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))return false;
+      const cache=await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2');
       const response=await cache.match(new URL('./index.html',location.href));
       if(!response||(await response.text()).includes('qa-version-two')!==true)return false;
-      return !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-qa-upgrade-v2');
+      return !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-99-9-9-rc-qa-upgrade-v2');
     }""",timeout=30000)
     snapshot=await page.evaluate("""async () => {
       const registration=await navigator.serviceWorker.ready;
-      const cache=await caches.open('clara-financas-qa-upgrade-v2');
+      const cache=await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2');
       const response=await cache.match(new URL('./index.html',location.href));
       const body=response?await response.text():'';
       const network=await (await fetch('./index.html',{cache:'no-store'})).text();
