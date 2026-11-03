@@ -6,11 +6,13 @@ import vm from 'node:vm';
 const updaterSource=await readFile('clara-updater.js','utf8');
 const workerTemplate=await readFile('sw.js','utf8');
 const appVersion=JSON.parse(await readFile('version.json','utf8')).version;
+const nextRemoteVersion=appVersion.replace(/^(\d+)\.(\d+)\.(\d+)/,(_,major,minor,patch)=>
+ `${major}.${minor}.${Number(patch)+1}`);
 const candidateCacheName='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-unit-test';
 const workerSource=workerTemplate.replace('__CLARA_CACHE_NAME__',candidateCacheName);
 assert.ok(!workerSource.includes('__CLARA_CACHE_NAME__'),'fixture criou um nome de cache concreto');
 
-function createUpdaterHarness({remote='4.2.6-rc.1',installing=true,update=async()=>{},availableCaches=[],runningCache='clara-financas-previous-revision'}={}){
+function createUpdaterHarness({remote=nextRemoteVersion,installing=true,update=async()=>{},availableCaches=[],runningCache='clara-financas-previous-revision'}={}){
  let now=1_000,nextId=0;
  const timers=new Map(),swEvents=new Map(),regEvents=new Map(),workerEvents=new Map();
  const elements=new Map();
@@ -106,7 +108,7 @@ test('Cache de revisão ativa é reconhecido após ativação com SemVer igual',
 });
 
 test('Verificação não chama pacote pronto antes do evento installed',async()=>{
- const h=createUpdaterHarness({remote:'4.2.6-rc.1'});
+ const h=createUpdaterHarness({remote:nextRemoteVersion});
  const result=await h.api.check(true);
  assert.equal(result,false,'Uma versão apenas detectada não é uma instalação pronta');
  assert.equal(h.api.status,'Preparando atualização');
@@ -119,7 +121,7 @@ test('Verificação não chama pacote pronto antes do evento installed',async()=
 });
 
 test('Preparação sem instalação termina com falha recuperável e não deixa timer órfão',async()=>{
- const h=createUpdaterHarness({remote:'4.2.6-rc.1',installing:false});
+ const h=createUpdaterHarness({remote:nextRemoteVersion,installing:false});
  assert.equal(await h.api.check(true),false);
  assert.equal(h.api.status,'Preparando atualização');
  await h.advance(120_001);
@@ -129,7 +131,7 @@ test('Preparação sem instalação termina com falha recuperável e não deixa 
 });
 
 test('Progresso real renova o limite de inatividade durante uma instalação longa',async()=>{
- const h=createUpdaterHarness({remote:'4.2.6-rc.1'});
+ const h=createUpdaterHarness({remote:nextRemoteVersion});
  await h.api.check();
  for(let done=1;done<=3;done++){
   await h.advance(110_000);

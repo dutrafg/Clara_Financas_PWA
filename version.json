@@ -1,9 +1,11 @@
 {
   "name": "Clara Finanças",
-  "version": "4.2.6-rc",
+  "version": "4.2.7-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Dock com vidro suave de 20%, reflexo controlado e contornos arredondados sem comprometer os ícones.",
+    "Interface essencial mais clean: saldo, receitas, despesas pagas e contas a pagar com hierarquia visual e leitura simplificadas.",
     "Correção de atualização com mesma versão, identificação real do cache offline e recargas que mantêm HTML e módulos do pacote aprovado.",
     "Atualizador modular: progresso real, timeout que respeita downloads ativos, comparação SemVer correta e rollback automático de pacote que não inicializa.",
     "A nova versão mantém o pacote anterior até confirmar a inicialização dos módulos críticos; atualização continua protegida por backup cifrado e confirmação.",
