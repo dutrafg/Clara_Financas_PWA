@@ -124,7 +124,22 @@ async def main():
                 "navigator.serviceWorker.ready.then(r=>!!r.waiting)", timeout=30000
             )
             await page.evaluate("window.ClaraUpdate.check(false)")
-            await page.wait_for_function("window.ClaraUpdate.ready === true", timeout=20000)
+            # Durante a navegação, o SW pode passar de waiting para active.
+            # O atualizador deve oferecer Instalar OU Reabrir, sem perder dados.
+            candidate = await page.evaluate("""async () => {
+                const reg=await navigator.serviceWorker.ready;
+                return {
+                    waiting:!!reg.waiting,
+                    active:reg.active?.state,
+                    ready:window.ClaraUpdate.ready,
+                    reopenReady:window.ClaraUpdate.reopenReady,
+                    status:window.ClaraUpdate.status,
+                    remoteVersion:window.ClaraUpdate.remoteVersion,
+                    caches:await caches.keys()
+                };
+            }""")
+            assert candidate["ready"] or candidate["reopenReady"] or candidate["waiting"], candidate
+            assert await page.locator("#applyClaraUpdate").is_visible(), candidate
             await page.locator("#applyClaraUpdate").click()
 
             await page.wait_for_function(
