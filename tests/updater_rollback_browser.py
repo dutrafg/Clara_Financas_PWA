@@ -69,15 +69,16 @@ async def main():
             await page.wait_for_function('navigator.serviceWorker.ready.then(registration => !!registration.waiting)', timeout=30000)
             await page.evaluate('window.ClaraUpdate.check(false)')
             await page.wait_for_function('window.ClaraUpdate.ready', timeout=10000)
+            staged_name = 'clara-stage-' + candidate_name.removeprefix('clara-financas-')
             candidate_source = await page.evaluate("""async name => {
               const cache = await caches.open(name);
               return (await (await cache.match(new URL('./clara-updater.js', location.href))).text());
-            }""", candidate_name)
+            }""", staged_name)
             assert expected_boot_error in candidate_source, 'O pacote candidato precisa conter o módulo defeituoso simulado.'
             candidate_html = await page.evaluate("""async name => {
               const cache = await caches.open(name);
               return (await (await cache.match(new URL('./index.html', location.href))).text());
-            }""", candidate_name)
+            }""", staged_name)
             assert f"const CLARA_BOOT_CACHE='{candidate_name}'" in candidate_html
             await page.evaluate("""() => {
               const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
