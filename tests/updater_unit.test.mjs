@@ -155,6 +155,20 @@ test('Worker anterior só é apagado após a confirmação do novo boot',async()
  assert.ok(!(await h.caches.keys()).includes(previous));
 });
 
+test('BOOT_OK de worker antigo não remove cache futuro já preparado',async()=>{
+ const h=worker();
+ await h.fire('install');
+ await h.fire('activate');
+ const future='clara-v2-4-5-0-rc-futurepackage';
+ await (await h.caches.open(future)).put(
+  new URL('./index.html',h.scope),new Response('future package'));
+ await h.fire('message',{data:{type:'CLARA_BOOT_OK',cacheName},
+  source:{postMessage:m=>h.messages.push(m)}});
+ assert.equal(await h.content(future,'./index.html'),'future package',
+  'confirmação tardia não pode apagar uma atualização futura');
+ assert.equal((await h.state()).confirmed,true);
+});
+
 test('Falha do módulo crítico seleciona o pacote anterior sem apagar o cofre',async()=>{
  const h=worker();
  const old='clara-v2-4-3-9-previous';
