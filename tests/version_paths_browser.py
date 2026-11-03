@@ -110,9 +110,13 @@ async def run():
     # SKIP_WAITING diretamente no teste do fluxo de atualização.
     await page.wait_for_function("""async () => {
       const names=await caches.keys();
-      return names.includes('clara-financas-qa-upgrade-v2') &&
-        !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-qa-upgrade-v2');
-    }""",timeout=20000)
+      if(!names.includes('clara-financas-qa-upgrade-v2') ||
+         names.includes('clara-stage-qa-upgrade-v2'))return false;
+      const cache=await caches.open('clara-financas-qa-upgrade-v2');
+      const response=await cache.match(new URL('./index.html',location.href));
+      if(!response||(await response.text()).includes('qa-version-two')!==true)return false;
+      return !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-qa-upgrade-v2');
+    }""",timeout=30000)
     snapshot=await page.evaluate("""async () => {
       const registration=await navigator.serviceWorker.ready;
       const cache=await caches.open('clara-financas-qa-upgrade-v2');
