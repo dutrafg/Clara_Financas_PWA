@@ -104,6 +104,36 @@ async def main():
             assert original["vaultPresent"] and original["encrypted"], original
             assert old_cache in original["caches"], original
 
+            # Rastrear transições de um navegador com release anterior instalado.
+            # Não altera o updater: captura somente estado, sem chamar check().
+            await page.evaluate("""() => {
+                const trace=[];
+                let previous='';
+                const capture=()=>{
+                    const r=window.__qaRegistration;
+                    const entry={
+                        t:Date.now(),
+                        status:window.ClaraUpdate?.status||null,
+                        remote:window.ClaraUpdate?.remoteVersion||null,
+                        ready:window.ClaraUpdate?.ready||false,
+                        waiting:r?.waiting?.state||null,
+                        installing:r?.installing?.state||null,
+                        active:r?.active?.state||null
+                    };
+                    const key=JSON.stringify(entry).replace(/"t":\\d+,?/,'');
+                    if(key!==previous){previous=key;trace.push(entry);if(trace.length>100)trace.shift();}
+                };
+                window.__qaUpgradeTrace=trace;
+                navigator.serviceWorker.getRegistration().then(r=>{
+                    window.__qaRegistration=r;capture();
+                    r.addEventListener('updatefound',()=>{
+                        capture();r.installing?.addEventListener('statechange',capture);
+                    });
+                });
+                navigator.serviceWorker.addEventListener('controllerchange',capture);
+                window.setInterval(capture,80);
+            }""")
+
             # Publicação atômica do build novo. O servidor resolve o link
             # somente por requisição, logo nunca observa um pacote parcial.
             candidate_link = ROOT / "candidate-ready"
@@ -160,6 +190,12 @@ async def main():
                 };
             }""")
             print('QA UPGRADE CANDIDATE',candidate,flush=True)
+            print('QA UPGRADE TRACE',
+                await page.evaluate("window.__qaUpgradeTrace||[]"),flush=True)
+            assert candidate["ready"] and candidate["waiting"], {
+                "candidate":candidate,
+                "trace":await page.evaluate("window.__qaUpgradeTrace||[]")
+            }
 
             # Confirmar o resultado do clique: não interpretar apenas troca de cache.
             await page.evaluate("""() => {
