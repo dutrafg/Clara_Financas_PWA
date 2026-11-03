@@ -3430,7 +3430,9 @@ function historicalSummary(month=auditMonth,account=auditAccount){
  const done=entries.filter(t=>t.status==='Realizado');
  const income=done.reduce((s,t)=>s+(t.kind==='Receita'&&(account==='Todas'||t.accountId===account)?t.amountCents:0)+(t.kind==='Transferência'&&account!=='Todas'&&t.toAccountId===account?t.amountCents:0),0);
  const expense=done.reduce((s,t)=>s+(t.kind==='Despesa'&&(account==='Todas'||t.accountId===account)?t.amountCents:0)+(t.kind==='Transferência'&&account!=='Todas'&&t.accountId===account?t.amountCents:0),0);
- const outstanding=entries.filter(t=>t.status==='Pendente').reduce((s,t)=>s+t.amountCents,0);
+ // Nunca somar valores a receber e transferências ao montante a pagar.
+ const outstanding=entries.filter(t=>t.status==='Pendente'&&t.kind==='Despesa')
+  .reduce((sum,t)=>sum+t.amountCents,0);
  const chosen=account==='Todas'?state.accounts:state.accounts.filter(a=>a.id===account);
  const start=chosen.reduce((s,a)=>s+accountBalance(a.id,auditPreviousEnd(month)),0);
  const until=month===todayISO().slice(0,7)?todayISO():auditMonthEnd(month);
@@ -3473,7 +3475,7 @@ function renderHistorico(){
   </div><div class="gap"></div><div class="three-metrics">
    ${metric('Receitas realizadas',brl(s.income),'Receitas e transferências recebidas','', 'positive')}
    ${metric('Despesas realizadas',brl(s.expense),'Despesas e transferências enviadas','', 'negative')}
-   ${metric('Lançamentos pendentes',brl(s.outstanding),'Total pendente do mês','', 'orange')}
+   ${metric('Despesas pendentes',brl(s.outstanding),'Total de despesas a pagar no mês','', 'orange')}
   </div><div class="gap"></div>
   ${panel('Contas e cartões','Abertura, fechamento e variação','<div class="history-account-grid">'+(accountRows||'<div class="empty">Nenhuma conta cadastrada.</div>')+'</div>')}
   <div class="gap"></div>
@@ -4087,7 +4089,10 @@ document.addEventListener('click', e => {
   if (b.id === 'confirmModalBtn' && typeof pendingConfirmAction === 'function') {
     const fn = pendingConfirmAction;
     closeModal();
-    fn();
+    // Confirmações de backup são assíncronas: encaminhar falhas sem criar
+    // rejeições não tratadas nem declarar sucesso antes do salvamento.
+    try{Promise.resolve(fn()).catch(error=>showToast(error?.message||'A operação não foi concluída.',true));}
+    catch(error){showToast(error?.message||'A operação não foi concluída.',true);}
     return;
   }
   if(b.id==='lockFromProfile'){closeModal();window.ClaraSecurity.lock();return;}
@@ -4944,9 +4949,16 @@ document.addEventListener('change',async e=>{
     const pass=window.prompt('Informe a senha do backup .clara:');if(pass===null)return;
     const key=await deriveKey(pass,b64Bytes(v.salt));
     const imported=await decryptState(v,key);
-    openConfirmModal('Restaurar cofre protegido','O backup foi autenticado e validado. Substituir os dados atuais?',()=>{
-      const previous=state;state=imported;
-      try{persistSuccess('Backup criptografado restaurado no cofre atual.');}catch(err){state=previous;showToast(err.message,true);}
+    openConfirmModal('Restaurar cofre protegido','O backup foi autenticado e validado. Antes da substituição, o Clara criará um ponto cifrado de recuperação dos dados atuais.',async()=>{
+      if(!window.ClaraSecurity?.unlocked)throw Error('Desbloqueie o cofre para restaurar.');
+      // A restauração pelo histórico interno já gera um ponto preventivo.
+      // Arquivos .clara externos agora seguem a mesma regra, sem sobrescrever
+      // dados existentes se o snapshot local falhar.
+      const safety=await window.ClaraBackups?.beforeUpdate?.();
+      if(!safety?.local)throw Error('Não foi possível proteger os dados atuais. Restauração cancelada.');
+      await window.ClaraSecurity.restoreLocalEncrypted(raw,pass);
+      await window.ClaraSecurity.flush();
+      showToast('Backup criptografado restaurado e ponto anterior preservado.');
     });
   }catch(err){showToast(err.message,true);}
 });
