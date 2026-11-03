@@ -157,11 +157,11 @@ self.addEventListener('message',event=>{
   if(state.rolledBack)return;
   if(!(await verifiedCache(CACHE_NAME)))return;
   await stateWrite({...state,confirmed:true});
-  // Remover versões antigas SOMENTE após inicialização bem-sucedida.
-  // Não tocar caches de terceiros ou bancos de dados do usuário.
-  const names=await caches.keys();
-  await Promise.all(names.filter(name=>name!==CACHE_NAME&&name!==META_CACHE&&
-   RELEASE_PREFIXES.some(p=>name.startsWith(p))).map(name=>caches.delete(name)));
+  // Apagar APENAS o backup anterior conhecido depois do boot válido.
+  // Nunca varrer todos os caches de release: outro Service Worker pode
+  // estar instalando uma versão futura enquanto este BOOT_OK termina.
+  if(state.previous&&state.previous!==CACHE_NAME)
+   await caches.delete(state.previous);
   // Cache de metadados v1 não é mais lido. Remover sem afetar o cofre.
   await caches.delete('clara-update-system-v1');
   event.source?.postMessage({type:'CLARA_BOOT_CONFIRMED'});
