@@ -197,7 +197,9 @@
 
  // Gestão simples: reaproveita os mesmos cadastros do motor, sem dados paralelos.
  const accountManageRows=(items,isCard,linkedCounts)=>{
-   if(!items.length)return '<div class="clara-account-empty"><strong>Nenhum cartão ainda</strong><p>Adicione seu primeiro cartão para acompanhar despesas pendentes em um só lugar.</p></div>';
+   if(!items.length)return isCard
+    ?'<div class="clara-account-empty"><strong>Nenhum cartão ainda</strong><p>Adicione seu primeiro cartão para acompanhar despesas pendentes em um só lugar.</p></div>'
+    :'<div class="clara-account-empty"><strong>Nenhuma conta ou reserva</strong><p>Adicione uma conta para acompanhar seus saldos.</p></div>';
    const rank={Conta:0,Dinheiro:1,Reserva:2,Cartão:3};
    const ordered=items.slice().sort((a,b)=>
      (rank[a.type]??4)-(rank[b.type]??4)||a.name.localeCompare(b.name,'pt-BR'));
