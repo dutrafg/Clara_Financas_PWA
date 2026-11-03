@@ -117,14 +117,27 @@ async def run():
     # A ativação é feita pela interface após confirmação. Nunca chamar
     # SKIP_WAITING diretamente no teste do fluxo de atualização.
     await page.wait_for_function("""async () => {
+      // Não basta observar uma chave de cache durante a ativação: aguardar
+      // a NOVA shell carregar e confirmar BOOT_OK no worker ativo.
+      if(typeof CLARA_APP_VERSION!=='string'||CLARA_APP_VERSION!=='99.9.9-rc')
+        return false;
+      const reg=await navigator.serviceWorker.ready;
+      if(reg.active?.state!=='activated')return false;
       const names=await caches.keys();
-      if(!names.includes('clara-financas-99-9-9-rc-qa-upgrade-v2') ||
-         names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))return false;
-      const cache=await caches.open('clara-financas-99-9-9-rc-qa-upgrade-v2');
+      const target='clara-financas-99-9-9-rc-qa-upgrade-v2';
+      if(!names.includes(target)||names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))
+        return false;
+      if(names.some(key=>key.startsWith('clara-financas-')&&key!==target))
+        return false;
+      const cache=await caches.open(target);
       const response=await cache.match(new URL('./index.html',location.href));
-      if(!response||(await response.text()).includes('qa-version-two')!==true)return false;
-      return !names.some(key=>key.startsWith('clara-financas-')&&key!=='clara-financas-99-9-9-rc-qa-upgrade-v2');
-    }""",timeout=30000)
+      if(!response||(await response.text()).includes('qa-version-two')!==true)
+        return false;
+      const system=await caches.open('clara-update-system-v1');
+      const stateResponse=await system.match(new URL('./__clara_update_state__',location.href));
+      const state=stateResponse?await stateResponse.json():null;
+      return state?.current===target&&state.confirmed===true&&!state.rolledBack;
+    }""",timeout=45000)
     snapshot=await page.evaluate("""async () => {
       const registration=await navigator.serviceWorker.ready;
       const names=await caches.keys();
