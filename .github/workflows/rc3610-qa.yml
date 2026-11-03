@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'homologacao/**'
+      - 'design/**'
       - feature/clara-design-premium-cleanup
       - feature/clara-411-modo-demonstracao
   pull_request:
