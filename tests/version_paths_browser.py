@@ -131,9 +131,22 @@ async def run():
       const response=await cache.match(new URL('./index.html',location.href));
       const body=response?await response.text():'';
       const network=await (await fetch('./index.html',{cache:'no-store'})).text();
+      const system=await caches.open('clara-update-system-v1');
+      const stateResponse=await system.match(new URL('./__clara_update_state__',location.href));
+      const staged=await caches.open('clara-stage-99-9-9-rc-qa-upgrade-v2');
+      const stagedResponse=await staged.match(new URL('./index.html',location.href));
+      const stagedBody=stagedResponse?await stagedResponse.text():'';
       return {active:registration.active?.state,
+        waiting:registration.waiting?.state||null,
+        installing:registration.installing?.state||null,
         marker:body.includes('qa-version-two'),
         cachedBytes:body.length,cachedStart:body.slice(0,180),
+        stagedMarker:stagedBody.includes('qa-version-two'),
+        stagedBytes:stagedBody.length,
+        state:stateResponse?await stateResponse.json():null,
+        bootCache:typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:null,
+        appVersion:typeof CLARA_APP_VERSION==='string'?CLARA_APP_VERSION:null,
+        updaterStatus:window.ClaraUpdate?.status||null,
         networkMarker:network.includes('qa-version-two'),
         names:await caches.keys()};
     }""")
