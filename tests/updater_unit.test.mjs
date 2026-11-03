@@ -229,6 +229,19 @@ test('Service Worker só ativa um pacote completo e informa progresso',async()=>
  assert.ok(h.stores.has('clara-update-system-v1'));
 });
 
+test('Confirmação tardia de boot antigo não apaga cache da atualização em preparação',async()=>{
+ const h=createWorkerHarness();
+ await h.fire('install');
+ await h.fire('activate');
+ const next='clara-financas-4-3-1-rc-pacote-em-preparacao';
+ const cache=await h.caches.open(next);
+ await cache.put(new URL('./index.html',h.scope),new Response('nova shell validada'));
+ await h.message('CLARA_BOOT_OK');
+ assert.equal(await h.cacheText(next,'./index.html'),'nova shell validada',
+  'BOOT_OK de versão antiga não pode apagar o cache do SW mais novo');
+ assert.equal((await h.readState()).confirmed,true);
+});
+
 test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato novamente',async()=>{
  const h=createWorkerHarness();
  const old=await h.caches.open('clara-financas-4-2-4-old');
