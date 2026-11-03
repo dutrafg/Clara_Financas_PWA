@@ -57,7 +57,8 @@ await mkdir(new URL('./assets/',dist),{recursive:true});
 for(const name of files) {
   const content=name==='index.html'
     ?Buffer.from(html.replace('__CLARA_CACHE_NAME__',cacheName))
-    :name==='version.json'?Buffer.from(JSON.stringify({...meta,cache:cacheName},null,2)+'\n'):\n     await load(name);
+    :name==='version.json'?Buffer.from(JSON.stringify({...meta,cache:cacheName},null,2)+'\n'):
+     await load(name);
   await writeFile(new URL(name,dist),content);
 }
 await writeFile(new URL('sw.js',dist),serviceWorker.replace('__CLARA_CACHE_NAME__',cacheName));
