@@ -96,6 +96,34 @@ test('Pacote já baixado permanece aplicável sem conexão com a consulta de ver
  assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
 });
 
+test('Verificar atualização não reinicia worker já aguardando confirmação',async()=>{
+ let updates=0;
+ const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true,
+  update:async()=>{updates++;h.registration.waiting=null;}});
+ h.registration.waiting=h.worker;
+ h.registration.installing=null;
+ h.worker.state='installed';
+ assert.equal(await h.api.check(true),true);
+ assert.equal(updates,0,'update() não pode invalidar um pacote aguardando');
+ assert.equal(h.api.ready,true);
+ assert.equal(h.api.status,'Atualização disponível');
+ assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
+});
+
+test('Verificar atualização não duplica download do worker ainda instalando',async()=>{
+ let updates=0;
+ const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true,
+  update:async()=>{updates++;}});
+ assert.equal(await h.api.check(true),false);
+ assert.equal(updates,0,'download existente não deve ser reiniciado');
+ assert.equal(h.api.status,'Preparando atualização');
+ h.registration.waiting=h.worker;
+ h.registration.installing=null;
+ h.worker.setState('installed');
+ assert.equal(h.api.ready,true);
+ assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
+});
+
 test('Indicação offline do navegador não bloqueia verificação quando a rede funciona',async()=>{
  const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true});
  h.browserNavigator.onLine=false;
