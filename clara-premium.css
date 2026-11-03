@@ -672,7 +672,7 @@ body{
 .clara-tx-filterbar button{
   flex:0 0 auto;border:0;border-bottom:3px solid transparent;
   padding:10px 1px 12px;background:transparent;
-  color:var(--muted);font:650 14px/1.2 inherit;cursor:pointer;white-space:nowrap;
+  color:var(--muted);font-size:14px;font-weight:650;line-height:1.2;font-family:inherit;cursor:pointer;white-space:nowrap;
 }
 .clara-tx-filterbar button.active{
   border-bottom-color:var(--teal);color:var(--text);
