@@ -96,6 +96,16 @@ test('Pacote já baixado permanece aplicável sem conexão com a consulta de ver
  assert.equal(h.elements.get('applyClaraUpdate').textContent,'Aplicar atualização');
 });
 
+test('Indicação offline do navegador não bloqueia verificação quando a rede funciona',async()=>{
+ const h=createUpdaterHarness({remote:nextRemoteVersion,installing:true});
+ h.browserNavigator.onLine=false;
+ const updated=await h.api.check(true);
+ assert.equal(updated,false,'O Service Worker ainda não terminou a instalação.');
+ assert.equal(h.api.remoteVersion,nextRemoteVersion,'O Clara deve consultar a rede de verdade.');
+ assert.equal(h.api.status,'Preparando atualização');
+ assert.notEqual(h.api.status,'Sem conexão','Não declarar offline só por navigator.onLine.');
+});
+
 test('Cache de revisão ativa é reconhecido após ativação com SemVer igual',async()=>{
  const runningCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-old-hash';
  const readyCache='clara-financas-'+appVersion.replace(/[^a-z\d-]/gi,'-')+'-new-hash';
