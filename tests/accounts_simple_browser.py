@@ -81,6 +81,18 @@ async def run():
                         card_id
                     )
 
+                    # Novo cadastro não herda o ID da edição anterior.
+                    before_duplicate = await page.evaluate("state.accounts.length")
+                    await root.locator(".clara-account-manage-section").first.locator(
+                        '[data-open="account"]'
+                    ).click()
+                    assert await page.locator("#modalBg").get_attribute("data-id") is None
+                    await page.locator("#m_name").fill("Cartão renomeado")
+                    await page.locator("#modalForm button[type=submit]").click()
+                    assert "Já existe uma conta" in await page.locator("#err_name").inner_text()
+                    assert await page.evaluate("state.accounts.length") == before_duplicate
+                    await page.locator("#closeModal").click()
+
                     # Contas e reservas são organizadas separadamente dos cartões.
                     await root.locator(".clara-account-manage-section").first.locator(
                         '[data-open="account"]'
