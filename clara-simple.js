@@ -22,6 +22,68 @@
    <button type="button" data-simple-month-dir="1" aria-label="Próximo mês">›</button>
   </nav>`;
  let txFilter='Todas',txSearch='';
+
+ // Lista compacta com expansão nativa, sem alterar persistência ou objetos financeiros.
+ const compactList=(items,max,renderRow,empty)=>{
+  if(!items.length)return '<p class="clara-compact-empty">'+esc(empty)+'</p>';
+  const visible=items.slice(0,max).map(renderRow).join('');
+  const hidden=items.length>max?
+    '<details class="clara-compact-more"><summary>Ver mais ('+(items.length-max)+')</summary>'+
+    items.slice(max).map(renderRow).join('')+'</details>':'';
+  return visible+hidden;
+ };
+ const accountRow=a=>`<div class="clara-compact-row">
+   <span class="clara-compact-mark" aria-hidden="true">${a.type==='Reserva'?'◈':'▣'}</span>
+   <span class="clara-compact-label"><strong>${esc(a.name)}</strong><small>${esc(a.type)}</small></span>
+   <b class="clara-compact-value">${brl(accountBalance(a.id,state.settings.cutoff))}</b>
+  </div>`;
+ const cardRow=a=>`<div class="clara-compact-row">
+   <span class="clara-compact-mark" aria-hidden="true">▤</span>
+   <span class="clara-compact-label"><strong>${esc(a.name)}</strong><small>Despesas pendentes</small></span>
+   <b class="clara-compact-value">${brl(accountPendingCard(a.id))}</b>
+  </div>`;
+ const compactProgress=(value,label)=>`<div class="clara-compact-progress" role="progressbar"
+  aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(value)}">
+  <span style="width:${value}%"></span></div>`;
+ const goalRow=g=>{
+  const value=g.targetCents>0?Math.min(100,Math.max(0,100*g.savedCents/g.targetCents)):0;
+  return `<div class="clara-compact-goal"><div class="clara-compact-line">
+   <span class="clara-compact-label"><strong>${esc(g.name)}</strong><small>${brl(g.savedCents)} de ${brl(g.targetCents)}</small></span>
+   <button type="button" class="clara-quiet" data-goal-edit="${esc(g.id)}">Atualizar</button>
+   </div>${compactProgress(value,'Progresso da meta '+g.name)}</div>`;
+ };
+ const budgetRow=r=>{
+  const value=r.limitCents>0?Math.min(100,Math.max(0,100*r.planned/r.limitCents)):0;
+  const over=r.planned>r.limitCents;
+  return `<div class="clara-compact-goal ${over?'clara-budget-over':''}">
+   <div class="clara-compact-line">
+    <span class="clara-compact-label"><strong>${esc(r.name)}</strong><small>Previsto: ${brl(r.planned)} de ${brl(r.limitCents)}</small></span>
+    <span class="clara-compact-percent">${over?'Acima do limite':Math.round(value)+'%'}</span>
+   </div>${compactProgress(value,'Uso do limite '+r.name)}</div>`;
+ };
+ const compactPanel=(title,action,body,extra='')=>`<section class="clara-simple-card clara-compact-panel">
+    <header><h3>${title}</h3>${action}</header>${body}${extra}
+   </section>`;
+ function moneyPanels(p){
+  const accounts=state.accounts.filter(a=>a.type!=='Cartão');
+  const cards=state.accounts.filter(a=>a.type==='Cartão');
+  const budgets=budgetRows(p).filter(r=>r.limitCents>0).sort((a,b)=>b.ratio-a.ratio);
+  return `<div class="clara-money-panel-grid" aria-label="Contas, cartões, metas e limites">
+   ${compactPanel('Contas','<button class="clara-quiet" type="button" data-config-jump="contas">Gerenciar</button>',
+     compactList(accounts,2,accountRow,'Adicione uma conta para acompanhar os saldos.'),
+     '<button type="button" class="clara-compact-action" data-open="account">+ Nova conta</button>')}
+   ${compactPanel('Cartões','<button class="clara-quiet" type="button" data-config-jump="contas">Gerenciar</button>',
+     compactList(cards,2,cardRow,'Nenhum cartão cadastrado.'),
+     '<button type="button" class="clara-compact-action" data-simple-new-card>+ Adicionar cartão</button>')}
+   ${compactPanel('Metas','<button type="button" class="clara-quiet" data-view="plan">Ver todas</button>',
+     compactList(state.goals,2,goalRow,'Crie um objetivo para seu dinheiro.'),
+     '<button type="button" class="clara-compact-action" data-open="goal">+ Criar meta</button>')}
+   ${compactPanel('Limites','<button type="button" class="clara-quiet" data-view="plan">Ver todos</button>',
+     compactList(budgets,2,budgetRow,'Nenhum limite definido.'),
+     '<button type="button" class="clara-compact-action" data-config-jump="contas">+ Definir limites</button>')}
+   </div>`;
+ }
+
  const listLine=t=>`<div class="clara-simple-line">
    <div class="clara-simple-line-title"><strong>${esc(t.description)}</strong><small>${fmtDay(t.date)} · ${esc(t.category||t.kind)}</small></div>
    <div class="clara-simple-line-value"><b>${t.kind==='Despesa'?'− ':t.kind==='Receita'?'+ ':''}${brl(t.amountCents)}</b><button type="button" class="clara-quiet" data-edit-tx="${esc(t.id)}">Editar</button></div>
@@ -32,8 +94,6 @@
   const recent=state.transactions.slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,4);
   const spend=budgetRows(p).filter(r=>r.done>0).sort((a,b)=>b.done-a.done);
   const insight=spend.length?`Neste mês, sua maior despesa foi em ${spend[0].name}.`:'Registre uma despesa para descobrir onde seu dinheiro está indo.';
-  const monthLabel=monthName(p);
-  const accounts=state.accounts.slice(0,3);
   $('view-painel').innerHTML=`<section class="clara-simple-home" aria-label="Seu dinheiro">
    <div class="clara-clean-heading"><span>Visão geral</span><span>Seu dinheiro, sem complicação</span></div>
    <div class="clara-balance"><div class="clara-balance-head"><span>Saldo atual</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
@@ -45,10 +105,7 @@
    ${quick()}
    ${state.transactions.length===0?`<section class="clara-welcome"><h3>Vamos começar?</h3><p>Registre uma entrada ou despesa para acompanhar seu dinheiro de forma simples.</p>
      <button type="button" class="btn primary" data-clw-action="new" data-clw-kind="Receita">Registrar primeira entrada</button></section>`:''}
-   <section class="clara-simple-card"><header><h3>Contas</h3><button type="button" class="clara-quiet" data-config-jump="contas">Gerenciar</button></header>
-     ${accounts.map(a=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(a.name)}</strong><small>${esc(a.type)}</small></div><div class="clara-simple-line-value"><b>${brl(accountBalance(a.id,state.settings.cutoff))}</b></div></div>`).join('')}
-     <button type="button" class="clara-inline-add" data-open="account">+ Adicionar conta ou cartão</button>
-   </section>
+   ${moneyPanels(p)}
    <section class="clara-simple-card"><header><h3>Próximos vencimentos</h3><button class="clara-quiet" data-view="mov" type="button">Ver tudo</button></header>
      ${due.length?due.map(t=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(t.description)}</strong><small>${t.date<today?'Venceu · ':''}${fmtDay(t.date)}</small></div><div class="clara-simple-line-value"><b>${brl(t.amountCents)}</b><button class="clara-quiet" type="button" data-toggle="${esc(t.id)}">Pagar</button></div></div>`).join(''):'<p class="clara-muted">Nenhuma conta próxima do vencimento.</p>'}
    </section>
@@ -102,16 +159,22 @@
   </section>`;
  }
  function planejar(){
-  const budgets=budgetRows().filter(r=>r.limitCents>0);
-  $('view-plan').innerHTML=`<section class="clara-simple-home">
-   <section class="clara-simple-card"><header><h3>Meu orçamento</h3><button type="button" class="clara-quiet" data-config-jump="contas">Ajustar limites</button></header>
-    <p class="clara-muted">Defina quanto pode gastar em cada categoria.</p>
-    ${budgets.length?budgets.slice(0,7).map(r=>`<div class="clara-simple-budget"><div><strong>${esc(r.name)}</strong><small>${brl(r.planned)} de ${brl(r.limitCents)}</small></div><div class="clara-simple-track"><span style="width:${Math.min(100,r.ratio*100)}%;background:${r.ratio>=1?'var(--red)':'var(--teal)'}"></span></div></div>`).join(''):'<p class="clara-muted">Nenhum limite definido. Comece com alimentação e moradia.</p>'}
+  const p=state.settings.period;
+  const budgets=budgetRows(p).filter(r=>r.limitCents>0).sort((a,b)=>b.ratio-a.ratio);
+  $('view-plan').innerHTML=`<section class="clara-simple-home clara-simple-planning">
+   <div class="clara-simple-intro"><h3>Planejamento</h3><p>Metas e limites em um só lugar.</p></div>
+   ${monthNav(p)}
+   <div class="clara-money-panel-grid">
+     ${compactPanel('Limites do mês','<button type="button" class="clara-quiet" data-config-jump="contas">Editar limites</button>',
+        compactList(budgets,3,budgetRow,'Nenhum limite definido.'),
+        '<button type="button" class="clara-compact-action" data-config-jump="contas">+ Ajustar orçamento</button>')}
+     ${compactPanel('Minhas metas','<button type="button" class="clara-quiet" data-open="goal">Criar meta</button>',
+        compactList(state.goals,3,goalRow,'Que tal começar uma reserva de emergência?'))}
+   </div>
+   <section class="clara-simple-card clara-compact-panel">
+    <header><h3>Contas recorrentes</h3><button type="button" class="clara-quiet" data-view="mov">Ver transações</button></header>
+    <p class="clara-muted">Parcelas e despesas fixas ficam junto dos seus lançamentos.</p>
    </section>
-   <section class="clara-simple-card"><header><h3>Minhas metas</h3><button type="button" class="clara-quiet" data-open="goal">Criar meta</button></header>
-    ${state.goals.length?state.goals.map(g=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(g.name)}</strong><small>${brl(g.savedCents)} de ${brl(g.targetCents)}</small></div><button type="button" class="clara-quiet" data-goal-edit="${esc(g.id)}">Atualizar</button></div>`).join(''):'<p class="clara-muted">Que tal criar uma reserva de emergência?</p>'}
-   </section>
-   <section class="clara-simple-card"><header><h3>Contas recorrentes</h3></header><p class="clara-muted">Parcelas e contas fixas aparecem nos seus registros.</p><button type="button" class="clara-quiet" data-view="mov">Ver registros</button></section>
   </section>`;
  }
  function mais(){
@@ -228,6 +291,14 @@
  });
  document.addEventListener('click',e=>{
     if(mode()){
+     const newCard=e.target.closest?.('[data-simple-new-card]');
+     if(newCard){
+      e.preventDefault();e.stopPropagation();
+      modal('account');
+      const type=$('m_type');
+      if(type)type.value='Cartão';
+      return;
+     }
      const m=e.target.closest?.('[data-simple-month-dir]');
      if(m){
       e.preventDefault();e.stopPropagation();

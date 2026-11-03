@@ -1,9 +1,12 @@
 {
   "name": "Clara Finanças",
-  "version": "4.2.9-rc",
+  "version": "4.3.0-rc",
   "build": "2026-11-01",
   "schema": 2,
   "notes": [
+    "Modo simples com quatro painéis compactos: contas, cartões, metas e limites; listas expansíveis sem telas longas.",
+    "Cartões exibem despesas pendentes separadamente dos saldos de contas; ações reutilizam os cadastros existentes.",
+    "Planejamento reorganizado com metas e limites progressivos, indicadores acessíveis e navegação por mês.",
     "Modo simples reorganizado com saldo em destaque, contas compactas e navegação mensal.",
     "Transações com resumo, filtros, busca e estados vazios objetivos, mantendo relatórios avançados.",
     "Cadastro de receitas, despesas e transferências em formulário clean com cores discretas e datas rápidas, preservando o cofre criptografado.",
