@@ -81,8 +81,44 @@ async def main():
     await page.locator('#securitySubmit').click()
     await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
     assert await page.evaluate("state.auditLog.filter(e=>e.ref==='audit-qa').length===3")
+    # Importação de arquivo .clara externo deve criar snapshot ANTES de substituir.
+    # Uma falha no snapshot precisa impedir a restauração por completo.
+    backup_raw=await page.evaluate("localStorage.getItem('clara-financas-vault-aesgcm-v1')")
+    await page.evaluate("() => {state.accounts[0].openingCents=22222;save();}")
+    await page.evaluate('window.ClaraSecurity.flush()')
+    await page.evaluate("() => {configTab='dados';go('ajustes');}")
+    page.on('dialog',lambda dialog:asyncio.create_task(dialog.accept(PWD if dialog.type=='prompt' else None)))
+    await page.evaluate("() => {window.__originalSafety=window.ClaraBackups.beforeUpdate;window.ClaraBackups.beforeUpdate=async()=>{throw Error('QA: snapshot indisponível');};}")
+    await page.locator('#importClara').set_input_files({
+      'name':'clara-recuperacao-qa.clara','mimeType':'application/octet-stream','buffer':backup_raw.encode('utf-8')
+    })
+    await page.locator('#confirmModalBtn').wait_for(timeout=30000)
+    await page.locator('#confirmModalBtn').click()
+    await page.wait_for_function("document.getElementById('toast').textContent.includes('QA: snapshot indisponível')",timeout=30000)
+    assert await page.evaluate("state.accounts[0].openingCents===22222"),'Restauração ocorreu sem snapshot'
+    await page.evaluate("() => {window.ClaraBackups.beforeUpdate=window.__originalSafety;delete window.__originalSafety;}")
+    # Segundo teste: backup externo autenticado substitui o cofre, mantendo
+    # ponto de recuperação cifrado com o saldo imediatamente anterior.
+    await page.locator('#importClara').set_input_files({
+      'name':'clara-recuperacao-qa.clara','mimeType':'application/octet-stream','buffer':backup_raw.encode('utf-8')
+    })
+    await page.locator('#confirmModalBtn').wait_for(timeout=30000)
+    await page.locator('#confirmModalBtn').click()
+    await page.wait_for_function("state.accounts[0].openingCents===77777",timeout=30000)
+    await page.evaluate('window.ClaraSecurity.flush()')
+    before=await page.evaluate("""async() => {
+      const entry=window.ClaraBackups.entries.find(x=>x.name.startsWith('safety-'));
+      if(!entry)return null;
+      const root=await navigator.storage.getDirectory();
+      const dir=await (await root.getDirectoryHandle('ClaraFinancas')).getDirectoryHandle('Backups');
+      const raw=await (await (await dir.getFileHandle(entry.name)).getFile()).text();
+      const v=validateVault(raw),k=await deriveKey('Clara-QA-Senha-2026!',b64Bytes(v.salt));
+      const restored=await decryptState(v,k);
+      return {name:entry.name,oldCents:restored.accounts[0].openingCents,encrypted:!raw.includes('QA-SEGREDO-NAO-PLAIN')};
+    }""")
+    assert before and before['oldCents']==22222 and before['encrypted'],before
     assert not errors,errors
-    print('COFRE APROVADO: senha, dados antigos migrados, criptografia e reabertura')
+    print('COFRE APROVADO: senha, persistência, restauração externa segura e snapshot anterior')
     await context.close()
     await browser.close()
 asyncio.run(main())

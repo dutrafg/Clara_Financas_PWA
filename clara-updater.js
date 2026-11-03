@@ -162,7 +162,9 @@ const ClaraUpdate=(()=>{
   document.addEventListener('visibilitychange',()=>{
    if(!document.hidden&&(!lastCheck||Date.now()-lastCheck>=RESUME))check(false).catch(()=>{});
   });
-  window.setInterval(()=>{if(!document.hidden&&navigator.onLine)check(false).catch(()=>{});},HOUR);
+  // A bandeira navigator.onLine é apenas um indicativo do sistema operacional;
+  // pode estar incorreta em redes com proxy, VPN ou portas restritas.
+  window.setInterval(()=>{if(!document.hidden)check(false).catch(()=>{});},HOUR);
  }
  async function ensureRegistration(){
   if(registration)return registration;
@@ -194,7 +196,8 @@ const ClaraUpdate=(()=>{
    try{
     const r=await bounded(ensureRegistration(),NETWORK_TIMEOUT,'O serviço de atualização não respondeu.');
     if(!r){if(interactive)showToast('Atualização indisponível neste navegador.',true);return false;}
-    if(!navigator.onLine){clearPreparation();setStatus('Sem conexão','A Clara continua funcionando offline.');return false;}
+    // Confirme a conectividade consultando version.json na rede. Não confie
+    // exclusivamente em navigator.onLine: ele gera falsos estados offline.
     setStatus('Verificando','Consultando a versão publicada…');
     const info=await latest();
     remoteVersion=info.version;
@@ -283,7 +286,8 @@ const ClaraUpdate=(()=>{
   if(!r)return false;
   if(r.waiting){clearPreparation();return installReady(r);}
   if(reopenReady||await activatedPackageReady(r)){clearPreparation();return reopenInstalled(r);}
-  if(!navigator.onLine){setStatus('Sem conexão','Conecte-se para preparar a atualização.');return false;}
+  // Tente a verificação real: navigator.onLine pode indicar offline mesmo
+  // quando o servidor de atualização está acessível.
   if(r.installing){watchInstalling(r.installing);startPreparation();return false;}
   startPreparation();
   setStatus('Preparando atualização','Nova tentativa solicitada. Não limpe os dados do site.');
