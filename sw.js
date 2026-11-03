@@ -80,7 +80,9 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
  }));
  const failed=results.find(x=>x.status==='rejected');
  if(failed){
-  await caches.delete(STAGING_CACHE);
+  // Não apagar um estágio compartilhado: outra tentativa da mesma revisão
+  // pode ter completado o download enquanto esta recebeu erro de rede.
+  // Sem install bem-sucedido, este pacote nunca será promovido nem servido.
   throw Error('Instalação do Clara não concluída: '+(failed.reason?.message||'falha no cache'));
  }
  // Nunca executar skipWaiting automaticamente; a troca exige aprovação e backup.
