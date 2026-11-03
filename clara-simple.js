@@ -25,18 +25,23 @@
   const recent=state.transactions.slice().sort((a,b)=>effective(b).localeCompare(effective(a))).slice(0,4);
   const spend=budgetRows(p).filter(r=>r.done>0).sort((a,b)=>b.done-a.done);
   const insight=spend.length?`Neste mês, sua maior despesa foi em ${spend[0].name}.`:'Registre uma despesa para descobrir onde seu dinheiro está indo.';
+  const monthLabel=new Date(p+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const toPay=state.transactions.filter(t=>t.kind==='Despesa'&&t.status==='Pendente'&&t.date.slice(0,7)===p)
+    .reduce((sum,t)=>sum+t.amountCents,0);
   $('view-painel').innerHTML=`<section class="clara-simple-home" aria-label="Seu dinheiro">
-   <div class="clara-balance"><div class="clara-balance-head"><span>Seu saldo hoje</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
+   <div class="clara-clean-heading"><span>Visão geral</span><span>${esc(monthLabel)}</span></div>
+   <div class="clara-balance"><div class="clara-balance-head"><span>Saldo disponível</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
     <strong>${brl(balance)}</strong><p>Saldo das suas contas até ${fmtDay(state.settings.cutoff)}</p></div>
+   <div class="clara-simple-stats" aria-label="Resumo financeiro do mês"><article><span>Receitas</span><strong class="positive">${brl(stats.income)}</strong></article>
+      <article><span>Despesas pagas</span><strong>${brl(stats.expense)}</strong></article>
+      <article class="clara-clean-pending"><span>A pagar no mês</span><strong>${brl(toPay)}</strong></article></div>
    ${quick()}
-   ${state.transactions.length===0?`<section class="clara-welcome"><h3>Vamos começar?</h3><p>Você não precisa configurar tudo. Registre uma entrada ou despesa e acompanhe seu dinheiro com facilidade.</p>
+   ${state.transactions.length===0?`<section class="clara-welcome"><h3>Vamos começar?</h3><p>Registre uma entrada ou despesa para acompanhar seu dinheiro de forma simples.</p>
      <button type="button" class="btn primary" data-clw-action="new" data-clw-kind="Receita">Registrar primeira entrada</button></section>`:''}
-   <div class="clara-simple-stats"><article><span>Entrou no mês</span><strong class="positive">${brl(stats.income)}</strong></article>
-      <article><span>Saiu no mês</span><strong>${brl(stats.expense)}</strong></article></div>
-   <section class="clara-simple-card"><header><h3>Contas próximas</h3><button class="clara-quiet" data-view="mov" type="button">Ver tudo</button></header>
+   <section class="clara-simple-card"><header><h3>Próximos vencimentos</h3><button class="clara-quiet" data-view="mov" type="button">Ver tudo</button></header>
      ${due.length?due.map(t=>`<div class="clara-simple-line"><div class="clara-simple-line-title"><strong>${esc(t.description)}</strong><small>${t.date<today?'Venceu · ':''}${fmtDay(t.date)}</small></div><div class="clara-simple-line-value"><b>${brl(t.amountCents)}</b><button class="clara-quiet" type="button" data-toggle="${esc(t.id)}">Pagar</button></div></div>`).join(''):'<p class="clara-muted">Nenhuma conta próxima do vencimento.</p>'}
    </section>
-   <section class="clara-simple-card"><header><h3>Últimos registros</h3><button class="clara-quiet" type="button" data-view="mov">Ver tudo</button></header>
+   <section class="clara-simple-card"><header><h3>Movimentações recentes</h3><button class="clara-quiet" type="button" data-view="mov">Ver tudo</button></header>
     ${recent.length?recent.map(listLine).join(''):'<p class="clara-muted">Seus registros aparecerão aqui.</p>'}
    </section>
    <section class="clara-simple-card clara-simple-tip"><small>Uma dica para você</small><p>${esc(insight)}</p><button type="button" class="clara-quiet" data-view="plan">Ver planejamento</button></section>
