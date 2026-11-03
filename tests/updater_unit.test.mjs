@@ -17,8 +17,10 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
  }
  const worker={state:'installed',sent:[],handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},
   postMessage(m){this.sent.push(m);}};
+ let unregisterCalls=0,reloads=0;
  const reg={waiting:waiting?worker:null,installing:installing?worker:null,active:{state:'activated'},
-  scope:'https://clara.test/app/',update,addEventListener(t,f){regListeners.set(t,f);}};
+  scope:'https://clara.test/app/',update,async unregister(){unregisterCalls++;return true;},
+  addEventListener(t,f){regListeners.set(t,f);}};
  const local=new Map();
  const events={};
  let flushes=0,backups=0;
@@ -31,17 +33,20 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
  const dom={getElementById:id=>elements.get(id)||null,
   addEventListener(){},hidden:false};
  const sandbox={window:win,navigator:nav,document:dom,
-  location:{protocol:'https:',reload(){}},
+  location:{protocol:'https:',reload(){reloads++;}},
   localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},
-  fetch:async()=>({ok:true,json:async()=>({
-   version:remoteVersion,cache:remoteCache,notes:['Nova revisão.']})}),
+  fetch:async(input)=>String(input).includes('index.html?clara-repair=')
+   ?{ok:true,text:async()=>"<script>const CLARA_BOOT_CACHE='"+remoteCache+"';</script>"}
+   :{ok:true,json:async()=>({
+     version:remoteVersion,cache:remoteCache,notes:['Nova revisão.']})},
   CLARA_APP_VERSION:'4.4.0-rc',CLARA_BOOT_CACHE:cacheName,
   AbortController,Date,URL,Promise,Math,WeakSet,BigInt,Error,Response,Request,
   setTimeout(){return 1;},clearTimeout(){},setInterval(){return 1;},
   showToast(){}};
  vm.runInNewContext(updaterSource,sandbox,{filename:'clara-updater.js'});
  return {api:win.ClaraUpdate,window:win,worker,reg,elements,events,listeners,regListeners,
-  get flushes(){return flushes;},get backups(){return backups;}};
+  get flushes(){return flushes;},get backups(){return backups;},
+  get unregisterCalls(){return unregisterCalls;},get reloads(){return reloads;}};
 }
 function worker(){
  const scope='https://clara.test/app/',handlers=new Map(),records=new Map(),messages=[];
@@ -119,6 +124,16 @@ test('Não ativar sem cofre desbloqueado',async()=>{
  h.window.ClaraSecurity.unlocked=false;
  await assert.rejects(h.api.apply(),/Desbloqueie/);
  assert.equal(h.worker.sent.length,0);
+});
+
+test('Sem waiting, reinstala apenas SW após verificar shell e salvar cofre',async()=>{
+ const h=app({waiting:false,installing:false});
+ await h.api.check(true);
+ assert.equal(await h.api.apply(),true);
+ assert.equal(h.unregisterCalls,1,'registro legado é removido sem apagar storage');
+ assert.equal(h.flushes,1);
+ assert.equal(h.backups,1);
+ assert.equal(h.api.status,'Aplicando atualização');
 });
 
 test('Service Worker instala somente o pacote completo e sem SKIP_WAITING automático',async()=>{
