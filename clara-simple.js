@@ -191,6 +191,9 @@
    return;
   }
   syncEntrySheet();
+  // A ação rápida define o tipo depois de abrir o modal; atualizar a
+  // aparência na mesma microtarefa, antes do navegador desenhar a tela.
+  queueMicrotask(syncEntrySheet);
   const date=$('m_date');
   date?.closest('.field')?.insertAdjacentHTML('beforeend',
     '<div class="clara-entry-date-chips" role="group" aria-label="Datas rápidas"><button type="button" data-simple-date="today">Hoje</button><button type="button" data-simple-date="yesterday">Ontem</button></div>');
