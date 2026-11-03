@@ -56,13 +56,23 @@ async def run():
             await page.goto(URL,wait_until='load')
             await unlock(page)
             await page.wait_for_function("navigator.serviceWorker.controller!==null",timeout=30000)
+            # Aguardar a checagem automática de inicialização antes de simular
+            # a consulta travada, para não reutilizar uma promise anterior.
+            await page.evaluate("window.ClaraUpdate.check(false)")
             meta=json.loads(original)
             meta['version']='99.9.9-rc'
             meta['notes']=['Atualização de teste que simula uma requisição travada.']
             VERSION_FILE.write_text(json.dumps(meta),encoding='utf-8')
             before=await page.evaluate("JSON.stringify(state)")
             await page.evaluate("""() => {
-                // Um SW pode não responder ao update(). Reproduz o travamento.
+                // O teste de timeout é independente do cache HTTP de cada navegador:
+                // fixar a versão remota e simular o update() sem resposta.
+                const nativeFetch=window.fetch.bind(window);
+                window.fetch=(input,options)=>String(input).includes('version.json?fresh=')
+                  ? Promise.resolve(new Response(JSON.stringify({
+                      version:'99.9.9-rc',notes:['Atualização simulada e não concluída.']
+                    }),{status:200,headers:{'Content-Type':'application/json'}}))
+                  : nativeFetch(input,options);
                 ServiceWorkerRegistration.prototype.update=function(){
                     return new Promise(()=>{});
                 };

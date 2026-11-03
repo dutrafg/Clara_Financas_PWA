@@ -49,7 +49,7 @@ async def run():
       }""")
       assert stats['premium'],stats
       assert stats['sidebar']==0 and stats['mobileMenu'],stats
-      assert stats['rounded']>=20 and stats['panelRounded']>=19,stats
+      assert stats['rounded']==0 and stats['panelRounded']>=19,stats # Saldo propositalmente sem card
       assert stats['title']>=29,stats
       assert stats['dockCount']==8 and stats['dockVisible']==(width>760),stats
       assert stats['bellFixed'],stats

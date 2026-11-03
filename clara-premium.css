@@ -591,3 +591,226 @@ body{
   :root[data-simple="true"] .clara-simple-stats article{padding:12px;}
   :root[data-simple="true"] .clara-simple-stats article strong{font-size:16px;}
 }
+
+/* Clara Simples 4.2.9 — design de leitura direta inspirado nas referências
+   fornecidas pelo usuário. Sem copiar ícones, imagens ou marca de terceiros. */
+:root[data-simple="true"] .clara-simple-home{gap:clamp(14px,2vw,22px);}
+:root[data-simple="true"] .clara-balance{
+  background:transparent;border:0;border-radius:0;box-shadow:none;
+  padding:4px 2px 6px;
+}
+:root[data-simple="true"] .clara-balance>strong{
+  font-size:clamp(40px,8vw,64px);line-height:1.05;
+  font-weight:760;letter-spacing:-.055em;
+}
+:root[data-simple="true"] .clara-balance-head{font-size:15px;font-weight:570;}
+:root[data-simple="true"] .clara-balance>p{font-size:12px;margin-top:5px;}
+:root[data-simple="true"] .clara-simple-stats{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(6px,1.4vw,12px);
+}
+:root[data-simple="true"] .clara-simple-stats article,
+:root[data-simple="true"] .clara-simple-stats .clara-clean-pending{
+  grid-column:auto;min-width:0;min-height:88px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:7px;padding:clamp(10px,2vw,17px);
+  border:1px solid var(--studio-hairline);
+  border-radius:16px;background:var(--panel);box-shadow:none;
+}
+:root[data-simple="true"] .clara-simple-stats article span{font-size:12px;font-weight:570;line-height:1.3;}
+:root[data-simple="true"] .clara-simple-stats article strong{
+  font-size:clamp(15px,2.4vw,22px);line-height:1.17;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+.clara-month-nav{
+  display:grid;grid-template-columns:50px minmax(0,1fr) 50px;
+  align-items:center;min-height:62px;gap:5px;padding:6px;
+  border:1px solid var(--stroke);border-radius:999px;
+  background:var(--panel);box-shadow:var(--e1);
+}
+.clara-month-nav>span{
+  text-align:center;font-weight:760;font-size:clamp(14px,3.8vw,18px);
+  text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.clara-month-nav>button{
+  border:1px solid var(--stroke);border-radius:50%;
+  width:45px;height:45px;display:grid;place-items:center;cursor:pointer;
+  background:var(--panel2);color:var(--text);font-size:30px;line-height:1;
+}
+.clara-month-nav>button:focus-visible,.clara-tx-filterbar button:focus-visible,
+.clara-simple-empty-action:focus-visible,.clara-inline-add:focus-visible,
+.clara-entry-date-chips button:focus-visible{
+  outline:2px solid var(--teal);outline-offset:2px;
+}
+.clara-inline-add{
+  display:block;margin:9px 0 0;width:100%;
+  padding:12px;border:1px solid var(--stroke);border-radius:14px;
+  background:var(--panel2);color:var(--teal);font-weight:700;text-align:center;cursor:pointer;
+}
+:root[data-simple="true"] .clara-simple-card{box-shadow:none;border-color:var(--studio-hairline);}
+:root[data-simple="true"] .clara-simple-line:last-child{border-bottom:0;}
+.clara-tx-summary{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;margin:0 0 4px;
+}
+.clara-tx-summary>div{
+  padding:4px clamp(5px,1.4vw,18px);min-width:0;
+  display:flex;flex-direction:column;gap:5px;
+  border-right:1px solid var(--stroke);
+}
+.clara-tx-summary>div:first-child{padding-left:0;}
+.clara-tx-summary>div:last-child{border-right:0;}
+.clara-tx-summary span{font-size:12px;color:var(--muted);}
+.clara-tx-summary strong{font-size:clamp(17px,3.3vw,24px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.clara-tx-summary .negative{color:var(--red);}
+.clara-tx-filterbar{
+  display:flex;gap:17px;align-items:center;overflow-x:auto;scrollbar-width:none;
+  border-bottom:1px solid var(--stroke);min-width:0;
+  padding-bottom:1px;overscroll-behavior-inline:contain;
+}
+.clara-tx-filterbar::-webkit-scrollbar{display:none;}
+.clara-tx-filterbar button{
+  flex:0 0 auto;border:0;border-bottom:3px solid transparent;
+  padding:10px 1px 12px;background:transparent;
+  color:var(--muted);font-size:14px;font-weight:650;line-height:1.2;font-family:inherit;cursor:pointer;white-space:nowrap;
+}
+.clara-tx-filterbar button.active{
+  border-bottom-color:var(--teal);color:var(--text);
+}
+.clara-tx-search{display:block;min-width:0;}
+.clara-tx-search input{
+  width:100%;min-height:47px;border:1px solid var(--stroke);
+  background:var(--panel);border-radius:14px;color:var(--text);
+  padding:10px 15px;font:inherit;box-sizing:border-box;
+}
+.clara-sr-only{
+  position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+:root[data-simple="true"] .clara-simple-tx-results{
+  border:0;background:transparent;padding:0;min-width:0;
+}
+.clara-simple-empty{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:12px;min-height:255px;justify-content:center;padding:22px 15px;
+}
+.clara-simple-empty-icon{
+  display:grid;place-items:center;width:76px;height:76px;
+  color:var(--teal);background:var(--panel2);border-radius:24px;
+}
+.clara-simple-empty-icon svg{width:38px;height:38px;}
+.clara-simple-empty strong{font-size:19px;letter-spacing:-.025em;}
+.clara-simple-empty p{font-size:14px;line-height:1.5;max-width:34ch;margin:0;color:var(--muted);}
+.clara-simple-empty-action{
+  border:1px solid var(--stroke);background:var(--panel);color:var(--text);
+  padding:13px 23px;border-radius:999px;font-weight:700;cursor:pointer;
+}
+
+/* O formulário existente permanece o único caminho de validação e salvamento.
+   A aparência muda somente no modo simples e apenas para transações. */
+:root[data-simple="true"] #modalBg[data-clara-kind="Receita"]{--clara-entry-accent:#176f53;}
+:root[data-simple="true"] #modalBg[data-clara-kind="Despesa"]{--clara-entry-accent:#733b42;}
+:root[data-simple="true"] #modalBg[data-clara-kind="Transferência"]{--clara-entry-accent:#354963;}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .modal{
+  padding:0;overflow-y:auto;overscroll-behavior:contain;
+  background:linear-gradient(to bottom,var(--clara-entry-accent) 0 240px,var(--panel) 240px);
+  border-radius:24px;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .modal-head{
+  padding:20px 23px 10px;margin:0;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalTitle{
+  color:#fff;font-size:17px;font-weight:720;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .modal-head .x{
+  color:#fff;min-width:44px;min-height:44px;
+  border-radius:50%;background:#ffffff18;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalContent{
+  padding:0 23px 24px;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field-grid.two{
+  display:flex;flex-direction:column;gap:18px;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field:has(#m_kind){
+  order:-20;align-self:center;min-width:175px;margin:0;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .field:has(#m_kind)>span{
+  position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(100%);
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #m_kind{
+  border:1px solid #ffffff38;border-radius:999px;color:#fff;background:#111d2ca8;
+  padding:8px 16px;font-size:15px;font-weight:700;text-align:center;
+  min-height:44px;max-width:100%;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #m_kind option{
+  background:var(--panel);color:var(--text);
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field:has(#m_amount){
+  order:-19;min-width:0;margin:0 0 18px;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .field:has(#m_amount)>span{
+  color:#fff;font-size:15px;font-weight:570;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #m_amount{
+  width:100%;color:#fff;background:transparent;border:0;border-bottom:1px solid #ffffff5c;
+  border-radius:0;box-shadow:none;
+  font-size:clamp(34px,6vw,45px);font-weight:650;line-height:1.12;
+  padding:8px 0;font-variant-numeric:tabular-nums;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #m_amount::placeholder{
+  color:#ffffffb8;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field:has(#m_date){
+  order:-18;margin-top:28px;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field{
+  min-width:0;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .field>span{
+  font-size:14px;font-weight:650;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm input:not(#m_amount),
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm select:not(#m_kind){
+  min-height:49px;border-radius:13px;
+}
+:root[data-simple="true"] #modalBg[data-clara-kind="Transferência"] .field:has(#m_category),
+:root[data-simple="true"] #modalBg:not([data-clara-kind="Transferência"]) .field:has(#m_destination){display:none!important;}
+.clara-entry-date-chips{display:flex;gap:9px;align-items:center;margin-top:10px;}
+.clara-entry-date-chips button{
+  padding:9px 15px;border:1px solid var(--stroke);border-radius:999px;
+  background:var(--panel2);color:var(--text);font-size:13px;cursor:pointer;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .control-row{
+  position:sticky;bottom:0;z-index:2;
+  background:var(--panel);border-top:1px solid var(--stroke);
+  padding:12px 0 calc(10px + env(safe-area-inset-bottom));
+  display:flex;flex-wrap:wrap;
+}
+:root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .control-row button[type="submit"]{
+  flex:1 1 65%;min-height:49px;border-radius:999px;
+}
+@media(max-width:760px){
+  :root[data-simple="true"] .clara-simple-stats article,
+  :root[data-simple="true"] .clara-simple-stats .clara-clean-pending{padding:10px 8px;min-height:86px;}
+  :root[data-simple="true"] .clara-simple-stats article strong{font-size:clamp(13px,3.65vw,19px);}
+  :root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]){
+    padding:0;align-items:stretch;justify-content:stretch;
+  }
+  :root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) .modal{
+    border-radius:0;border:0;box-shadow:none;width:100%;max-width:none;
+    height:100dvh;max-height:100dvh;
+  }
+  :root[data-simple="true"] #modalBg:is([data-kind="transaction"],[data-kind="editTransaction"]) #modalForm .control-row{
+    padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  }
+}
+@media(max-width:350px){
+  .clara-month-nav{grid-template-columns:44px minmax(0,1fr) 44px;}
+  .clara-month-nav>button{width:40px;height:40px;}
+  .clara-tx-summary strong{font-size:15px;}
+  .clara-tx-summary>div{padding-inline:6px;}
+}
+@media(prefers-reduced-motion:reduce){
+  :root[data-simple="true"] #modalBg .modal{animation:none!important;}
+}
