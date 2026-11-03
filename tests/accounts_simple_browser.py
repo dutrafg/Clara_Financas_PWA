@@ -162,6 +162,31 @@ async def run():
                         category
                     ) == 43210
 
+                    # O estado vazio deve identificar corretamente contas vs. cartões.
+                    empty_banks = await page.evaluate("""() => {
+                        const previous = state.accounts;
+                        state.accounts = previous.map(a => ({...a, type:'Cartão'}));
+                        try {
+                            renderAjustes();
+                            return document.querySelector(
+                                '#view-ajustes .clara-account-manage-section .clara-account-empty'
+                            )?.textContent || '';
+                        } finally {
+                            state.accounts = previous;
+                            renderAjustes();
+                        }
+                    }""")
+                    assert "Nenhuma conta ou reserva" in empty_banks, (width, empty_banks)
+
+                    # O formulário de conta não herda visual de transação anterior.
+                    await page.evaluate("modal('transaction')")
+                    assert await page.locator("#modalBg").get_attribute("data-clara-kind") == "Despesa"
+                    await page.locator("#closeModal").click()
+                    await card.locator("[data-simple-new-card]").click()
+                    assert await page.locator("#modalBg").get_attribute("data-clara-kind") is None
+                    assert await page.locator("#modalTitle").inner_text() == "Adicionar cartão"
+                    await page.locator("#closeModal").click()
+
                     # A opção de ocultação precisa proteger resumos e linhas.
                     await page.evaluate(
                         "() => {state.settings.hideValues=true;render();}"
