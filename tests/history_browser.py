@@ -47,8 +47,10 @@ async def main():
   assert data['previous']==dict(start=150000,end=163000,income=25000,expense=12000,pending=7000,count=6,recs=1),data
   assert data['reserve']==dict(start=50000,end=55000,income=5000,expense=0,pending=7000),data
   before=await page.evaluate("state.settings.period")
-  await page.locator('#floatTrigger').click()
-  await page.locator('#mobileNav [data-view="historico"]').click()
+  # Histórico técnico pertence ao modo avançado; no simples a rota fica
+  # deliberadamente oculta. A regressão contábil não depende do menu móvel.
+  await page.evaluate("() => {state.settings.simpleMode=false;save();go('historico');}")
+  assert await page.locator('#view-historico').is_visible()
   assert await page.locator('#historyMonth').input_value()==data['past']
   assert 'Saldo inicial' in await page.locator('#view-historico').inner_text()
   await page.locator('#historyAccount').select_option('history-account2')
