@@ -112,8 +112,28 @@ async def run():
     assert await page.locator('#claraUpdateNotice').is_visible()
     # A atualização confirma a instalação e, sem pasta externa, avisa sobre
     # o backup local. Aceitar ambos no teste sem tocar nos dados reais.
-    page.on('dialog',lambda dialog: asyncio.create_task(dialog.accept()))
+    dialogs=[]
+    async def accept_dialog(dialog):
+      dialogs.append(dialog.message)
+      await dialog.accept()
+    page.on('dialog',accept_dialog)
+    # O clique dispara uma operação assíncrona: confirmar seu resultado antes
+    # de observar uma navegação ou caches em transição.
+    await page.evaluate("""() => {
+      const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
+      window.__qaApplyPromise=null;
+      window.ClaraUpdate.apply=()=>{
+        window.__qaApplyPromise=apply();
+        return window.__qaApplyPromise;
+      };
+    }""")
     await page.locator('#claraUpdateNoticeInstall').click()
+    applied=await page.evaluate('window.__qaApplyPromise')
+    assert applied is True, {
+      'applied':applied,'dialogs':dialogs,
+      'status':await page.evaluate('window.ClaraUpdate?.status'),
+      'toast':await page.locator('#toast').inner_text()
+    }
     # A ativação é feita pela interface após confirmação. Nunca chamar
     # SKIP_WAITING diretamente no teste do fluxo de atualização.
     await page.wait_for_function("""async () => {
