@@ -136,7 +136,8 @@ async def main():
       assert await page.evaluate("accountPendingCard('qa-card-1')")==3600
       shown=await page.evaluate("brl(accountPendingCard('qa-card-1'))")
       assert shown in await panels.nth(1).inner_text(),(width,shown)
-      assert await page.evaluate("pref('hideValues')") is True or shown=='R$ 36,00'
+      # Intl.NumberFormat(pt-BR) pode emitir espaço inseparável entre R$ e número.
+      assert shown=='R$ ••••' or shown.endswith('36,00'),(width,shown)
       assert 'Cartão A QA' not in await panels.nth(0).inner_text()
       for idx in (0,1,2,3):
         details=panels.nth(idx).locator('details.clara-compact-more')
