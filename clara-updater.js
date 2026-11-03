@@ -53,6 +53,14 @@ const ClaraUpdate=(()=>{
   const idle=Date.now()-(lastProgressAt||preparationStartedAt);
   const worker=registration?.installing;
   if(registration?.waiting){handleWaiting();return;}
+  // A primeira instalação não é atualização: confirmar quando o worker
+  // estiver ativo e a versão remota corresponder à shell instalada.
+  if(!worker&&registration?.active?.state==='activated'&&remoteVersion&&
+     compare(remoteVersion,INSTALLED_VERSION)<=0){
+   clearPreparation();ready=false;reopenReady=false;
+   setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+   return;
+  }
   if(worker?.state==='redundant'){
    clearPreparation();setStatus('Falha ao preparar','O navegador rejeitou o pacote offline. Confira a conexão e tente novamente sem apagar os dados.');return;
   }
@@ -148,6 +156,9 @@ const ClaraUpdate=(()=>{
     window.ClaraReloadGuard?.allowOfficialUpdate();
     location.reload();
    }else if(newer())void check(false);
+   else if(remoteVersion&&compare(remoteVersion,INSTALLED_VERSION)<=0){
+    clearPreparation();setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
+   }
   });
   navigator.serviceWorker.addEventListener('message',event=>{
    const data=event.data;
