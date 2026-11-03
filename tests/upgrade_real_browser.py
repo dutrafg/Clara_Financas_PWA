@@ -98,6 +98,8 @@ async def main():
                     installing:r?.installing?.state||null,
                     active:r?.active?.state||null,
                     controller:!!navigator.serviceWorker.controller,
+                    unlocked:window.ClaraSecurity?.unlocked,
+                    modal:document.getElementById('modalBg')?.getAttribute('aria-hidden'),
                     names:keys,
                     version:ClaraUpdate.remoteVersion
                 };
