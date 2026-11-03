@@ -59,6 +59,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install playwright
           python -m playwright install --with-deps chromium
+      - name: Atualizar instalação real da 4.3.0-rc para 4.3.1-rc mantendo dados e offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-upgrade-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/upgrade_real_browser.py 2>&1 | tee /tmp/clara-upgrade-browser.log
       - name: Testar no Chromium com servidor de distribuição
         shell: bash
         run: |
@@ -99,14 +107,6 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/version_paths_browser.py 2>&1 | tee /tmp/clara-version-paths-browser.log
-      - name: Atualizar instalação real da 4.3.0-rc para 4.3.1-rc mantendo dados e offline
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-upgrade-server.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          python tests/upgrade_real_browser.py 2>&1 | tee /tmp/clara-upgrade-browser.log
       - name: Simular atualização travada e validar glass em três resoluções
         shell: bash
         run: |
