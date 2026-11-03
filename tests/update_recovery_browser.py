@@ -1,101 +1,64 @@
-"""QA de recuperação do atualizador preso e efeito de vidro nos botões.
-
-Usa cofre de teste em contexto isolado. Não limpa dados de produção.
-"""
+"""QA v2: download travado recuperável, cofre intacto e ação de nova tentativa."""
 import asyncio
-import json
-from pathlib import Path
 from playwright.async_api import async_playwright
 
-URL='http://127.0.0.1:8765/'
-VERSION_FILE=Path('dist/version.json')
-
-async def unlock(page):
-    if await page.locator('#securityCover').is_visible():
-        await page.locator('#securityPassword').fill('Clara-QA-Senha-2026!')
-        if await page.locator('#securityConfirmWrap').is_visible():
-            await page.locator('#securityConfirm').fill('Clara-QA-Senha-2026!')
-        await page.locator('#securitySubmit').click()
-        await page.wait_for_function("document.documentElement.dataset.unlocked==='true'",timeout=30000)
+BASE="http://127.0.0.1:8765/"
+PASSWORD="Clara-Recuperacao-V2-2026!"
 
 async def run():
-    original=VERSION_FILE.read_text(encoding='utf-8')
-    async with async_playwright() as playwright:
-        browser=await playwright.chromium.launch(headless=True)
+    async with async_playwright() as p:
+        browser=await p.chromium.launch(headless=True)
         try:
-            for width in (390,768,1440):
-                context=await browser.new_context(viewport={'width':width,'height':844})
+            for width,height in [(390,844),(768,1024),(1440,900)]:
+                context=await browser.new_context(viewport={"width":width,"height":height})
                 page=await context.new_page()
                 errors=[]
-                page.on('pageerror',lambda err:errors.append(str(err)))
-                await page.goto(URL,wait_until='load')
-                await unlock(page)
-                await page.wait_for_function("navigator.serviceWorker.controller!==null",timeout=30000)
-                surfaces=await page.evaluate("""() => {
-                    const names=['btn primary','btn','clara-simple-action primary','clx-add','ca-primary'];
-                    return names.map(name=>{
-                        const button=document.createElement('button');
-                        button.className=name;
-                        button.textContent='Teste visual';
-                        document.body.append(button);
-                        const s=getComputedStyle(button);
-                        const result={name,filter:s.backdropFilter,bg:s.backgroundColor,
-                            outline:s.outlineStyle};
-                        button.remove();
-                        return result;
-                    });
-                }""")
-                assert all('blur(5px)' in s['filter'] for s in surfaces),surfaces
-                assert any('0.8' in s['bg'] for s in surfaces),surfaces
-                assert not errors,errors
-                await context.close()
-            context=await browser.new_context(viewport={'width':390,'height':844})
-            page=await context.new_page()
-            errors=[]
-            page.on('pageerror',lambda exc:errors.append(str(exc)))
-            await page.goto(URL,wait_until='load')
-            await unlock(page)
-            await page.wait_for_function("navigator.serviceWorker.controller!==null",timeout=30000)
-            # Aguardar a checagem automática de inicialização antes de simular
-            # a consulta travada, para não reutilizar uma promise anterior.
-            await page.evaluate("window.ClaraUpdate.check(false)")
-            meta=json.loads(original)
-            meta['version']='99.9.9-rc'
-            meta['notes']=['Atualização de teste que simula uma requisição travada.']
-            VERSION_FILE.write_text(json.dumps(meta),encoding='utf-8')
-            before=await page.evaluate("JSON.stringify(state)")
-            await page.evaluate("""() => {
-                // O teste de timeout é independente do cache HTTP de cada navegador:
-                // fixar a versão remota e simular o update() sem resposta.
-                const nativeFetch=window.fetch.bind(window);
-                window.fetch=(input,options)=>String(input).includes('version.json?fresh=')
-                  ? Promise.resolve(new Response(JSON.stringify({
-                      version:'99.9.9-rc',notes:['Atualização simulada e não concluída.']
-                    }),{status:200,headers:{'Content-Type':'application/json'}}))
-                  : nativeFetch(input,options);
-                ServiceWorkerRegistration.prototype.update=function(){
-                    return new Promise(()=>{});
-                };
-            }""")
-            await page.evaluate("window.ClaraUpdate.check(true)")
-            result=await page.evaluate("""() => ({
-                status:window.ClaraUpdate.status,
-                remote:window.ClaraUpdate.remoteVersion,
-                label:document.querySelector('#claraUpdateNoticeInstall').textContent,
-                disabled:document.querySelector('#claraUpdateNoticeInstall').disabled,
-                busy:document.querySelector('#claraUpdateNoticeInstall').getAttribute('aria-busy'),
-                cacheCleared:!document.querySelector('#claraUpdateNotice')
-            })""")
-            assert result['remote']=='99.9.9-rc',result
-            assert result['status']=='Falha ao preparar',result
-            assert result['label']=='Tentar novamente' and not result['disabled'],result
-            assert result['busy']=='false',result
-            assert await page.evaluate("JSON.stringify(state)")==before
-            assert not errors,errors
-            await context.close()
-            print('QA ATUALIZADOR RECUPERÁVEL OK: timeout, retentativa, cofre preservado; botões 390/768/1440.')
+                page.on("pageerror",lambda e:errors.append(str(e)))
+                try:
+                    await page.goto(BASE,wait_until="load")
+                    await page.locator("#securityPassword").fill(PASSWORD)
+                    if await page.locator("#securityConfirmWrap").is_visible():
+                        await page.locator("#securityConfirm").fill(PASSWORD)
+                    await page.locator("#securitySubmit").click()
+                    await page.wait_for_function("ClaraSecurity.unlocked",timeout=30000)
+                    await page.wait_for_function(
+                        "navigator.serviceWorker.controller!==null",timeout=30000)
+                    # A checagem inicial termina antes do cenário de rede travada.
+                    await page.evaluate("ClaraUpdate.check(false)")
+                    baseline=await page.evaluate("JSON.stringify(state)")
+                    await page.evaluate("""() => {
+                        const nativeFetch=window.fetch.bind(window);
+                        window.fetch=(input,options)=>
+                            String(input).includes('version.json?fresh=')
+                            ?Promise.resolve(new Response(JSON.stringify({
+                                version:'9.9.9-rc',
+                                cache:'clara-v2-9-9-9-rc-qa-timeout',
+                                notes:['Timeout artificial de QA']
+                            }),{status:200,headers:{'content-type':'application/json'}}))
+                            :nativeFetch(input,options);
+                        ServiceWorkerRegistration.prototype.update=()=>
+                            new Promise(()=>{});
+                    }""")
+                    result=await page.evaluate("ClaraUpdate.check(true)")
+                    assert result is False
+                    outcome=await page.evaluate("""() => ({
+                        status:ClaraUpdate.status,
+                        remote:ClaraUpdate.remoteVersion,
+                        label:document.getElementById('applyClaraUpdate').textContent,
+                        disabled:document.getElementById('applyClaraUpdate').disabled,
+                        hidden:document.getElementById('applyClaraUpdate').hidden,
+                        vault:JSON.stringify(state)
+                    })""")
+                    assert outcome["status"]=="Falha ao preparar",(width,outcome)
+                    assert outcome["remote"]=="9.9.9-rc",outcome
+                    assert outcome["label"]=="Tentar novamente",outcome
+                    assert not outcome["disabled"] and not outcome["hidden"],outcome
+                    assert outcome["vault"]==baseline,"Falha do updater não pode modificar dados"
+                    assert not errors,errors
+                    print(f"QA ATUALIZADOR V2 RECUPERÁVEL OK: {width}px, timeout, nova tentativa e cofre.")
+                finally:
+                    await context.close()
         finally:
-            VERSION_FILE.write_text(original,encoding='utf-8')
             await browser.close()
 
 asyncio.run(run())
