@@ -7,7 +7,7 @@ const ClaraUpdate=(()=>{
  const INSTALLED_CACHE=typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:'';
  const DISMISS_KEY='clara-update-dismissed-v2';
  const NETWORK_TIMEOUT=12000,PREPARE_TIMEOUT=120000,ACTIVATE_TIMEOUT=30000,RESUME=15*60*1000;
- let registration=null,registering=null,checking=null,applying=false,ready=false;
+ let registration=null,registering=null,checking=null,applying=false,ready=false,reopenReady=false;
  let remoteVersion='',remoteCache='',releaseNotes=[],lastCheck=0,progress=null;
  let status='Aguardando',message='Verificação automática após iniciar o Clara.';
  let installTimer=null,activationTimer=null,listenerBound=false;
@@ -41,7 +41,25 @@ const ClaraUpdate=(()=>{
  };
  const dismissed=()=>{try{return localStorage.getItem(DISMISS_KEY)===(remoteCache||remoteVersion);}catch{return false;}};
  const candidate=()=>Boolean(registration?.waiting);
- const newer=()=>candidate()||(Boolean(remoteVersion)&&(compare(remoteVersion,INSTALLED_VERSION)>0||
+ async function activatedRemote(reg){
+  if(!reg?.active||reg.active.state!=='activated'||!remoteCache||
+     remoteCache===INSTALLED_CACHE)return false;
+  try{
+   const names=await caches.keys();
+   if(!names.includes(remoteCache))return false;
+   const cache=await caches.open(remoteCache);
+   const response=await cache.match(new URL('./index.html',reg.scope));
+   if(!response?.ok||!(await response.text()).includes(
+    "const CLARA_BOOT_CACHE='"+remoteCache+"'"))return false;
+   if(names.includes('clara-v2-metadata')){
+    const metadata=await caches.open('clara-v2-metadata');
+    const state=await metadata.match(new URL('./__clara_v2_state__',reg.scope));
+    if(state&&(await state.json()).rolledBack)return false;
+   }
+   return true;
+  }catch{return false;}
+ }
+ const newer=()=>candidate()||reopenReady||(Boolean(remoteVersion)&&(compare(remoteVersion,INSTALLED_VERSION)>0||
   (Boolean(remoteCache)&&remoteCache!==INSTALLED_CACHE)));
  const setStatus=(value,detail)=>{status=value;message=detail;paint();};
  const stopPreparing=()=>{clearTimeout(installTimer);installTimer=null;startedPreparing=0;lastProgress=0;progress=null;};
@@ -57,7 +75,7 @@ const ClaraUpdate=(()=>{
    checkButton.textContent=checking?'Verificando…':'Verificar agora';
   }
   const inProgress=status==='Preparando atualização';
-  const label=ready?'Aplicar atualização':inProgress?'Preparando…':
+  const label=reopenReady?'Reabrir atualizado':ready?'Aplicar atualização':inProgress?'Preparando…':
    status==='Falha ao preparar'?'Tentar novamente':'Atualizar agora';
   const visible=newer()||ready;
   const action=get('applyClaraUpdate');
@@ -73,11 +91,11 @@ const ClaraUpdate=(()=>{
   if(!notice)return;
   notice.hidden=!visible||dismissed()||applying;
   const title=get('claraUpdateNoticeTitle'),detail=get('claraUpdateNoticeText');
-  if(title)title.textContent=ready?'Atualização pronta para instalar':
+  if(title)title.textContent=reopenReady?'Atualização pronta para reabrir':ready?'Atualização pronta para instalar':
    inProgress?'Preparando atualização':
    status==='Falha ao preparar'?'Falha ao preparar atualização':'Nova versão disponível';
   if(detail)detail.textContent='Clara '+(remoteVersion||'nova versão')+'. '+
-   (ready?'Pacote offline completo. Após fazer o backup, confirme a instalação.':
+   (reopenReady?'O navegador ativou o pacote novo. Salve o cofre e reabra.':ready?'Pacote offline completo. Após fazer o backup, confirme a instalação.':
    inProgress?message:
    status==='Falha ao preparar'?'Você pode tentar novamente sem apagar o cofre.':
    'Nova versão detectada.')+(releaseNotes[0]?' '+releaseNotes[0]:'');
@@ -91,6 +109,7 @@ const ClaraUpdate=(()=>{
  function prepared(){
   ready=candidate();
   if(!ready)return false;
+  reopenReady=false;
   stopPreparing();
   setStatus('Atualização disponível','Pacote completo e aguardando sua confirmação.');
   return true;
@@ -202,12 +221,22 @@ const ClaraUpdate=(()=>{
     remoteVersion=remote.version;remoteCache=remote.cache;releaseNotes=remote.notes;
     lastCheck=Date.now();
     if(prepared())return true;
+    if(await activatedRemote(reg)){
+     ready=false;reopenReady=true;stopPreparing();
+     setStatus('Pronto para reabrir','Pacote novo já ativado. Salve o cofre e reabra.');
+     return true;
+    }
     // Checar UMA vez por solicitação. Se um worker estiver instalando,
     // não reiniciar o processo com outra chamada update().
     if(!reg.installing){
      await bound(reg.update(),NETWORK_TIMEOUT,'Consulta ao Service Worker não respondeu.');
     }
     if(prepared())return true;
+    if(await activatedRemote(reg)){
+     ready=false;reopenReady=true;stopPreparing();
+     setStatus('Pronto para reabrir','Pacote novo já ativado. Salve o cofre e reabra.');
+     return true;
+    }
     if(reg.installing){watch(reg.installing);prepare();return false;}
     if(newer()){prepare();return false;}
     stopPreparing();setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');
@@ -246,8 +275,22 @@ const ClaraUpdate=(()=>{
   if(!canApply())return false;
   const reg=await register();if(!reg)return false;
   if(!reg.waiting){
+   if(await activatedRemote(reg)){
+    if(!await preflight())return false;
+    reg.active?.postMessage({type:'CLARA_RETRY_CANDIDATE'});
+    window.ClaraReloadGuard?.allowOfficialUpdate?.();location.reload();
+    return true;
+   }
    await check(true);
-   if(!reg.waiting)return false;
+   if(!reg.waiting){
+    if(await activatedRemote(reg)){
+     if(!await preflight())return false;
+     reg.active?.postMessage({type:'CLARA_RETRY_CANDIDATE'});
+     window.ClaraReloadGuard?.allowOfficialUpdate?.();location.reload();
+     return true;
+    }
+    return false;
+   }
   }
   if(!await preflight())return false;
   // Conferir novamente depois do snapshot: outro tab pode ter ativado o worker.
@@ -275,7 +318,7 @@ const ClaraUpdate=(()=>{
   get status(){return status;},
   get ready(){return ready;},
   get remoteVersion(){return remoteVersion;},
-  get reopenReady(){return false;},
+  get reopenReady(){return reopenReady;},
   get installProgress(){return progress&&{...progress};}};
 })();
 window.ClaraUpdate=ClaraUpdate;
