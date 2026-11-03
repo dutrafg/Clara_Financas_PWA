@@ -31,11 +31,13 @@ for (const path of files) {
   const source=await get(root,path),output=await get(dist,path);
   const expectedOutput=path==='index.html'
     ?Buffer.from(source.toString('utf8').replace('__CLARA_CACHE_NAME__',expected))
-    :path==='version.json'?Buffer.from(JSON.stringify({...meta,cache:expected},null,2)+'\n'):\n     source;
+    :path==='version.json'?Buffer.from(JSON.stringify({...meta,cache:expected},null,2)+'\n'):
+     source;
   assert.deepEqual(output,expectedOutput,'Arquivo divergente: '+path);
   assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
 }
-assert.equal(JSON.parse(await text(dist,'version.json')).cache,expected,'Metadados devem expor o hash exato do build');\nassert.ok(html.includes(expected),'HTML deve conter o identificador imutável do pacote');
+assert.equal(JSON.parse(await text(dist,'version.json')).cache,expected,'Metadados devem expor o hash exato do build');
+assert.ok(html.includes(expected),'HTML deve conter o identificador imutável do pacote');
 assert.ok(!html.includes('__CLARA_CACHE_NAME__'),'Marcador de pacote não pode ir para produção');
 const found=sw.match(/const CACHE_NAME = '([^']+)';/);
 assert.equal(found?.[1],expected,'Cache não corresponde à versão e ao hash do build');
