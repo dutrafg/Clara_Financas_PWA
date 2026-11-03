@@ -250,7 +250,7 @@ test('Service Worker só ativa um pacote completo e informa progresso',async()=>
  assert.equal(messages.at(-1).total,21);
  assert.ok(messages.at(-1).path.startsWith('./'));
  await h.fire('activate');
- assert.equal(await h.caches.has(staging),false,'staging deve ser descartado após ativação');
+ assert.equal(await h.caches.has(staging),true,'staging deve sobreviver até a nova shell confirmar o boot');
  assert.equal(await h.cacheText(candidateCacheName,'./index.html'),'network /app/index.html');
  const state=await h.readState();
  assert.equal(state.previous,'clara-financas-4-2-4-old');
@@ -276,6 +276,34 @@ test('Confirmação tardia de boot antigo não apaga cache da atualização em p
  assert.equal(await h.cacheText(next,'./index.html'),'nova shell validada',
   'BOOT_OK de versão antiga não pode apagar o cache do SW mais novo');
  assert.equal((await h.readState()).confirmed,true);
+});
+
+test('Service Worker recupera cache e estado perdidos por confirmação tardia da versão antiga',async()=>{
+ const h=createWorkerHarness();
+ const oldName='clara-financas-4-2-4-old';
+ const old=await h.caches.open(oldName);
+ await old.put(new URL('./index.html',h.scope),new Response('old shell'));
+ await h.fire('install');
+ await h.fire('activate');
+ const staging='clara-stage-'+candidateCacheName.slice('clara-financas-'.length);
+ assert.equal(await h.cacheText(staging,'./index.html'),'network /app/index.html');
+ // Simula o BOOT_OK atrasado de uma versão implantada antes da proteção:
+ // o cache novo foi removido e o estado compartilhado voltou ao worker antigo.
+ await h.caches.delete(candidateCacheName);
+ const system=await h.caches.open('clara-update-system-v1');
+ await system.put(new URL('./__clara_update_state__',h.scope),
+  new Response(JSON.stringify({current:oldName,previous:null,rolledBack:false,confirmed:true})));
+ let responsePromise;
+ await h.fire('fetch',{request:{method:'GET',url:h.scope,mode:'navigate',cache:'default'},
+  respondWith(promise){responsePromise=promise;}});
+ assert.equal(await (await responsePromise).text(),'network /app/index.html',
+  'nova shell offline deve ser recuperada do staging protegido');
+ await h.message('CLARA_BOOT_OK');
+ assert.equal((await h.readState()).current,candidateCacheName);
+ assert.equal((await h.readState()).confirmed,true);
+ assert.equal(await h.cacheText(candidateCacheName,'./index.html'),'network /app/index.html');
+ assert.equal(await h.caches.has(oldName),false);
+ assert.equal(await h.caches.has(staging),true,'staging fica disponível para emergência');
 });
 
 test('Falha de boot volta ao pacote anterior; o usuário pode tentar o candidato novamente',async()=>{
