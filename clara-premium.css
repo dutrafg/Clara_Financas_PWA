@@ -814,3 +814,115 @@ body{
 @media(prefers-reduced-motion:reduce){
   :root[data-simple="true"] #modalBg .modal{animation:none!important;}
 }
+
+/* Clara 4.3.0 — quatro mini-painéis financeiros compactos, acessíveis e leves.
+   Visual exclusivo do modo simples, sem tocar na dock Glass nem no modo avançado. */
+:root[data-simple="true"] .clara-money-panel-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,1.7vw,16px);min-width:0;align-items:start;
+}
+:root[data-simple="true"] .clara-compact-panel{
+  min-width:0;margin:0;padding:clamp(14px,2vw,19px);
+  border-radius:19px;border-color:var(--studio-hairline);
+  box-shadow:none;
+}
+:root[data-simple="true"] .clara-compact-panel header{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;min-width:0;margin-bottom:8px;
+}
+:root[data-simple="true"] .clara-compact-panel header h3{
+  font-size:clamp(16px,1.6vw,19px);font-weight:760;min-width:0;
+}
+:root[data-simple="true"] .clara-compact-panel header .clara-quiet{
+  font-size:12px;white-space:nowrap;
+}
+.clara-compact-row{
+  display:flex;gap:10px;align-items:center;
+  min-height:57px;padding:9px 0;
+  border-bottom:1px solid var(--studio-hairline);
+  min-width:0;
+}
+.clara-compact-mark{
+  display:grid;place-items:center;flex:0 0 33px;
+  width:33px;height:33px;border-radius:11px;
+  background:color-mix(in srgb,var(--teal) 9%,var(--panel2));
+  color:var(--teal);font-size:16px;
+}
+.clara-compact-label{
+  display:flex;flex:1 1 0;flex-direction:column;
+  min-width:0;gap:4px;
+}
+.clara-compact-label strong{
+  font-size:13px;line-height:1.24;font-weight:700;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.clara-compact-label small{
+  color:var(--muted);font-size:11px;line-height:1.3;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.clara-compact-value{
+  flex:0 1 auto;min-width:0;max-width:45%;
+  font-size:clamp(12px,1.4vw,15px);font-weight:750;
+  font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere;
+}
+.clara-compact-action{
+  display:block;width:100%;margin-top:10px;min-height:38px;
+  padding:9px 12px;
+  background:transparent;color:var(--teal);
+  border:1px solid var(--stroke);border-radius:12px;
+  text-align:center;font-size:12px;font-weight:700;line-height:1.3;font-family:inherit;cursor:pointer;
+}
+.clara-compact-action:hover{background:color-mix(in srgb,var(--teal) 6%,var(--panel));}
+.clara-compact-empty{
+  margin:12px 0 14px!important;
+  font-size:12px!important;line-height:1.45;
+  color:var(--muted);
+}
+.clara-compact-goal{
+  display:grid;gap:10px;padding:11px 0;
+  border-bottom:1px solid var(--studio-hairline);min-width:0;
+}
+.clara-compact-line{
+  display:flex;gap:8px;justify-content:space-between;align-items:center;
+  min-width:0;
+}
+.clara-compact-line .clara-quiet{font-size:12px;flex:0 0 auto;}
+.clara-compact-progress{
+  height:6px;border-radius:999px;background:var(--panel2);
+  overflow:hidden;position:relative;
+}
+.clara-compact-progress>span{
+  display:block;height:100%;max-width:100%;border-radius:inherit;
+  background:var(--teal);
+}
+.clara-budget-over .clara-compact-progress>span{background:var(--red);}
+.clara-compact-percent{
+  flex:0 0 auto;font-size:11px;font-weight:710;color:var(--muted);
+  max-width:40%;text-align:right;
+}
+.clara-budget-over .clara-compact-percent{color:var(--red);}
+.clara-compact-more{min-width:0;}
+.clara-compact-more>summary{
+  padding:10px 1px;cursor:pointer;color:var(--teal);
+  font-size:12px;font-weight:710;list-style:none;
+}
+.clara-compact-more>summary::-webkit-details-marker{display:none;}
+.clara-compact-more>summary::after{content:" +";margin-left:5px;}
+.clara-compact-more[open]>summary::after{content:" −";}
+.clara-compact-more>summary:focus-visible,
+.clara-compact-action:focus-visible{
+  outline:2px solid var(--teal);outline-offset:3px;
+}
+:root[data-simple="true"] .clara-simple-planning>.clara-money-panel-grid{
+  margin-top:0;
+}
+@media(max-width:760px){
+  :root[data-simple="true"] .clara-money-panel-grid{grid-template-columns:minmax(0,1fr);gap:12px;}
+  :root[data-simple="true"] .clara-compact-panel{padding:16px 17px;}
+  .clara-compact-value{font-size:14px;}
+}
+@media(max-width:350px){
+  :root[data-simple="true"] .clara-compact-panel{padding:13px;}
+  .clara-compact-row{gap:7px;}
+  .clara-compact-mark{flex-basis:30px;width:30px;height:30px;}
+}
