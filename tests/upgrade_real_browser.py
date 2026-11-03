@@ -69,6 +69,9 @@ async def main():
             await page.wait_for_function(
                 "navigator.serviceWorker.controller !== null", timeout=30000
             )
+            await page.wait_for_function(
+                "window.ClaraUpdate?.status === 'Atualizado'",timeout=30000
+            )
             assert await page.evaluate("CLARA_APP_VERSION") == "4.3.0-rc"
             original = await page.evaluate("""async () => {
                 const date=todayISO();
@@ -119,6 +122,20 @@ async def main():
                 "state.transactions.some(t=>t.id==='upgrade-kept-transaction')"
             )
 
+            # Confirmar o candidato REAL de 4.3.1-rc no staging, evitando
+            # confundir qualquer worker antigo em espera com o novo pacote.
+            staged_name = "clara-stage-" + new_cache.removeprefix("clara-financas-")
+            await page.evaluate("""async () => {
+                const registration=await navigator.serviceWorker.getRegistration();
+                await registration.update();
+            }""")
+            await page.wait_for_function("""async expected => {
+                const names=await caches.keys();
+                if(!names.includes(expected))return false;
+                const cache=await caches.open(expected);
+                const file=await cache.match(new URL('./index.html',location.href));
+                return !!file&&(await file.text()).includes("const CLARA_APP_VERSION='4.3.1-rc'");
+            }""",arg=staged_name,timeout=45000)
             # O usuário verifica explicitamente e aplica a atualização pela interface.
             await page.evaluate("() => {configTab='dados';go('ajustes');}")
             dialogs = []
