@@ -24,18 +24,18 @@ for (const path of files){hash.update(path+'\n');hash.update(await get(root,path
 hash.update('sw.js\n');hash.update(await get(root,'sw.js'));
 
 const revision=hash.digest('hex').slice(0,16);
-const expected='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
+const expected='clara-v2-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
 assert.equal((await text(root,'index.html')).split('__CLARA_CACHE_NAME__').length-1,1,
   'HTML precisa vincular a confirmação ao cache do pacote');
 for (const path of files) {
   const source=await get(root,path),output=await get(dist,path);
   const expectedOutput=path==='index.html'
     ?Buffer.from(source.toString('utf8').replace('__CLARA_CACHE_NAME__',expected))
-    :source;
+    :path==='version.json'?Buffer.from(JSON.stringify({...meta,cache:expected},null,2)+'\n'):\n     source;
   assert.deepEqual(output,expectedOutput,'Arquivo divergente: '+path);
   assert.ok((await stat(new URL(path,dist))).isFile(),'Artefato ausente: '+path);
 }
-assert.ok(html.includes(expected),'HTML deve conter o identificador imutável do pacote');
+assert.equal(JSON.parse(await text(dist,'version.json')).cache,expected,'Metadados devem expor o hash exato do build');\nassert.ok(html.includes(expected),'HTML deve conter o identificador imutável do pacote');
 assert.ok(!html.includes('__CLARA_CACHE_NAME__'),'Marcador de pacote não pode ir para produção');
 const found=sw.match(/const CACHE_NAME = '([^']+)';/);
 assert.equal(found?.[1],expected,'Cache não corresponde à versão e ao hash do build');
