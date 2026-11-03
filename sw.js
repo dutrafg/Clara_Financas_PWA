@@ -99,35 +99,69 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
  await self.clients.claim();
 })()));
 
+// Uma navegação nunca deve terminar em ERR_FAILED somente porque o Chrome
+// descartou ou bloqueou o CacheStorage. A recuperação é independente do cofre.
+function recoveryPage(){
+ const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clara Finanças — recuperação de acesso</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#151b22;color:#edf5f5;font:16px system-ui,sans-serif}
+main{max-width:440px;padding:28px;line-height:1.6}h1{font-size:23px;line-height:1.2}
+button{padding:12px 20px;border:0;border-radius:14px;background:#76d5c3;color:#102020;font-weight:700;font-size:16px}
+small{display:block;margin-top:20px;color:#bbcbc9}</style></head><body><main>
+<h1>Clara temporariamente indisponível</h1>
+<p>Não foi possível carregar a interface nem recuperar o pacote offline. Verifique sua conexão e tente novamente.</p>
+<button onclick="location.reload()">Tentar novamente</button>
+<small>Não apague os dados do site: seu cofre financeiro é armazenado separadamente do cache de atualização.</small>
+</main></body></html>`;
+ return new Response(html,{status:503,headers:{
+  'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+}
 self.addEventListener('fetch',event=>{
  const request=event.request;
  if(request.method!=='GET')return;
  const url=new URL(request.url);
  if(url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope))return;
  event.respondWith((async()=>{
-  // version.json só representa a rede. Nunca simular uma atualização com
-  // metadados de uma versão offline antiga.
-  if(url.pathname===versionPath){
-   try{return await fetch(new Request(request,{cache:'no-store'}));}
-   catch{return Response.error();}
-  }
-  // Diagnóstico no-store consulta a rede; shell e scripts normais ficam
-  // bloqueados à revisão aprovada até a troca do SW.
-  if(request.cache==='no-store'&&!request.destination){
-   try{return await fetch(request);}
-   catch{return Response.error();}
-  }
-  const cache=await caches.open(await servingName());
-  if(request.mode==='navigate'){
-   const hit=await cache.match(scopedURL('./index.html'));
+  try{
+   // version.json só representa a rede. Não servir metadados obsoletos.
+   if(url.pathname===versionPath){
+    try{return await fetch(new Request(request,{cache:'no-store'}));}
+    catch{return Response.error();}
+   }
+   if(request.cache==='no-store'&&!request.destination){
+    try{return await fetch(request);}
+    catch{return Response.error();}
+   }
+   // Não recriar automaticamente um cache de release perdido. Isso pode
+   // mascarar a corrupção e gerar navegação ERR_FAILED no Chrome.
+   const current=await servingName();
+   const names=await caches.keys();
+   const cache=names.includes(current)?await caches.open(current):null;
+   if(request.mode==='navigate'){
+    const shell=cache?await cache.match(scopedURL('./index.html')):null;
+    if(shell?.ok)return shell;
+    // Se o navegador expulsou a revisão atual mas reteve o backup,
+    // recuperar a última shell válida sem alterar OPFS/localStorage.
+    const state=await stateRead();
+    if(state?.previous&&state.previous!==current&&names.includes(state.previous)){
+     const backup=await caches.open(state.previous);
+     const fallback=await backup.match(scopedURL('./index.html'));
+     if(fallback?.ok)return fallback;
+    }
+    try{return await fetch(request);}
+    catch{return recoveryPage();}
+   }
+   const hit=cache?await cache.match(request,{ignoreSearch:true}):null;
    if(hit)return hit;
    try{return await fetch(request);}
    catch{return Response.error();}
+  }catch{
+   // Storage indisponível, erro de quota ou metadados corrompidos não
+   // devem impedir acesso online nem destruir o cofre do usuário.
+   try{return await fetch(request);}
+   catch{return request.mode==='navigate'?recoveryPage():Response.error();}
   }
-  const hit=await cache.match(request,{ignoreSearch:true});
-  if(hit)return hit;
-  try{return await fetch(request);}
-  catch{return Response.error();}
  })());
 });
 
