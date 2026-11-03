@@ -26,15 +26,13 @@
   const spend=budgetRows(p).filter(r=>r.done>0).sort((a,b)=>b.done-a.done);
   const insight=spend.length?`Neste mês, sua maior despesa foi em ${spend[0].name}.`:'Registre uma despesa para descobrir onde seu dinheiro está indo.';
   const monthLabel=new Date(p+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const toPay=state.transactions.filter(t=>t.kind==='Despesa'&&t.status==='Pendente'&&t.date.slice(0,7)===p)
-    .reduce((sum,t)=>sum+t.amountCents,0);
   $('view-painel').innerHTML=`<section class="clara-simple-home" aria-label="Seu dinheiro">
    <div class="clara-clean-heading"><span>Visão geral</span><span>${esc(monthLabel)}</span></div>
    <div class="clara-balance"><div class="clara-balance-head"><span>Saldo disponível</span><button type="button" class="clara-quiet" data-simple-hide>${pref('hideValues')?'Mostrar':'Ocultar'}</button></div>
     <strong>${brl(balance)}</strong><p>Saldo das suas contas até ${fmtDay(state.settings.cutoff)}</p></div>
    <div class="clara-simple-stats" aria-label="Resumo financeiro do mês"><article><span>Receitas</span><strong class="positive">${brl(stats.income)}</strong></article>
       <article><span>Despesas pagas</span><strong>${brl(stats.expense)}</strong></article>
-      <article class="clara-clean-pending"><span>A pagar no mês</span><strong>${brl(toPay)}</strong></article></div>
+      <article class="clara-clean-pending"><span>A pagar no mês</span><strong>${brl(stats.toPay)}</strong></article></div>
    ${quick()}
    ${state.transactions.length===0?`<section class="clara-welcome"><h3>Vamos começar?</h3><p>Registre uma entrada ou despesa para acompanhar seu dinheiro de forma simples.</p>
      <button type="button" class="btn primary" data-clw-action="new" data-clw-kind="Receita">Registrar primeira entrada</button></section>`:''}
