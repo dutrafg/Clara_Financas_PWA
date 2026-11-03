@@ -122,20 +122,6 @@ async def main():
                 "state.transactions.some(t=>t.id==='upgrade-kept-transaction')"
             )
 
-            # Confirmar o candidato REAL de 4.3.1-rc no staging, evitando
-            # confundir qualquer worker antigo em espera com o novo pacote.
-            staged_name = "clara-stage-" + new_cache.removeprefix("clara-financas-")
-            await page.evaluate("""async () => {
-                const registration=await navigator.serviceWorker.getRegistration();
-                await registration.update();
-            }""")
-            await page.wait_for_function("""async expected => {
-                const names=await caches.keys();
-                if(!names.includes(expected))return false;
-                const cache=await caches.open(expected);
-                const file=await cache.match(new URL('./index.html',location.href));
-                return !!file&&(await file.text()).includes("const CLARA_APP_VERSION='4.3.1-rc'");
-            }""",arg=staged_name,timeout=45000)
             # O usuário verifica explicitamente e aplica a atualização pela interface.
             await page.evaluate("() => {configTab='dados';go('ajustes');}")
             dialogs = []
@@ -144,17 +130,20 @@ async def main():
                 await dialog.accept()
             page.on("dialog", accept_dialog)
             await page.locator("#checkClaraUpdate").click()
-            await page.wait_for_function(
-                "window.ClaraUpdate?.remoteVersion === '4.3.1-rc'",
-                timeout=30000
-            )
-            # Não executar uma segunda verificação enquanto a instalação recém
-            # preparada aguarda: o SW antigo pode alterar o ciclo de vida.
-            await page.wait_for_function("""async () => {
-                const reg=await navigator.serviceWorker.ready;
-                return !!reg.waiting || window.ClaraUpdate.ready ||
-                  window.ClaraUpdate.reopenReady;
-            }""",timeout=30000)
+            # Fazer uma única verificação pela UI evita uma segunda busca
+            # concorrente que poderia substituir o worker aguardando.
+            await page.wait_for_function("""async expected => {
+                if(window.ClaraUpdate?.remoteVersion!=='4.3.1-rc' ||
+                   !window.ClaraUpdate.ready)return false;
+                const registration=await navigator.serviceWorker.ready;
+                if(!registration.waiting)return false;
+                const stage='clara-stage-'+expected.slice('clara-financas-'.length);
+                const names=await caches.keys();
+                if(!names.includes(stage))return false;
+                const cache=await caches.open(stage);
+                const response=await cache.match(new URL('./index.html',location.href));
+                return !!response&&(await response.text()).includes("const CLARA_APP_VERSION='4.3.1-rc'");
+            }""",arg=new_cache,timeout=45000)
             candidate = await page.evaluate("""async () => {
                 const reg=await navigator.serviceWorker.ready;
                 return {
@@ -167,10 +156,7 @@ async def main():
                 };
             }""")
             print('QA UPGRADE CANDIDATE',candidate,flush=True)
-            await page.wait_for_function("""() => {
-                const action=document.getElementById('applyClaraUpdate');
-                return action && !action.hidden && !action.disabled;
-            }""",timeout=15000)
+
             # Confirmar o resultado do clique: não interpretar apenas troca de cache.
             await page.evaluate("""() => {
                 const apply=window.ClaraUpdate.apply.bind(window.ClaraUpdate);
