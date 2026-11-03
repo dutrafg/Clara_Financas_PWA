@@ -1,7 +1,7 @@
 # Clara Finanças — Etapa 1: estabilização do núcleo
 
-**Base:** `main` em `581cd7af4e614aa4c07a7b07aec6c038a5a2ec26` (Clara 4.3.0-rc).  
-**Branch isolada:** `homologacao/clara-etapa1-core-audit-20261103`.  
+**Base:** `main` em `581cd7af4e614aa4c07a7b07aec6c038a5a2ec26` (Clara 4.3.0-rc).
+**Branch isolada:** `homologacao/clara-etapa1-core-audit-20261103`.
 **Regra:** sem funcionalidades novas ou alterações de layout enquanto a Etapa 1 não for aceita.
 
 ## Objetivo e limites
@@ -37,8 +37,8 @@ Isolar e estabilizar o processamento de contas e transações, validação de im
 
 ## Etapas seguintes
 
-**Etapa 2 — Refatoração controlada:** modularizar finanças, segurança, persistência, relatórios e UI gradualmente; eliminar código morto com testes por módulo.  
-**Etapa 3 — Refinamento da experiência:** preservar a dock Glass 20%, modos simples/avançado e design clean.  
+**Etapa 2 — Refatoração controlada:** modularizar finanças, segurança, persistência, relatórios e UI gradualmente; eliminar código morto com testes por módulo.
+**Etapa 3 — Refinamento da experiência:** preservar a dock Glass 20%, modos simples/avançado e design clean.
 **Etapa 4 — Homologação estável:** cenários de longa duração, migração real, testes em dispositivos e aceite final.
 
 > Estado: **em homologação**. O êxito do CI não equivale à conclusão da Etapa 1 sem os testes de dispositivo e recuperação acima.
