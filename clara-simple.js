@@ -173,7 +173,91 @@
    const f=$('floatTrigger');
    if(f){f.classList.toggle('active',current==='mais');if(mode()){f.setAttribute('aria-label','Mais opções');f.setAttribute('aria-expanded','false');}}
  };
+ // Personaliza a apresentação do formulário original sem alterar o motor de
+ // validação, contas, centavos, status ou salvamento criptografado.
+ const nativeModal=modal;
+ const entryTitles={Receita:'receita',Despesa:'despesa',Transferência:'transferência'};
+ function syncEntrySheet(){
+  const host=$('modalBg'),kind=$('m_kind')?.value;
+  if(!host||!kind)return;
+  host.dataset.claraKind=kind;
+  $('modalTitle').textContent=(host.dataset.kind==='editTransaction'?'Editar ':'Nova ')+(entryTitles[kind]||'transação');
+ }
+ modal=function(kind,itemId=''){
+  nativeModal(kind,itemId);
+  const host=$('modalBg');
+  if(!mode()||!['transaction','editTransaction'].includes(kind)){
+   delete host.dataset.claraKind;
+   return;
+  }
+  syncEntrySheet();
+  const date=$('m_date');
+  date?.closest('.field')?.insertAdjacentHTML('beforeend',
+    '<div class="clara-entry-date-chips" role="group" aria-label="Datas rápidas"><button type="button" data-simple-date="today">Hoje</button><button type="button" data-simple-date="yesterday">Ontem</button></div>');
+  const description=$('m_description');
+  if(description){
+   description.removeAttribute('required');
+   description.closest('label')?.querySelector('span')?.replaceChildren(document.createTextNode('Descrição (opcional)'));
+   description.placeholder='Ex.: Supermercado, salário ou transferência';
+  }
+  const submit=$('modalForm')?.querySelector('button[type="submit"]');
+  if(submit)submit.textContent=kind==='editTransaction'?'Salvar alterações':'Adicionar transação';
+ };
+ document.addEventListener('change',e=>{
+  if(mode()&&e.target?.id==='m_kind'&&['transaction','editTransaction'].includes($('modalBg')?.dataset.kind))
+   syncEntrySheet();
+ });
+ // O formulário aceita descrição vazia no modo simples, mas o registro continua
+ // recebendo uma descrição informativa e válida para relatórios e auditoria.
+ document.addEventListener('submit',e=>{
+  if(!mode()||e.target?.id!=='modalForm'||!['transaction','editTransaction'].includes($('modalBg')?.dataset.kind))return;
+  const desc=$('m_description');
+  if(desc&&!desc.value.trim()){
+   const kind=$('m_kind')?.value;
+   desc.value=kind==='Transferência'?'Transferência':$('m_category')?.value||kind||'Movimentação';
+  }
+ },true);
+ document.addEventListener('input',e=>{
+  if(!mode()||e.target?.id!=='claraSimpleTxSearch')return;
+  txSearch=e.target.value;
+  const result=$('view-mov')?.querySelector('.clara-simple-tx-items');
+  if(result)result.innerHTML=txResults();
+ });
  document.addEventListener('click',e=>{
+    if(mode()){
+     const m=e.target.closest?.('[data-simple-month-dir]');
+     if(m){
+      e.preventDefault();e.stopPropagation();
+      const dir=Number(m.dataset.simpleMonthDir);
+      if(dir===-1||dir===1){
+       state.settings.period=plusMonth(state.settings.period+'-01',dir).slice(0,7);
+       render();
+      }
+      return;
+     }
+     const filter=e.target.closest?.('[data-simple-filter]');
+     if(filter){
+      e.preventDefault();e.stopPropagation();
+      txFilter=filter.dataset.simpleFilter;
+      lancar();
+      return;
+     }
+     const clear=e.target.closest?.('[data-simple-clear-filters]');
+     if(clear){e.preventDefault();e.stopPropagation();txFilter='Todas';txSearch='';lancar();return;}
+     const chip=e.target.closest?.('[data-simple-date]');
+     if(chip){
+      e.preventDefault();e.stopPropagation();
+      const input=$('m_date'),paid=$('m_paidAt');
+      if(input){
+       const before=input.value;
+       const value=chip.dataset.simpleDate==='yesterday'?addDays(todayISO(),-1):todayISO();
+       input.value=value;
+       if(paid&&(!paid.value||paid.value===before))paid.value=value;
+       input.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      return;
+     }
+    }
     const f=e.target.closest?.('#floatTrigger');
     if(f&&mode()){e.preventDefault();e.stopPropagation();go('mais');return;}
     const hide=e.target.closest?.('[data-simple-hide]');
