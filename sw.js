@@ -6,6 +6,9 @@ const versionPath = scopedURL('./version.json').pathname;
 const SYSTEM_CACHE='clara-update-system-v1';
 const SYSTEM_STATE_URL=scopedURL('./__clara_update_state__');
 const cachePrefix='clara-financas-';
+// Cache temporário NÃO usa o prefixo de releases: o worker anterior
+// pode limpar caches de releases enquanto um novo pacote está em espera.
+const STAGING_CACHE='clara-stage-'+CACHE_NAME.slice(cachePrefix.length);
 
 async function readUpdateState(){
  try{
@@ -47,7 +50,7 @@ async function downloadRequired(path){
  throw Error('Recurso obrigatório indisponível: '+path+' ('+(lastError?.message||'rede')+')');
 }
 self.addEventListener('install',event=>event.waitUntil((async()=>{
- const cache=await caches.open(CACHE_NAME);
+ const cache=await caches.open(STAGING_CACHE);
  // Promise.allSettled aguarda todas as gravações antes de apagar um cache incompleto,
  // evitando sobras concorrentes quando um único arquivo falhar.
  let done=0;
@@ -60,7 +63,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
  }));
  const failed=results.find(x=>x.status==='rejected');
  if(failed){
-  await caches.delete(CACHE_NAME);
+  await caches.delete(STAGING_CACHE);
   throw Error('Instalação do Clara não concluída: '+(failed.reason?.message||'falha no cache'));
  }
  // Nunca executar skipWaiting automaticamente; a troca exige aprovação e backup.
@@ -72,9 +75,29 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
   const previous=priorState?.current&&priorState.current!==CACHE_NAME&&names.includes(priorState.current)
     ?priorState.current
     :names.filter(name=>name.startsWith(cachePrefix)&&name!==CACHE_NAME).at(-1)||null;
-  // Preserve the preceding complete package until the candidate app confirms
-  // that its critical scripts initialized successfully.
+
+  // Marcar o candidato antes de promovê-lo impede o worker antigo de apagar
+  // a revisão em uma confirmação tardia. O worker antigo continua servindo o
+  // próprio CACHE_NAME enquanto a nova ativação não for concluída.
   await writeUpdateState({current:CACHE_NAME,previous,rolledBack:false,confirmed:!previous});
+  try{
+   const staged=await caches.open(STAGING_CACHE);
+   const current=await caches.open(CACHE_NAME);
+   for(const path of APP_FILES){
+    const url=scopedURL(path);
+    const response=await staged.match(url);
+    if(!response?.ok)throw Error('Arquivo offline ausente na ativação: '+path);
+    await current.put(url,response);
+   }
+   await caches.delete(STAGING_CACHE);
+  }catch(error){
+   await caches.delete(CACHE_NAME);
+   if(priorState)await writeUpdateState(priorState);
+   else await caches.delete(SYSTEM_CACHE);
+   throw error;
+  }
+  // Só então a nova shell assume clientes; o pacote anterior continua
+  // disponível para rollback até que a inicialização seja confirmada.
   await self.clients.claim();
 })()));
 
