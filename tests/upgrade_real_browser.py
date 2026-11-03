@@ -112,15 +112,19 @@ async def main():
             candidate_link.symlink_to(NEW.resolve(), target_is_directory=True)
             candidate_link.replace(SITE)
 
-            # Uma navegação antes do consentimento deve continuar na shell antiga.
-            await page.reload(wait_until="load")
-            await unlock(page)
+            # Uma guia já aberta mantém a shell 4.3.0-rc até o consentimento.
+            # Recarregar aqui disparava uma verificação automática seguida de
+            # outra manual, concorrendo pelo único Service Worker em espera.
             assert await page.evaluate("CLARA_APP_VERSION") == "4.3.0-rc", (
                 "Shell mudou antes de instalar a atualização aprovada"
             )
             assert await page.evaluate(
                 "state.transactions.some(t=>t.id==='upgrade-kept-transaction')"
             )
+            assert old_cache in await page.evaluate("caches.keys()")
+            assert await page.evaluate("""async () =>
+                (await (await fetch('./version.json',{cache:'no-store'})).json()).version
+            """) == "4.3.1-rc"
 
             # O usuário verifica explicitamente e aplica a atualização pela interface.
             await page.evaluate("() => {configTab='dados';go('ajustes');}")
