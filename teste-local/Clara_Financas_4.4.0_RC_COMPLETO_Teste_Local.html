@@ -997,7 +997,8 @@ a { color: inherit; }
   font-size: var(--fs-xs);
 }
 #integrityNotice {
-  background: #431f27;  color: #ffdddf;
+  background: #431f27;
+  color: #ffdddf;
   border: 1px solid #ec8794;
 }
 #storageNotice {
@@ -1996,7 +1997,8 @@ body{
 .clara-biometric-settings,.clara-private-folder,
 .clara-simple-line-card,.clara-dashboard-card{
   border:1px solid var(--studio-hairline);
-  background:var(--studio-glass);  border-radius:var(--studio-radius-3);
+  background:var(--studio-glass);
+  border-radius:var(--studio-radius-3);
   box-shadow:var(--studio-card-shadow);
   transition:box-shadow var(--studio-time) var(--studio-ease),
     border-color var(--studio-time) var(--studio-ease),
@@ -2995,6 +2997,7 @@ body{
 }
 
 </style>
+
 <style data-embutido="clara-guest.css">
 /* Clara 4.1.1 — modo conhecer, somente leitura e sem dados no armazenamento. */
 .clara-guest-entry{
@@ -3994,7 +3997,8 @@ const parseBRL = x => {
 const numField = n => (n / 100).toFixed(2).replace('.', ',');
 function todayISO() {
   const now = new Date();
-  let y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');  return `${y}-${m}-${d}`;
+  let y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 const plusMonth = (iso, n) => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -4993,7 +4997,8 @@ function historicalSummary(month=auditMonth,account=auditAccount){
  return {income,expense,outstanding,start,end,net:end-start,entries,reconciliations,until};
 }
 function renderHistorico(){
- const current=todayISO().slice(0,7); if(!auditValidMonth(auditMonth))auditMonth=plusMonth(current+'-01',-1).slice(0,7);
+ const current=todayISO().slice(0,7);
+ if(!auditValidMonth(auditMonth))auditMonth=plusMonth(current+'-01',-1).slice(0,7);
  if(auditAccount!=='Todas'&&!state.accounts.some(a=>a.id===auditAccount))auditAccount='Todas';
  const s=historicalSummary();
  const previous=plusMonth(auditMonth+'-01',-1).slice(0,7),next=plusMonth(auditMonth+'-01',1).slice(0,7);
@@ -5992,7 +5997,8 @@ const qaSpecs = [
   ['QA-032', 'Orçamento calcula proporção corretamente', () => qaFixture(() => { state.transactions.push(qaTx('one', 'Despesa', 'Realizado', 10000, '2026-10-05', '2026-10-05')); qaAssert(budgetRows('2026-10').find(x => x.name === 'Alimentação').ratio === .25); })],
   ['QA-033', 'Projeção mensal com quatro meses', () => qaFixture(() => qaAssert(forecast(4).length === 4))],
   ['QA-034', 'Projeção mensal atravessa dezembro/janeiro', () => qaFixture(() => { state.settings.cutoff = '2026-12-15'; qaAssert(forecast(3).map(x => x.p).join(',') === '2026-12,2027-01,2027-02'); })],
-  ['QA-035', 'Recebimentos futuros entram na projeção', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Pendente', 10000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 130000); })],  ['QA-036', 'Despesas futuras são descontadas da projeção', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Pendente', 15000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 105000); })],
+  ['QA-035', 'Recebimentos futuros entram na projeção', () => qaFixture(() => { state.transactions.push(qaTx('r', 'Receita', 'Pendente', 10000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 130000); })],
+  ['QA-036', 'Despesas futuras são descontadas da projeção', () => qaFixture(() => { state.transactions.push(qaTx('d', 'Despesa', 'Pendente', 15000, '2026-11-05')); qaAssert(forecast(2)[1].balance === 105000); })],
   ['QA-037', 'Parcelamento preserva centavos do total', () => qaFixture(() => { const arr = generateInstallments(10001, 3, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(arr.reduce((s, t) => s + t.amountCents, 0) === 10001 && arr.length === 3); })],
   ['QA-038', 'Parcelas têm IDs únicos', () => qaFixture(() => { const arr = generateInstallments(70000, 7, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(new Set(arr.map(x => x.id)).size === 7); })],
   ['QA-039', 'Parcelamento com vencimentos mensais', () => qaFixture(() => { const arr = generateInstallments(10000, 3, '2026-10-31', 'QA', 'Alimentação', 'qa1'); qaAssert(arr[1].date === '2026-11-30' && arr[2].date === '2026-12-31'); })],
@@ -6991,7 +6997,8 @@ window.ClaraInstall=ClaraInstall;
      btn.classList.toggle('active',selected);
      if(selected)btn.setAttribute('aria-current','page');
      else btn.removeAttribute('aria-current');
-   });   const f=$('floatTrigger');
+   });
+   const f=$('floatTrigger');
    if(f){f.classList.toggle('active',current==='mais');if(mode()){f.setAttribute('aria-label','Mais opções');f.setAttribute('aria-expanded','false');}}
  };
  // Personaliza a apresentação do formulário original sem alterar o motor de
@@ -7990,7 +7997,8 @@ paint();
    return await new Promise((resolve,reject)=>{
     const tx=db.transaction('snapshots',method==='list'||method==='get'?'readonly':'readwrite');
     const store=tx.objectStore('snapshots');
-    let result;    const request=method==='list'?store.getAll():
+    let result;
+    const request=method==='list'?store.getAll():
       method==='get'?store.get(name):
       method==='put'?store.put({name,raw}):store.delete(name);
     request.onsuccess=()=>{result=request.result;};
