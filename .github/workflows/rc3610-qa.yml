@@ -128,6 +128,14 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python tests/simple_clean_browser.py 2>&1 | tee /tmp/clara-simple-browser.log
+      - name: Gestão de contas e cartões - quatro resoluções
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --directory dist > /tmp/clara-accounts-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python tests/accounts_simple_browser.py 2>&1 | tee /tmp/clara-accounts-browser.log
       - name: QA visual Clara Studio em seis resoluções
         shell: bash
         run: |
@@ -183,6 +191,8 @@ jobs:
             /tmp/clara-extras-browser.log
             /tmp/clara-simple-browser.log
             /tmp/clara-simple-server.log
+            /tmp/clara-accounts-browser.log
+            /tmp/clara-accounts-server.log
             /tmp/clara-studio-browser.log
             /tmp/clara-studio-shots/
           if-no-files-found: ignore
