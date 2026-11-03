@@ -283,6 +283,25 @@ const ClaraUpdate=(()=>{
    'Backup local concluído; ainda não há cópia externa confirmada. Continuar?'))return false;
   return true;
  }
+ async function reinstallWorker(reg){
+  if(!remoteCache||remoteCache===INSTALLED_CACHE)return false;
+  // Fallback para protótipos: testar a shell NOVA na rede antes de retirar
+  // o registro da revisão que perdeu o candidato waiting.
+  const response=await bound(fetch('./index.html?clara-repair='+Date.now(),{
+   cache:'no-store'}),NETWORK_TIMEOUT,'A nova shell não respondeu.');
+  if(!response.ok||!(await response.text()).includes(
+   "const CLARA_BOOT_CACHE='"+remoteCache+"'"))
+   throw Error('O pacote publicado não corresponde à revisão validada.');
+  if(!await preflight())return false;
+  const removed=await bound(reg.unregister(),NETWORK_TIMEOUT,
+   'Não foi possível substituir o registro antigo.');
+  if(!removed)throw Error('Registro anterior não foi removido.');
+  stopPreparing();ready=false;reopenReady=false;applying=true;
+  setStatus('Aplicando atualização','Reinstalando o Service Worker sem apagar o cofre…');
+  window.ClaraReloadGuard?.allowOfficialUpdate?.();
+  setTimeout(()=>location.reload(),100);
+  return true;
+ }
  async function apply(){
   if(applying)return false;
   if(!canApply())return false;
@@ -297,7 +316,7 @@ const ClaraUpdate=(()=>{
    }
    await check(true);
    worker=await stableWaiting(reg);
-   if(!worker)return false;
+   if(!worker)return reinstallWorker(reg);
   }
   if(!await preflight())return false;
   // O snapshot pode levar segundos; nesse intervalo o navegador pode trocar
