@@ -145,7 +145,8 @@ async def run():
       if(reg.active?.state!=='activated')return false;
       const names=await caches.keys();
       const target='clara-financas-99-9-9-rc-qa-upgrade-v2';
-      if(!names.includes(target)||names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))
+      // O estágio protegido deve permanecer como fallback do cache definitivo.
+      if(!names.includes(target)||!names.includes('clara-stage-99-9-9-rc-qa-upgrade-v2'))
         return false;
       if(names.some(key=>key.startsWith('clara-financas-')&&key!==target))
         return false;
