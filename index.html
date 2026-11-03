@@ -2617,6 +2617,21 @@ function validateData(data) {
     } else if (!categories.has(t.kind + '|' + t.category) || t.toAccountId)
       throw Error('Backup inválido: categoria incompatível com tipo ou destino indevido.');
   }
+  // Evita perda de centavos por exceder Number.MAX_SAFE_INTEGER em somas.
+  // O teto individual não basta para bases com milhares de lançamentos.
+  // Descontar do limite, em vez de somar, mantém a própria validação exata.
+  let safeCentsRemaining = Number.MAX_SAFE_INTEGER;
+  for (const account of data.accounts) {
+    const openingMagnitude = Math.abs(account.openingCents);
+    if (openingMagnitude > safeCentsRemaining)
+      throw Error('Total financeiro excede a precisão segura em centavos.');
+    safeCentsRemaining -= openingMagnitude;
+  }
+  for (const transaction of data.transactions) {
+    if (transaction.amountCents > safeCentsRemaining)
+      throw Error('Total financeiro excede a precisão segura em centavos.');
+    safeCentsRemaining -= transaction.amountCents;
+  }
   unique(data.reconciliations, 'conciliações');
   const reconciled = new Set();
   for (const r of data.reconciliations) {
