@@ -89,6 +89,13 @@ async def main():
                     'fractional-cents': data => {
                         data.transactions[0].amountCents = 0.5;
                     },
+                    'aggregate-overflow': data => {
+                        const base = data.transactions[0];
+                        data.transactions = Array.from({length: 10000}, (_, i) => ({
+                            ...base, id: 'overflow-' + i,
+                            amountCents: 1_000_000_000_000
+                        }));
+                    },
                     'non-finite-cents': data => {
                         data.transactions[0].amountCents = Infinity;
                     },
@@ -186,7 +193,7 @@ async def main():
             }, after_lock
             assert not errors, errors
             print(
-                "ETAPA 1 OK: centavos, 10 importações inválidas, "
+                "ETAPA 1 OK: centavos, 11 importações inválidas, "
                 "cofre cifrado, adulteração, senha incorreta e bloqueio."
             )
         finally:
