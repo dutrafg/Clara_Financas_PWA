@@ -3,7 +3,8 @@
   "version": "4.4.0-rc",
   "build": "2026-11-03",
   "schema": 2,
-  "notes": [\n    "Atualizador v2 reescrito: versões por hash, pré-cache íntegro, consentimento, snapshot cifrado e rollback do pacote.",
+  "notes": [
+    "Atualizador v2 reescrito: versões por hash, pré-cache íntegro, consentimento, snapshot cifrado e rollback do pacote.",
   "Atualizador mais confiável: o novo pacote é preparado em cache isolado, com ativação validada e proteção contra limpeza tardia do cache.",
     "Gestão de contas e cartões mais clara: edição contextual, exclusão bloqueada quando há vínculos e cadastro sem herdar IDs anteriores.",
     "Regressão ampliada de segurança e de migração do PWA a partir da 4.3.0-rc, com conferência do cofre e da operação offline.",
