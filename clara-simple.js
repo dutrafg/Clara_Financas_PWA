@@ -209,7 +209,7 @@
      const subtitle=isCard
        ?pending>0?'Despesas pendentes':'Nenhuma despesa pendente'
        :a.type==='Reserva'?'Reserva financeira':'Saldo até a data de corte';
-     return \`<article class="clara-account-manage-row">
+     return `<article class="clara-account-manage-row">
        <div class="clara-account-manage-info">
          <span class="clara-compact-mark" aria-hidden="true">${isCard?'▤':a.type==='Reserva'?'◈':'▣'}</span>
          <span class="clara-account-manage-label"><strong>${esc(a.name)}</strong>
@@ -223,7 +223,7 @@
          <button type="button" data-del-account="${esc(a.id)}" aria-label="Excluir ${esc(a.name)}">Excluir</button>
        </div>
        ${linked?'<p class="clara-account-link-hint">Vinculada a '+linked+' registro(s): exclua ou transfira os vínculos antes de remover.</p>':''}
-     </article>\`;
+     </article>`;
    }).join('');
  };
  const accountManage=()=>{
@@ -232,13 +232,13 @@
    const bankTotal=accounts.reduce((sum,a)=>sum+accountBalance(a.id,state.settings.cutoff),0);
    const dueTotal=cards.reduce((sum,a)=>sum+accountPendingCard(a.id),0);
    const limits=state.categories.filter(c=>c.group==='Despesa').map(c=>
-      \`<label class="clara-account-limit-row">
+      `<label class="clara-account-limit-row">
          <span>${esc(c.name)}</span>
          <span class="field"><small>Limite (R$)</small>
            <input class="editable limit-input" data-category="${esc(c.name)}"
              inputmode="decimal" value="${numField(c.limitCents||0)}" aria-label="Limite ${esc(c.name)}"></span>
-       </label>\`).join('');
-   return \`<div class="clara-accounts-manage" aria-label="Gerenciamento de contas e cartões">
+       </label>`).join('');
+   return `<div class="clara-accounts-manage" aria-label="Gerenciamento de contas e cartões">
      <header class="clara-accounts-head"><h3>Contas e cartões</h3>
        <p>Organize seus saldos e acompanhe o que falta pagar, sem perder seus lançamentos.</p></header>
      <div class="clara-accounts-totals">
@@ -262,7 +262,7 @@
        <div class="clara-account-limit-grid">${limits}</div>
        <button type="button" class="btn primary" id="saveLimits">Salvar limites</button>
      </details>
-   </div>\`;
+   </div>`;
  };
  renderPainel=function(){return mode()?home():native.painel();};
  renderMov=function(){return mode()?lancar():native.mov();};
