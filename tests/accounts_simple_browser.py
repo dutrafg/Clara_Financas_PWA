@@ -140,12 +140,20 @@ async def run():
                     assert "73,51" in shown, (width, shown)
                     assert await card.locator("[data-del-account]").is_disabled()
                     assert "vinculado" in await card.inner_text()
-                    assert await page.evaluate(
-                        "(id)=>deleteAccount(id)", card_id
-                    ) is False
-                    await page.wait_for_function(
-                        "document.getElementById('toast').textContent.includes('vinculados')"
-                    )
+                    blocked = await page.evaluate("""id => {
+                        const original = window.showToast || showToast;
+                        let message='';
+                        const capture=(text,err)=>{message=String(text);original(text,err);};
+                        try{
+                            window.showToast=capture;
+                            return {deleted:deleteAccount(id),message,
+                                exists:state.accounts.some(a=>a.id===id)};
+                        }finally{window.showToast=original;}
+                    }""", card_id)
+                    assert blocked['deleted'] is False and blocked['exists'],(width,blocked)
+                    # O aviso visual pode ser substituído por um toast de backup
+                    # assíncrono; validar o bloqueio e a mensagem capturada.
+                    assert "vinculados" in blocked['message'],(width,blocked)
                     assert await page.evaluate(
                         "(id)=>state.accounts.some(a=>a.id===id)", card_id
                     )
