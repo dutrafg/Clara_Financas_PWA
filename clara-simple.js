@@ -196,7 +196,7 @@
  }
 
  // Gestão simples: reaproveita os mesmos cadastros do motor, sem dados paralelos.
- const accountManageRows=(items,isCard)=>{
+ const accountManageRows=(items,isCard,linkedCounts)=>{
    if(!items.length)return '<div class="clara-account-empty"><strong>Nenhum cartão ainda</strong><p>Adicione seu primeiro cartão para acompanhar despesas pendentes em um só lugar.</p></div>';
    const rank={Conta:0,Dinheiro:1,Reserva:2,Cartão:3};
    const ordered=items.slice().sort((a,b)=>
@@ -204,8 +204,7 @@
    return ordered.map(a=>{
      const pending=isCard?accountPendingCard(a.id):0;
      const amount=isCard?pending:accountBalance(a.id,state.settings.cutoff);
-     const linked=state.transactions.filter(t=>t.accountId===a.id||t.toAccountId===a.id).length+
-       state.reconciliations.filter(r=>r.accountId===a.id).length;
+     const linked=linkedCounts.get(a.id)||0;
      const subtitle=isCard
        ?pending>0?'Despesas pendentes':'Nenhuma despesa pendente'
        :a.type==='Reserva'?'Reserva financeira':'Saldo até a data de corte';
@@ -220,13 +219,20 @@
        </div>
        <div class="clara-account-manage-actions">
          <button type="button" data-edit-account="${esc(a.id)}" aria-label="Editar ${esc(a.name)}">Editar</button>
-         <button type="button" data-del-account="${esc(a.id)}" aria-label="Excluir ${esc(a.name)}">Excluir</button>
+         <button type="button" data-del-account="${esc(a.id)}" aria-label="Excluir ${esc(a.name)}" ${linked || state.accounts.length===1 ? 'disabled title="Desvincule os registros ou mantenha ao menos uma conta"' : ''}>Excluir</button>
        </div>
-       ${linked?'<p class="clara-account-link-hint">Vinculada a '+linked+' registro(s): exclua ou transfira os vínculos antes de remover.</p>':''}
+       ${linked?'<p class="clara-account-link-hint">'+linked+' registro(s) vinculado(s) · Para excluir, primeiro remova ou transfira os vínculos.</p>':''}
      </article>`;
    }).join('');
  };
  const accountManage=()=>{
+   const linkedCounts=new Map();
+   const addLink=id=>{if(id)linkedCounts.set(id,(linkedCounts.get(id)||0)+1);};
+   for(const t of state.transactions){
+     addLink(t.accountId);
+     if(t.toAccountId&&t.toAccountId!==t.accountId)addLink(t.toAccountId);
+   }
+   for(const r of state.reconciliations)addLink(r.accountId);
    const accounts=state.accounts.filter(a=>a.type!=='Cartão');
    const cards=state.accounts.filter(a=>a.type==='Cartão');
    const bankTotal=accounts.reduce((sum,a)=>sum+accountBalance(a.id,state.settings.cutoff),0);
@@ -248,13 +254,13 @@
      <section class="clara-simple-card clara-account-manage-section" aria-label="Contas e reservas">
        <header><div><h3>Contas e reservas</h3><p>${accounts.length} cadastrada(s)</p></div>
          <button type="button" class="clara-quiet" data-open="account">+ Nova conta</button></header>
-       ${accountManageRows(accounts,false)}
+       ${accountManageRows(accounts,false,linkedCounts)}
        ${accounts.length===1?'<p class="clara-account-empty-tip">Sua conta principal já está pronta. Adicione outras contas ou reservas quando precisar.</p>':''}
      </section>
      <section class="clara-simple-card clara-account-manage-section" aria-label="Cartões">
        <header><div><h3>Cartões</h3><p>${cards.length} cadastrado(s)</p></div>
          <button type="button" class="clara-quiet" data-simple-new-card>+ Adicionar cartão</button></header>
-       ${accountManageRows(cards,true)}
+       ${accountManageRows(cards,true,linkedCounts)}
      </section>
      <details class="clara-simple-card clara-account-limit-section">
        <summary>Limites por categoria <span>Ajustar orçamento</span></summary>
@@ -314,6 +320,31 @@
  // validação, contas, centavos, status ou salvamento criptografado.
  const nativeModal=modal;
  const entryTitles={Receita:'receita',Despesa:'despesa',Transferência:'transferência'};
+ function syncAccountSheet(){
+  const host=$('modalBg');
+  if(!host||!['account','editAccount'].includes(host.dataset.kind))return;
+  const type=$('m_type')?.value;
+  if(!type)return;
+  const card=type==='Cartão';
+  const editing=host.dataset.kind==='editAccount';
+  $('modalTitle').textContent=(editing?'Editar ':'Adicionar ')+(card?'cartão':'conta');
+  const nameLabel=$('m_name')?.closest('label')?.querySelector('span');
+  if(nameLabel)nameLabel.textContent=card?'Nome do cartão':'Nome da conta ou reserva';
+  const openingLabel=$('m_opening')?.closest('label')?.querySelector('span');
+  if(openingLabel)openingLabel.textContent=card?'Saldo inicial do cartão (R$)':'Saldo inicial (R$)';
+  const submit=$('modalForm')?.querySelector('button[type="submit"]');
+  if(submit)submit.textContent=editing?'Salvar alterações':card?'Adicionar cartão':'Adicionar conta';
+  let hint=$('claraAccountFormHint');
+  if(!hint){
+   hint=document.createElement('p');
+   hint.id='claraAccountFormHint';
+   hint.className='clara-account-form-hint';
+   $('modalForm')?.querySelector('.control-row')?.before(hint);
+  }
+  hint.textContent=card
+   ?'As despesas pendentes deste cartão aparecerão na área Cartões. O saldo inicial não representa o limite de crédito.'
+   :'O saldo inicial deve representar o valor que você já tem nesta conta, sem incluir movimentações lançadas depois.';
+ }
  function syncEntrySheet(){
   const host=$('modalBg'),kind=$('m_kind')?.value;
   if(!host||!kind)return;
@@ -322,7 +353,12 @@
  }
  modal=function(kind,itemId=''){
   nativeModal(kind,itemId);
+  if(window.ClaraGuest?.active)return;
   const host=$('modalBg');
+  if(mode()&&['account','editAccount'].includes(kind)){
+   syncAccountSheet();
+   return;
+  }
   if(!mode()||!['transaction','editTransaction'].includes(kind)){
    delete host.dataset.claraKind;
    return;
@@ -344,6 +380,7 @@
   if(submit)submit.textContent=kind==='editTransaction'?'Salvar alterações':'Adicionar transação';
  };
  document.addEventListener('change',e=>{
+  if(mode()&&e.target?.id==='m_type')syncAccountSheet();
   if(mode()&&e.target?.id==='m_kind'&&['transaction','editTransaction'].includes($('modalBg')?.dataset.kind))
    syncEntrySheet();
  });
@@ -371,6 +408,7 @@
       modal('account');
       const type=$('m_type');
       if(type)type.value='Cartão';
+      syncAccountSheet();
       return;
      }
      const m=e.target.closest?.('[data-simple-month-dir]');
