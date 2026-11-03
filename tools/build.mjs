@@ -50,14 +50,14 @@ for(const name of files) {cacheHash.update(name+'\n');cacheHash.update(await loa
 cacheHash.update('sw.js\n');cacheHash.update(await load('sw.js'));
 
 const revision=cacheHash.digest('hex').slice(0,16);
-const cacheName='clara-financas-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
+const cacheName='clara-v2-'+pkg.version.replace(/[^a-z\d-]/gi,'-')+'-'+revision;
 
 await rm(dist,{recursive:true,force:true});
 await mkdir(new URL('./assets/',dist),{recursive:true});
 for(const name of files) {
   const content=name==='index.html'
     ?Buffer.from(html.replace('__CLARA_CACHE_NAME__',cacheName))
-    :await load(name);
+    :name==='version.json'?Buffer.from(JSON.stringify({...meta,cache:cacheName},null,2)+'\n'):\n     await load(name);
   await writeFile(new URL(name,dist),content);
 }
 await writeFile(new URL('sw.js',dist),serviceWorker.replace('__CLARA_CACHE_NAME__',cacheName));
