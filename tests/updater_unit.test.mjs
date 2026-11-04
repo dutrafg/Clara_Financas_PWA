@@ -62,7 +62,11 @@ function worker(){
   return {put:async(key,r)=>rows.set(String(key.url||key),r.clone()),
    match:async(key)=>rows.get(String(key.url||key))?.clone()||null};
  };
- const caches={open:async name=>make(name),keys:async()=>[...records.keys()],
+ let rejectCacheOpen=false;
+ const caches={open:async name=>{
+  if(rejectCacheOpen)throw new Error('cache unavailable');
+  return make(name);
+ },keys:async()=>[...records.keys()],
   delete:async name=>records.delete(name)};
  const self={registration:{scope},location:{origin:'https://clara.test'},
   clients:{claim:async()=>{},matchAll:async()=>[{postMessage:m=>messages.push(m)}]},
@@ -73,10 +77,13 @@ function worker(){
   JSON,Map,Math,Error,setTimeout(){return 1;}};
  vm.runInNewContext(workerSource,sandbox,{filename:'sw.js'});
  const fire=async(name,payload={})=>{
-  let pending;handlers.get(name)({...payload,waitUntil(p){pending=p;}});
-  if(pending)await pending;
+  let pending;handlers.get(name)({...payload,waitUntil(p){pending=p;},
+   respondWith(p){pending=p;}});
+  return pending?await pending:undefined;
  };
- return {scope,fire,caches,records,messages,make,async content(name,path){
+ return {scope,fire,caches,records,messages,make,
+  set rejectCacheOpen(value){rejectCacheOpen=value;},
+  async content(name,path){
   const res=await make(name).match(new URL(path,scope));return res?.text()||null;
  },async state(){
   const r=await make('clara-v2-metadata').match(new URL('./__clara_v2_state__',scope));
@@ -161,6 +168,15 @@ test('Service Worker instala somente o pacote completo e sem SKIP_WAITING autom�
  assert.equal(await h.state(),null);
  await h.fire('activate');
  assert.equal((await h.state()).confirmed,true);
+});
+
+test('Falha ao abrir Cache Storage recupera a navegação pela rede',async()=>{
+ const h=worker();
+ h.rejectCacheOpen=true;
+ const request=new Request(`${h.scope}clara-updater.js`);
+ const response=await h.fire('fetch',{request});
+ assert.equal(response.status,200);
+ assert.equal(await response.text(),'content /app/clara-updater.js');
 });
 
 test('Worker anterior só é apagado após a confirmação do novo boot',async()=>{

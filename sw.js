@@ -64,6 +64,30 @@ async function servingName(){
   return state.previous;
  return CACHE_NAME;
 }
+async function recoverRequest(request){
+ try{
+  const state=await stateRead();
+  const candidates=[...new Set([state?.current,state?.previous,CACHE_NAME]
+   .filter(name=>typeof name==='string'&&RELEASE_PREFIXES.some(prefix=>name.startsWith(prefix))))];
+  for(const name of candidates){
+   try{
+    const cache=await caches.open(name);
+    const cached=await cache.match(request,{ignoreSearch:true});
+    if(cached)return cached;
+    if(request.mode==='navigate'){
+     const shell=await cache.match(scopedURL('./index.html'));
+     if(shell)return shell;
+    }
+   }catch{}
+  }
+ }catch{}
+ try{return await fetch(new Request(request,{cache:'no-store'}));}
+ catch{return Response.error();}
+}
+async function fetchRequest(request){
+ try{return await fetch(request);}
+ catch{return Response.error();}
+}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE_NAME);
  let completed=0;
@@ -105,29 +129,31 @@ self.addEventListener('fetch',event=>{
  const url=new URL(request.url);
  if(url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope))return;
  event.respondWith((async()=>{
-  // version.json só representa a rede. Nunca simular uma atualização com
-  // metadados de uma versão offline antiga.
-  if(url.pathname===versionPath){
-   try{return await fetch(new Request(request,{cache:'no-store'}));}
-   catch{return Response.error();}
-  }
-  // Diagnóstico no-store consulta a rede; shell e scripts normais ficam
-  // bloqueados à revisão aprovada até a troca do SW.
-  if(request.cache==='no-store'&&!request.destination){
-   try{return await fetch(request);}
-   catch{return Response.error();}
-  }
-  const cache=await caches.open(await servingName());
-  if(request.mode==='navigate'){
-   const hit=await cache.match(scopedURL('./index.html'));
+  try{
+   // version.json só representa a rede. Nunca simular uma atualização com
+   // metadados de uma versão offline antiga.
+   if(url.pathname===versionPath){
+    try{return await fetch(new Request(request,{cache:'no-store'}));}
+    catch{return Response.error();}
+   }
+   // Diagnóstico no-store consulta a rede; shell e scripts normais ficam
+   // bloqueados à revisão aprovada até a troca do SW.
+   if(request.cache==='no-store'&&!request.destination){
+    try{return await fetch(request);}
+    catch{return Response.error();}
+   }
+   const cache=await caches.open(await servingName());
+   if(request.mode==='navigate'){
+    const hit=await cache.match(scopedURL('./index.html'));
+    if(hit)return hit;
+    return fetchRequest(request);
+   }
+   const hit=await cache.match(request,{ignoreSearch:true});
    if(hit)return hit;
-   try{return await fetch(request);}
-   catch{return Response.error();}
+   return fetchRequest(request);
+  }catch{
+   return recoverRequest(request);
   }
-  const hit=await cache.match(request,{ignoreSearch:true});
-  if(hit)return hit;
-  try{return await fetch(request);}
-  catch{return Response.error();}
  })());
 });
 
