@@ -1,8 +1,12 @@
-# Clara Finanças 4.4.3-rc — PWA, Atualizador v2 e interface simples
+# Clara Finanças 4.4.4-rc — PWA, Atualizador v2 e interface simples
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
+
+## O que mudou na RC4.4.4-rc
+
+- O Service Worker recupera falhas ao abrir o Cache Storage consultando caches de versões válidas e, se necessário, a rede. A recuperação não remove o cofre nem dados locais.
 
 ## O que mudou na RC4.4.3-rc
 
