@@ -21,7 +21,8 @@
    <span aria-live="polite">${esc(monthName(p))}</span>
    <button type="button" data-simple-month-dir="1" aria-label="Próximo mês">›</button>
   </nav>`;
- let txFilter='Todas',txSearch='';
+ const TX_PAGE_SIZE=30;
+ let txFilter='Todas',txSearch='',txVisible=TX_PAGE_SIZE;
 
  // Lista compacta com expansão nativa, sem alterar persistência ou objetos financeiros.
  const compactList=(items,max,renderRow,empty)=>{
@@ -126,7 +127,16 @@
    const query=txSearch.trim().toLocaleLowerCase('pt-BR');
    return !query||[t.description,t.category,t.kind].some(x=>String(x||'').toLocaleLowerCase('pt-BR').includes(query));
   }).sort((a,b)=>effective(b).localeCompare(effective(a))||b.date.localeCompare(a.date));
-  if(items.length)return items.slice(0,80).map(listLine).join('');
+  if(items.length){
+   const visibleCount=Math.min(txVisible,items.length);
+   const remaining=items.length-visibleCount;
+   const count=items.length>TX_PAGE_SIZE
+    ?`<p class="clara-tx-result-count" tabindex="-1" role="status" aria-live="polite">Mostrando ${visibleCount} de ${items.length} transações</p>`:'';
+   const more=remaining>0
+    ?`<button type="button" class="clara-tx-more" data-simple-more-tx aria-controls="claraSimpleTxList">Ver mais ${Math.min(TX_PAGE_SIZE,remaining)} transações</button>`:'';
+   return `<div id="claraSimpleTxList">${items.slice(0,visibleCount).map(listLine).join('')}</div>`+
+    `<div class="clara-tx-pagination">${count}${more}</div>`;
+  }
   const empty=all.length===0&&txFilter==='Todas'&&!txSearch.trim();
   return `<div class="clara-simple-empty">
     <span class="clara-simple-empty-icon" aria-hidden="true">${SVG_ICONS.mov}</span>
@@ -400,6 +410,7 @@
  document.addEventListener('input',e=>{
   if(!mode()||e.target?.id!=='claraSimpleTxSearch')return;
   txSearch=e.target.value;
+  txVisible=TX_PAGE_SIZE;
   const result=$('view-mov')?.querySelector('.clara-simple-tx-items');
   if(result)result.innerHTML=txResults();
  });
@@ -420,6 +431,7 @@
       const dir=Number(m.dataset.simpleMonthDir);
       if(dir===-1||dir===1){
        state.settings.period=plusMonth(state.settings.period+'-01',dir).slice(0,7);
+       txVisible=TX_PAGE_SIZE;
        render();
       }
       return;
@@ -428,11 +440,24 @@
      if(filter){
       e.preventDefault();e.stopPropagation();
       txFilter=filter.dataset.simpleFilter;
+      txVisible=TX_PAGE_SIZE;
       lancar();
       return;
      }
+     const more=e.target.closest?.('[data-simple-more-tx]');
+     if(more){
+      e.preventDefault();e.stopPropagation();
+      txVisible+=TX_PAGE_SIZE;
+      const result=$('view-mov')?.querySelector('.clara-simple-tx-items');
+      if(result){
+       result.innerHTML=txResults();
+       const next=result.querySelector('[data-simple-more-tx]');
+       (next||result.querySelector('.clara-tx-result-count'))?.focus({preventScroll:true});
+      }
+      return;
+     }
      const clear=e.target.closest?.('[data-simple-clear-filters]');
-     if(clear){e.preventDefault();e.stopPropagation();txFilter='Todas';txSearch='';lancar();return;}
+     if(clear){e.preventDefault();e.stopPropagation();txFilter='Todas';txSearch='';txVisible=TX_PAGE_SIZE;lancar();return;}
      const chip=e.target.closest?.('[data-simple-date]');
      if(chip){
       e.preventDefault();e.stopPropagation();
