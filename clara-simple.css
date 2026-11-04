@@ -200,3 +200,16 @@
  .mobile-dock-wrap,.clara-desktop-dock{display:none!important;}
  .main{padding-bottom:0;}
 }
+
+/* Listas extensas permanecem utilizáveis no modo simples, sem ocultar registros. */
+.clara-tx-pagination {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;}
+.clara-tx-pagination:empty {display:none;}
+.clara-tx-result-count {margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.5;}
+.clara-tx-more {margin-top:12px;padding:11px 17px;border:1px solid var(--stroke);border-radius:12px;
+ background:var(--panel2);color:var(--text);font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+.clara-tx-more:hover {border-color:var(--teal);}
+.clara-tx-more:focus-visible {outline:2px solid var(--teal);outline-offset:3px;}
+@media(max-width:480px) {
+ .clara-tx-pagination {display:grid;grid-template-columns:1fr;}
+ .clara-tx-more {width:100%;min-height:44px;}
+}
