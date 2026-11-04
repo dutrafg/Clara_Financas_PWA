@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-upgrade-server.log 2>&1 &
+          python tests/upgrade_http_server.py --directory qa-upgrade/site --port 8767 > /tmp/clara-upgrade-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for width in 390 768 1440; do
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-legacy-upgrade-server.log 2>&1 &
+          python tests/upgrade_http_server.py --directory qa-upgrade/site --port 8767 > /tmp/clara-legacy-upgrade-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for width in 390 768 1440; do
