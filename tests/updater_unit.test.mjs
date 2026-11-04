@@ -33,7 +33,7 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
  const dom={getElementById:id=>elements.get(id)||null,
   addEventListener(){},hidden:false};
  const sandbox={window:win,navigator:nav,document:dom,
-  location:{protocol:'https:',reload(){reloads++;}},
+  location:{protocol:'https:',href:'https://clara.test/app/',reload(){reloads++;}},
   localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},
   fetch:async(input)=>String(input).includes('index.html?clara-repair=')
    ?{ok:true,text:async()=>"<script>const CLARA_BOOT_CACHE='"+remoteCache+"';</script>"}

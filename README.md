@@ -1,15 +1,18 @@
-# Clara Finanças 4.4.1-rc — PWA, Atualizador v2 e interface simples
+# Clara Finanças 4.4.2-rc — PWA, Atualizador v2 e interface simples
 
 Aplicativo financeiro pessoal com **quatro áreas principais** (Início, Lançar, Planejar, Mais). O modo avançado preserva as sete rotas financeiras originais e os **15 miniaplicativos**. No smartphone (até 760 px), a navegação usa pílula flutuante compacta. Em tablets, a pílula inferior reúne os oito destinos; em desktops (1024 px ou mais), ela fica vertical à esquerda e centralizada na altura da janela; o painel lateral não é exibido. O primeiro acesso começa sem movimentações fictícias, com conta principal de saldo inicial zero e categorias predefinidas.
 
 **Estado da versão:** candidata à estabilização, sem certificação comercial ou auditoria independente. A presença de recursos no código não substitui validação de execução em navegadores/dispositivos reais.
 
-## O que mudou na RC4.4.1-rc
+## O que mudou na RC4.4.2-rc
 
-- A tela **Lançamentos** exibe até 30 movimentações por lote, com **Ver mais** para acessar todas, sem truncamento após a 80ª.
-- Busca, filtros e navegação mensal percorrem todas as transações e reiniciam a paginação de forma previsível.
-- Contador acessível e botão adaptado ao smartphone. O cofre criptografado, o modelo financeiro e os backups não são alterados.
-- O atualizador v2 permanece inalterado, com cache por revisão de build e rollback. Candidata à homologação de QA antes da publicação.
+- O registro do Service Worker inclui a revisão do pacote na URL, tornando a descoberta de novas versões previsível entre releases.
+- O upgrade entre builds deve preservar o cofre cifrado, o cache anterior e o uso offline.
+
+- A tela **Lançamentos** do modo simples agora apresenta inicialmente até 30 movimentações, com **Ver mais** para acessar todos os resultados sem perda ou truncamento silencioso após o 80º item.
+- Busca, filtros e seleção de mês cobrem o conjunto inteiro de registros do período, reiniciando a paginação para facilitar a leitura.
+- Contador acessível de resultados e botão responsivo no smartphone; nenhum ajuste no modelo financeiro, nas chaves do cofre ou nos backups.
+- O atualizador v2 (cache por revisão do build, snapshot cifrado e rollback) permanece intacto. Esta versão é candidata à homologação até a aprovação integral de QA.
 
 ## O que mudou na RC4.2.6
 

@@ -64,7 +64,9 @@ test('Minidispositivos têm ações conectadas a handlers reais',()=>{
 
 test('Referências relativas e atualizador vinculados à distribuição atual',()=>{
  assert.match(html,/href="\.\/manifest\.webmanifest"/);
- assert.match(updater,/navigator\.serviceWorker\.register\('\.\/sw\.js',\{updateViaCache:'none'\}\)/);
+ assert.match(updater,/navigator\.serviceWorker\.register\(scriptURL\.href,\{scope:'\.\/',updateViaCache:'none'\}\)/);
+ assert.match(updater,/scriptURL\.searchParams\.set\('build',targetBuild\)/);
+ assert.match(updater,/register\(remoteCache\)/);
  assert.doesNotMatch(html,/(?:href|src)=["'](?:\.\.\/|\/)(?:release|v[0-9]+|rc[0-9]+)[^"']*/i);
 });
 
