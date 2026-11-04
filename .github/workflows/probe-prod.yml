@@ -1,0 +1,38 @@
+name: Clara — diagnóstico público Vercel
+on:
+  push:
+    branches:
+      - homologacao/clara-diagnostico-acesso-publico
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar resolução DNS, HTTP e arquivos estáticos
+        shell: bash
+        run: |
+          set +e
+          for host in clarafinancaspwa-eosin.vercel.app clarafinancaspwa-contatodutragf-8183.vercel.app; do
+            echo "===== HOST $host ====="
+            getent ahostsv4 "$host" | head -5
+            for path in / /index.html /version.json /sw.js /clara-updater.js /assets/icon-192.png; do
+              echo "==== https://$host$path ===="
+              curl --connect-timeout 10 --max-time 20 -sS -L -o /tmp/clara-probe-body \
+                -w 'http=%{http_code} redirects=%{num_redirects} final=%{url_effective} size=%{size_download} type=%{content_type} ip=%{remote_ip}\n' \
+                "https://$host$path" || true
+              head -c 90 /tmp/clara-probe-body 2>/dev/null | tr '\n' ' '
+              echo
+            done
+          done
+      - name: Instalar navegador Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Verificar carregamento em navegador limpo Android e desktop
+        shell: bash
+        run: |
+          python tests/probe_public_vercel.py
