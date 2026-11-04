@@ -11,8 +11,9 @@ class ReleaseHandler(SimpleHTTPRequestHandler):
         if path in {"/sw.js", "/version.json"}:
             # O hosting publica esses recursos sem cache; não simular uma
             # resposta 304 só porque os builds de teste têm o mesmo mtime.
-            self.headers.pop("If-Modified-Since", None)
-            self.headers.pop("If-None-Match", None)
+            for header in ("If-Modified-Since", "If-None-Match"):
+                if header in self.headers:
+                    del self.headers[header]
         return super().send_head()
 
     def end_headers(self):
