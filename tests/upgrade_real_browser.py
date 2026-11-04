@@ -80,6 +80,31 @@ async def main():
                 if(r.installing||r.waiting)throw Error('Instalação inicial inconclusa');
             }""")
 
+            # Monitorar mudanças do ciclo de vida ANTES de publicar o release.
+            await page.evaluate("""() => {
+                const trace=[];
+                window.__claraTrace=trace;
+                const push=(kind,extra={})=>{
+                    trace.push({kind,time:Date.now(),...extra});
+                    if(trace.length>180)trace.shift();
+                };
+                navigator.serviceWorker.getRegistration().then(reg=>{
+                    push('attached',{active:reg?.active?.state||null});
+                    reg?.addEventListener('updatefound',()=>{
+                        const w=reg.installing;
+                        push('updatefound',{script:w?.scriptURL,state:w?.state});
+                        w?.addEventListener('statechange',()=>{
+                            push('statechange',{state:w.state,
+                                waiting:reg.waiting?.state||null,
+                                active:reg.active?.state||null});
+                        });
+                    });
+                });
+                navigator.serviceWorker.addEventListener('controllerchange',()=>push('controllerchange'));
+            }""")
+            page.on("console",lambda m:print("BROWSER",m.type,m.text[:200],flush=True)
+                    if m.type in ("error","warning") else None)
+            page.on("requestfailed",lambda r:print("FETCH_FAIL",r.url,r.failure,flush=True))
             switch_to(NEXT)
             # Apenas um pedido do atualizador da revisão instalada.
             # A confirmação não pode ocorrer até que o pacote esteja integral.
@@ -114,6 +139,21 @@ async def main():
                 };
             }""")
             print('V2 UPGRADER SNAPSHOT',snapshot,flush=True)
+            print('V2 SW TRACE',
+                await page.evaluate("window.__claraTrace||[]"),flush=True)
+            network=await page.evaluate("""async () => {
+                const out={};
+                for(const name of ['sw.js','index.html','clara-updater.js','version.json']){
+                    try{
+                        const r=await fetch('./'+name+'?diag='+Date.now(),{cache:'no-store'});
+                        const body=await r.text();
+                        out[name]={status:r.status,size:body.length,
+                            version:body.includes("4.4.2-rc")};
+                    }catch(e){out[name]={error:String(e)};}
+                }
+                return out;
+            }""")
+            print('V2 NETWORK DIAGNOSTIC',network,flush=True)
             applied=await page.evaluate("window.ClaraUpdate.apply()")
             assert applied is True,{"applied":applied,"dialogs":messages,
                                    "status":await page.evaluate("window.ClaraUpdate.status")}
