@@ -6,7 +6,7 @@ const ClaraUpdate=(()=>{
  const INSTALLED_VERSION=CLARA_APP_VERSION;
  const INSTALLED_CACHE=typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:'';
  const DISMISS_KEY='clara-update-dismissed-v2';
- const NETWORK_TIMEOUT=12000,PREPARE_TIMEOUT=120000,ACTIVATE_TIMEOUT=30000,RESUME=15*60*1000;
+ const NETWORK_TIMEOUT=12000,NO_WORKER_TIMEOUT=20000,PREPARE_TIMEOUT=120000,ACTIVATE_TIMEOUT=30000,RESUME=15*60*1000;
  let registration=null,registrationBuild='',registering=null,checking=null,applying=false,ready=false,reopenReady=false;
  const observedRegistrations=new WeakSet();
  let remoteVersion='',remoteCache='',releaseNotes=[],lastCheck=0,progress=null;
@@ -133,17 +133,22 @@ const ClaraUpdate=(()=>{
   if(prepared())return;
   if(!newer()){stopPreparing();setStatus('Atualizado','Você está usando a versão '+INSTALLED_VERSION+'.');return;}
   if(!startedPreparing)startedPreparing=Date.now();
-  const idle=Date.now()-(lastProgress||startedPreparing);
-  if(idle>=PREPARE_TIMEOUT){
-   stopPreparing();setStatus('Falha ao preparar','Tempo de preparação esgotado. Tente novamente sem limpar os dados.');return;
-  }
   const worker=registration?.installing;
+  const timeout=worker||progress?.total?PREPARE_TIMEOUT:NO_WORKER_TIMEOUT;
+  const idle=Date.now()-(lastProgress||startedPreparing);
+  if(idle>=timeout){
+   stopPreparing();
+   const detail=worker||progress?.total
+    ?'Tempo de preparação esgotado. Tente novamente sem limpar os dados.'
+    :'O navegador não iniciou o download. Tente novamente; seus dados permanecem protegidos.';
+   setStatus('Falha ao preparar',detail);return;
+  }
   const detail=progress?.total
    ?'Arquivos offline '+progress.done+'/'+progress.total+'; verificando pacote completo.'
    :worker?'O navegador está validando a nova versão.':'Aguardando o download da nova versão.';
   setStatus('Preparando atualização',detail);
   clearTimeout(installTimer);
-  installTimer=setTimeout(prepare,Math.min(5000,PREPARE_TIMEOUT-idle));
+  installTimer=setTimeout(prepare,Math.min(5000,timeout-idle));
  }
  function bind(){
   if(listenerBound)return;listenerBound=true;
@@ -222,7 +227,7 @@ const ClaraUpdate=(()=>{
   if(checking)return checking;
   checking=(async()=>{
    try{
-    const reg=await register();
+    let reg=await register();
     if(!reg)return false;
     setStatus('Verificando','Consultando a revisão publicada…');
     const remote=await latest();
