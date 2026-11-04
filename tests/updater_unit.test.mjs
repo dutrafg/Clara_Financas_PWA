@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const updaterSource=await readFile('clara-updater.js','utf8');
 const workerSource=(await readFile('sw.js','utf8'))
- .replace('__CLARA_CACHE_NAME__','clara-v2-4-4-0-rc-testhash');
-const cacheName='clara-v2-4-4-0-rc-testhash';
+ .replace('__CLARA_CACHE_NAME__','clara-v2-4-4-1-rc-testhash');
+const cacheName='clara-v2-4-4-1-rc-testhash';
 
 function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=false,installing=false,update=()=>Promise.resolve()}={}){
  const elements=new Map(),listeners=new Map(),regListeners=new Map();
@@ -33,13 +33,13 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
  const dom={getElementById:id=>elements.get(id)||null,
   addEventListener(){},hidden:false};
  const sandbox={window:win,navigator:nav,document:dom,
-  location:{protocol:'https:',reload(){reloads++;}},
+  location:{protocol:'https:',href:'https://clara.test/app/',reload(){reloads++;}},
   localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},
   fetch:async(input)=>String(input).includes('index.html?clara-repair=')
    ?{ok:true,text:async()=>"<script>const CLARA_BOOT_CACHE='"+remoteCache+"';</script>"}
    :{ok:true,json:async()=>({
      version:remoteVersion,cache:remoteCache,notes:['Nova revisão.']})},
-  CLARA_APP_VERSION:'4.4.0-rc',CLARA_BOOT_CACHE:cacheName,
+  CLARA_APP_VERSION:'4.4.1-rc',CLARA_BOOT_CACHE:cacheName,
   AbortController,Date,URL,Promise,Math,WeakSet,BigInt,Error,Response,Request,
   setTimeout(){return 1;},clearTimeout(){},setInterval(){return 1;},
   showToast(){}};
@@ -87,14 +87,14 @@ test('SemVer distingue releases e pré-releases',()=>{
 });
 
 test('Revisão idêntica não exibe atualização',async()=>{
- const h=app({remoteVersion:'4.4.0-rc',remoteCache:cacheName});
+ const h=app({remoteVersion:'4.4.1-rc',remoteCache:cacheName});
  await h.api.init();
  assert.equal(h.api.status,'Atualizado');
  assert.equal(h.elements.get('applyClaraUpdate').hidden,true);
 });
 
 test('Revisão alterada, mesmo SemVer, pode ser instalada',async()=>{
- const h=app({remoteVersion:'4.4.0-rc',remoteCache:'clara-v2-4-4-0-rc-newhash',waiting:true});
+ const h=app({remoteVersion:'4.4.1-rc',remoteCache:'clara-v2-4-4-1-rc-newhash',waiting:true});
  assert.equal(await h.api.check(true),true);
  assert.equal(h.api.ready,true);
  assert.equal(h.elements.get('applyClaraUpdate').hidden,false);

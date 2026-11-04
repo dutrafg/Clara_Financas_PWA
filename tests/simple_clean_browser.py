@@ -65,6 +65,48 @@ async def main():
       assert await page.locator('#view-mov .clara-simple-line').count()==3
       assert await page.locator('#claraSimpleTxSearch').input_value()==''
 
+      # Uma lista extensa deve permitir acessar TODAS as transações, inclusive
+      # as que antes eram silenciosamente omitidas após o 80º registro.
+      await page.evaluate("""() => {
+        window.qaSavedTransactions=state.transactions;
+        const date=todayISO();
+        state.transactions=Array.from({length:137},(_,i)=>({
+          id:'qa-page-'+i,description:'Compra progressiva '+i,
+          date,paidAt:date,kind:'Despesa',category:'Alimentação',
+          amountCents:100+i,status:'Realizado',accountId:'principal',toAccountId:''
+        }));
+        renderMov();
+      }""")
+      assert await page.locator('#view-mov .clara-simple-line').count()==30
+      assert '30 de 137' in await page.locator('.clara-tx-result-count').inner_text()
+      assert await page.locator('[data-simple-more-tx]').is_visible()
+      await page.locator('[data-simple-more-tx]').click()
+      assert await page.locator('#view-mov .clara-simple-line').count()==60
+      await page.locator('[data-simple-more-tx]').click()
+      assert await page.locator('#view-mov .clara-simple-line').count()==90
+      assert await page.locator('#view-mov .clara-simple-line [data-edit-tx]').count()==90
+      # A busca consulta os 137 registros, e não somente a página renderizada.
+      await page.locator('#claraSimpleTxSearch').fill('Compra progressiva 136')
+      assert await page.locator('#view-mov .clara-simple-line').count()==1
+      assert 'progressiva 136' in await page.locator('#view-mov .clara-simple-line').inner_text()
+      await page.locator('#claraSimpleTxSearch').fill('')
+      assert await page.locator('#view-mov .clara-simple-line').count()==30
+      for _ in range(4):
+        button=page.locator('[data-simple-more-tx]')
+        if not await button.count():break
+        await button.click()
+      assert await page.locator('#view-mov .clara-simple-line').count()==137
+      assert '137 de 137' in await page.locator('.clara-tx-result-count').inner_text()
+      assert await page.locator('[data-simple-more-tx]').count()==0
+      assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
+      # Devolver a fixture original aos demais cenários financeiros.
+      await page.evaluate("""() => {
+        state.transactions=window.qaSavedTransactions;
+        delete window.qaSavedTransactions;
+        renderMov();
+      }""")
+      assert await page.locator('#view-mov .clara-simple-line').count()==3
+
       await page.locator('#view-mov [data-clw-kind="Receita"]').click()
       await page.wait_for_function("document.getElementById('modalBg').dataset.claraKind==='Receita'")
       assert await page.locator('#modalBg').is_visible()

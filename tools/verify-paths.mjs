@@ -17,7 +17,7 @@ assert.deepEqual([manifest.id,manifest.start_url,manifest.scope],['./','./','./'
 assert.ok(html.includes('Clara Finanças RC'+pkg.version.split('.').slice(0,2).join('.')),'Título da interface divergente');
 assert.ok(html.includes('href="./manifest.webmanifest"'),'Manifesto não referenciado');
 assert.ok(html.includes('src="./clara-updater.js"'),'Atualizador fora do pacote principal');
-assert.ok((await text(root,'clara-updater.js')).includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
+assert.ok((await text(root,'clara-updater.js')).includes("navigator.serviceWorker.register(scriptURL.href,{scope:'./',updateViaCache:'none'})"),'Service Worker fora do caminho canônico');
 const hash=createHash('sha256');
 hash.update(pkg.version+'\n');
 for (const path of files){hash.update(path+'\n');hash.update(await get(root,path));}

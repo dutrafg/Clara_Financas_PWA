@@ -53,7 +53,7 @@ async def run():
                     original[FILES[3]].replace(
                         f"const CLARA_BOOT_CACHE='{cache}';",
                         f"const CLARA_BOOT_CACHE='{candidate}';",1).replace(
-                        "const CLARA_APP_VERSION='4.4.0-rc';",
+                        "const CLARA_APP_VERSION='4.4.1-rc';",
                         "const CLARA_APP_VERSION='9.9.9-rc';",1))
                 # O próprio botão de atualização aciona registro e instalação.
                 await page.evaluate("ClaraUpdate.check(true)")

@@ -1,4 +1,4 @@
-"""QA v2: download travado recuperável, cofre intacto e ação de nova tentativa."""
+"""QA v2: falha de registro recuperável, cofre intacto e ação de nova tentativa."""
 import asyncio
 from playwright.async_api import async_playwright
 
@@ -35,11 +35,14 @@ async def run():
                             ?Promise.resolve(new Response(JSON.stringify({
                                 version:'9.9.9-rc',
                                 cache:'clara-v2-9-9-9-rc-qa-timeout',
-                                notes:['Timeout artificial de QA']
+                                notes:['Falha simulada de registro do pacote']
                             }),{status:200,headers:{'content-type':'application/json'}}))
                             :nativeFetch(input,options);
-                        ServiceWorkerRegistration.prototype.update=()=>
-                            new Promise(()=>{});
+                        const nativeRegister=navigator.serviceWorker.register.bind(navigator.serviceWorker);
+                        navigator.serviceWorker.register=(scriptURL,options)=>
+                            String(scriptURL).includes('build=clara-v2-9-9-9-rc-qa-timeout')
+                            ?Promise.reject(new Error('Falha simulada ao registrar pacote futuro'))
+                            :nativeRegister(scriptURL,options);
                     }""")
                     result=await page.evaluate("ClaraUpdate.check(true)")
                     assert result is False

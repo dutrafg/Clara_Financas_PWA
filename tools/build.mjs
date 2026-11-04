@@ -18,7 +18,7 @@ if(pkg.version !== meta.version) throw Error('Versão divergente entre package.j
 if(!/^\d+\.\d+\.\d+(?:-[a-z\d.-]+)?$/.test(pkg.version)) throw Error('Versão inválida');
 if(manifest.id !== './' || manifest.start_url !== './' || manifest.scope !== './')
   throw Error('Manifesto precisa usar rotas relativas à instalação (id/start_url/scope = ./)');
-if(!html.includes('href="./manifest.webmanifest"') || !html.includes('src="./clara-updater.js"') || !updater.includes("serviceWorker.register('./sw.js',{updateViaCache:'none'})"))
+if(!html.includes('href="./manifest.webmanifest"') || !html.includes('src="./clara-updater.js"') || !updater.includes("navigator.serviceWorker.register(scriptURL.href,{scope:'./',updateViaCache:'none'})"))
   throw Error('Referências canônicas de manifesto e Service Worker ausentes');
 if(!serviceWorker.includes("const CACHE_NAME = '__CLARA_CACHE_NAME__';"))
   throw Error('Service Worker não contém marcador de cache versionado');

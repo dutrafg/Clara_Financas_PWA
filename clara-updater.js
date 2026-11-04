@@ -7,7 +7,8 @@ const ClaraUpdate=(()=>{
  const INSTALLED_CACHE=typeof CLARA_BOOT_CACHE==='string'?CLARA_BOOT_CACHE:'';
  const DISMISS_KEY='clara-update-dismissed-v2';
  const NETWORK_TIMEOUT=12000,PREPARE_TIMEOUT=120000,ACTIVATE_TIMEOUT=30000,RESUME=15*60*1000;
- let registration=null,registering=null,checking=null,applying=false,ready=false,reopenReady=false;
+ let registration=null,registrationBuild='',registering=null,checking=null,applying=false,ready=false,reopenReady=false;
+ const observedRegistrations=new WeakSet();
  let remoteVersion='',remoteCache='',releaseNotes=[],lastCheck=0,progress=null;
  let status='Aguardando',message='Verificação automática após iniciar o Clara.';
  let installTimer=null,activationTimer=null,listenerBound=false;
@@ -177,17 +178,24 @@ const ClaraUpdate=(()=>{
   });
   setInterval(()=>{if(!document.hidden)check(false).catch(()=>{});},60*60*1000);
  }
- async function register(){
-  if(registration)return registration;
+ async function register(build=INSTALLED_CACHE){
+  const targetBuild=typeof build==='string'&&/^clara-v2-[a-z\d-]{1,160}$/.test(build)
+   ?build:INSTALLED_CACHE;
+  if(registration&&registrationBuild===targetBuild)return registration;
   if(registering)return registering;
   if(!('serviceWorker'in navigator)||!/^https?:$/.test(location.protocol)){
    setStatus('Indisponível','O atualizador requer HTTPS e Service Worker.');return null;
   }
   registering=(async()=>{
-   const reg=await bound(navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}),
+   const scriptURL=new URL('./sw.js',location.href);
+   scriptURL.searchParams.set('build',targetBuild);
+   const reg=await bound(navigator.serviceWorker.register(scriptURL.href,{scope:'./',updateViaCache:'none'}),
     NETWORK_TIMEOUT,'Registro do Service Worker não respondeu.');
-   registration=reg;bind();
-   reg.addEventListener('updatefound',()=>{watch(reg.installing);if(newer())prepare();});
+   registration=reg;registrationBuild=targetBuild;bind();
+   if(!observedRegistrations.has(reg)){
+    observedRegistrations.add(reg);
+    reg.addEventListener('updatefound',()=>{watch(reg.installing);if(newer())prepare();});
+   }
    watch(reg.installing);
    prepared();
    return reg;
@@ -220,6 +228,13 @@ const ClaraUpdate=(()=>{
     const remote=await latest();
     remoteVersion=remote.version;remoteCache=remote.cache;releaseNotes=remote.notes;
     lastCheck=Date.now();
+    // Amarra o script do SW ao cache publicado. A URL versionada força o
+    // navegador a buscar um ciclo novo mesmo quando a checagem anterior foi
+    // agrupada ou limitada pelo ciclo de atualização do próprio navegador.
+    if(remoteCache&&remoteCache!==registrationBuild){
+     const updatedRegistration=await register(remoteCache);
+     if(updatedRegistration)reg=updatedRegistration;
+    }
     if(prepared())return true;
     if(await activatedRemote(reg)){
      ready=false;reopenReady=true;stopPreparing();

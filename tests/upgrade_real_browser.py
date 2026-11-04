@@ -1,6 +1,7 @@
 """QA real do atualizador v2: release instalado -> release seguinte -> offline."""
 import asyncio
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -40,7 +41,9 @@ async def main():
 
     async with async_playwright() as p:
         browser=await p.chromium.launch(headless=True)
-        context=await browser.new_context(viewport={"width":390,"height":844})
+        width=int(os.environ.get("CLARA_UPGRADE_VIEWPORT","390"))
+        height=1024 if width>=768 else 844
+        context=await browser.new_context(viewport={"width":width,"height":height})
         page=await context.new_page()
         errors=[]
         page.on("pageerror",lambda e:errors.append(str(e)))
@@ -159,7 +162,7 @@ async def main():
             assert not errors,errors
             assert not offline_errors,offline_errors
             print("UPGRADE V2 OK:",before["version"],"→",after["version"],
-                  "dados cifrados preservados, pacote confirmado e offline funcional")
+                  f"{width}px, dados cifrados preservados, pacote confirmado e offline funcional")
         finally:
             await context.close()
             await browser.close()
