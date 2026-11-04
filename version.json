@@ -1,9 +1,10 @@
 {
   "name": "Clara Finanças",
-  "version": "4.4.2-rc",
+  "version": "4.4.3-rc",
   "build": "2026-11-04",
   "schema": 2,
   "notes": [
+    "Recuperação rápida do atualizador: se o navegador não iniciar o download, a tentativa segura é liberada em 20 segundos; downloads ativos mantêm o prazo completo.",
     "Atualizador: Service Worker vinculado ao hash do pacote para tornar a descoberta de novas versões previsível.",
     "Modo simples: transações em lotes de 30 com busca completa, contagem e acesso aos registros antigos.",
     "Atualizador v2 reescrito: versões por hash, pré-cache íntegro, consentimento, snapshot cifrado e rollback do pacote.",

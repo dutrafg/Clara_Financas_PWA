@@ -17,7 +17,9 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
  }
  const worker={state:'installed',sent:[],handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},
   postMessage(m){this.sent.push(m);}};
- let unregisterCalls=0,reloads=0;
+ let unregisterCalls=0,reloads=0,clock=Date.now(),timerId=0;
+ const timers=new Map();
+ class TestDate extends Date {static now(){return clock;}}
  const reg={waiting:waiting?worker:null,installing:installing?worker:null,active:{state:'activated'},
   scope:'https://clara.test/app/',update,async unregister(){unregisterCalls++;return true;},
   addEventListener(t,f){regListeners.set(t,f);}};
@@ -39,14 +41,18 @@ function app({remoteVersion='4.4.1',remoteCache='clara-v2-4-4-1-next',waiting=fa
    ?{ok:true,text:async()=>"<script>const CLARA_BOOT_CACHE='"+remoteCache+"';</script>"}
    :{ok:true,json:async()=>({
      version:remoteVersion,cache:remoteCache,notes:['Nova revisão.']})},
-  CLARA_APP_VERSION:'4.4.1-rc',CLARA_BOOT_CACHE:cacheName,
-  AbortController,Date,URL,Promise,Math,WeakSet,BigInt,Error,Response,Request,
-  setTimeout(){return 1;},clearTimeout(){},setInterval(){return 1;},
+  CLARA_APP_VERSION:'4.4.2-rc',CLARA_BOOT_CACHE:cacheName,
+  AbortController,Date:TestDate,URL,Promise,Math,WeakSet,BigInt,Error,Response,Request,
+  setTimeout(callback,delay=0){const id=++timerId;timers.set(id,{callback,due:clock+delay});return id;},
+  clearTimeout(id){timers.delete(id);},setInterval(){return 1;},
   showToast(){}};
  vm.runInNewContext(updaterSource,sandbox,{filename:'clara-updater.js'});
  return {api:win.ClaraUpdate,window:win,worker,reg,elements,events,listeners,regListeners,
   get flushes(){return flushes;},get backups(){return backups;},
-  get unregisterCalls(){return unregisterCalls;},get reloads(){return reloads;}};
+  get unregisterCalls(){return unregisterCalls;},get reloads(){return reloads;},
+  advance(ms){clock+=ms;for(const [id,timer] of [...timers])if(timer.due<=clock){
+   timers.delete(id);timer.callback();
+  }} };
 }
 function worker(){
  const scope='https://clara.test/app/',handlers=new Map(),records=new Map(),messages=[];
@@ -106,6 +112,17 @@ test('Um Service Worker já aguardando não dispara outra instalação',async()=
  await h.api.check(true);
  assert.equal(updates,0);
  assert.equal(h.api.status,'Atualização disponível');
+});
+
+test('Preparação sem worker libera recuperação em 20 segundos',async()=>{
+ const h=app({remoteVersion:'4.4.3-rc',remoteCache:'clara-v2-4-4-3-rc-future'});
+ assert.equal(await h.api.check(true),false);
+ assert.equal(h.api.status,'Preparando atualização');
+ assert.equal(h.elements.get('applyClaraUpdate').disabled,true);
+ h.advance(20001);
+ assert.equal(h.api.status,'Falha ao preparar');
+ assert.equal(h.elements.get('applyClaraUpdate').textContent,'Tentar novamente');
+ assert.equal(h.elements.get('applyClaraUpdate').disabled,false);
 });
 
 test('O usuário precisa aprovar snapshot antes do SKIP_WAITING',async()=>{
