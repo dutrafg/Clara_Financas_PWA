@@ -54,6 +54,15 @@ jobs:
           cp -a dist qa-upgrade/old/dist
           git archive HEAD | tar -x -C qa-upgrade/next
           python tests/build_future_fixture.py
+      - name: Preparar fixture da instalação 4.4.0 para upgrade legado
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-upgrade/legacy-source qa-upgrade/legacy qa-upgrade/current
+          git archive b77c0c1f35c3a06d86d7bf7e4243872ddfe8f91d | tar -x -C qa-upgrade/legacy-source
+          npm --prefix qa-upgrade/legacy-source run build
+          cp -a qa-upgrade/legacy-source/dist qa-upgrade/legacy/dist
+          cp -a dist qa-upgrade/current/dist
       - name: Instalar Playwright
         run: |
           python -m pip install --upgrade pip
@@ -70,6 +79,20 @@ jobs:
             echo "Upgrade real Chromium: ${width}px"
             CLARA_UPGRADE_VIEWPORT="$width" python tests/upgrade_real_browser.py
           done 2>&1 | tee /tmp/clara-upgrade-browser.log
+      - name: Validar atualização de instalação 4.4.0-rc para a versão atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8767 --directory qa-upgrade/site > /tmp/clara-legacy-upgrade-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for width in 390 768 1440; do
+            echo "Upgrade legado 4.4.0 Chromium: ${width}px"
+            CLARA_UPGRADE_VIEWPORT="$width" \
+            CLARA_UPGRADE_OLD_DIST=qa-upgrade/legacy/dist \
+            CLARA_UPGRADE_NEXT_DIST=qa-upgrade/current/dist \
+              python tests/upgrade_real_browser.py
+          done 2>&1 | tee /tmp/clara-legacy-upgrade-browser.log
       - name: Testar no Chromium com servidor de distribuição
         shell: bash
         run: |
@@ -206,6 +229,8 @@ jobs:
             /tmp/clara-miniapps-extended.log
             /tmp/clara-version-paths-browser.log
             /tmp/clara-upgrade-browser.log
+            /tmp/clara-legacy-upgrade-browser.log
+            /tmp/clara-legacy-upgrade-server.log
             /tmp/clara-upgrade-server.log
             /tmp/clara-updater-recovery-browser.log
             /tmp/clara-updater-rollback-browser.log
