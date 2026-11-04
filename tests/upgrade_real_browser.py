@@ -8,8 +8,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 ROOT=Path("qa-upgrade")
-ORIGINAL=ROOT/"old"/"dist"
-NEXT=ROOT/"next"/"dist"
+ORIGINAL=Path(os.environ.get("CLARA_UPGRADE_OLD_DIST",ROOT/"old"/"dist"))
+NEXT=Path(os.environ.get("CLARA_UPGRADE_NEXT_DIST",ROOT/"next"/"dist"))
 LIVE=ROOT/"site"
 URL="http://127.0.0.1:8767/"
 PASSWORD="Clara-Upgrade-V2-QA-2026!"
